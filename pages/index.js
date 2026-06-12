@@ -487,6 +487,16 @@ function FixtureInputs({ fixtures, predictions, setPredictions }) {
 function Leaderboard({ ranked, fixtures, settings, maxPts, pot }) {
   const [view, setView] = useState('leaderboard');
 
+  const now = new Date();
+
+  const entryDeadline = settings.entry_deadline
+    ? new Date(settings.entry_deadline)
+    : null;
+
+  const predictionsReleased =
+    settings.entries_released ||
+    (entryDeadline && now >= entryDeadline);
+
   return (
     <section className="card">
       <h2>Leaderboard</h2>
@@ -507,7 +517,7 @@ function Leaderboard({ ranked, fixtures, settings, maxPts, pot }) {
         <button
           className={view === 'predictions' ? 'on' : ''}
           onClick={() => setView('predictions')}
-          disabled={!settings.entries_released}
+          disabled={!predictionsReleased}
         >
           All Predictions
         </button>
@@ -542,14 +552,14 @@ function Leaderboard({ ranked, fixtures, settings, maxPts, pot }) {
         </table>
       )}
 
-      {view === 'predictions' && settings.entries_released && (
+      {view === 'predictions' && predictionsReleased && (
         <>
           <h3>All Predictions</h3>
           <EntriesMatrix entries={ranked} fixtures={fixtures} />
         </>
       )}
 
-      {!settings.entries_released && (
+      {!predictionsReleased && (
         <p>All predictions will be shown here once entries are released.</p>
       )}
     </section>
