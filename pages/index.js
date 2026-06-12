@@ -70,14 +70,21 @@ export default function Home() {
         });
       });
 
- useEffect(() => {
+useEffect(() => {
   load();
 
-  const timer = setInterval(() => {
+  const clockTimer = setInterval(() => {
     setNow(new Date());
   }, 1000);
 
-  return () => clearInterval(timer);
+  const dataTimer = setInterval(() => {
+    load();
+  }, 60000);
+
+  return () => {
+    clearInterval(clockTimer);
+    clearInterval(dataTimer);
+  };
 }, []);
 
   async function validateAdminPassword() {
