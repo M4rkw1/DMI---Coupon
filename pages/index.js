@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import html2canvas from 'html2canvas';
+
 
 const resultOf = (h,a)=> h>a?'H':h<a?'A':'D';
 function points(pred, fix){
