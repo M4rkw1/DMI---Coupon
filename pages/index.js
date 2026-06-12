@@ -141,7 +141,32 @@ export default function Home() {
 
   const maxPts = fixtures.length * 3;
   const pot = entries.filter(e => e.paid).length * Number(settings.entry_fee || 0);
+const parseKickoff = kickoff => {
+  if (!kickoff) return null;
 
+  const [datePart, timePart] = String(kickoff).trim().split(' ');
+  if (!datePart || !timePart) return null;
+
+  const [day, month, year] = datePart.split('/').map(Number);
+  const [hour, minute] = timePart.split(':').map(Number);
+
+  if (!day || !month || !year) return null;
+
+  return new Date(year, month - 1, day, hour || 0, minute || 0);
+};
+
+const firstKickoff = fixtures
+  .map(f => parseKickoff(f.kickoff))
+  .filter(Boolean)
+  .sort((a, b) => a - b)[0];
+
+const entryDeadline = firstKickoff
+  ? new Date(firstKickoff.getTime() - 60 * 1000)
+  : null;
+
+const entriesOpen = entryDeadline
+  ? new Date() < entryDeadline
+  : true;
   async function adminAction(action, payload) {
     const r = await fetch('/api/admin', {
       method: 'POST',
@@ -168,7 +193,11 @@ export default function Home() {
   }
 
   async function submitEntry(e) {
-    e.preventDefault();
+  e.preventDefault();
+
+  if (!entriesOpen) {
+    return setMsg('Entries are now closed for this coupon');
+  }
 
     const r = await fetch('/api/entry', {
       method: 'POST',
