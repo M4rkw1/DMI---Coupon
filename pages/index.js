@@ -34,6 +34,7 @@ export default function Home() {
   const [admin, setAdmin] = useState('');
   const [isAdmin, setIsAdmin] = useState(false);
   const [msg, setMsg] = useState('');
+  const [now, setNow] = useState(new Date());
   const [form, setForm] = useState({
     name: '',
     department: '',
@@ -69,9 +70,15 @@ export default function Home() {
         });
       });
 
-  useEffect(() => {
-    load();
-  }, []);
+ useEffect(() => {
+  load();
+
+  const timer = setInterval(() => {
+    setNow(new Date());
+  }, 1000);
+
+  return () => clearInterval(timer);
+}, []);
 
   async function validateAdminPassword() {
     try {
