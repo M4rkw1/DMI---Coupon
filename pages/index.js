@@ -235,8 +235,12 @@ const countdownText =
     const j = await r.json();
 
     if (!r.ok) {
-      return setMsg(j.error || 'Entry failed');
-    }
+
+  setMsg(j.error || 'Entry failed');
+
+  return;
+
+}
 
     setMsg('Entry submitted ✅');
     setForm({ name: '', department: '', predictions: {} });
