@@ -369,9 +369,19 @@ const countdownText =
             </p>
           )}
 
-          <button className="primary">
-            Submit Entry
-          </button>
+         <button
+
+  type="submit"
+
+  className="primary"
+
+  disabled={!entriesOpen}
+
+>
+
+  {entriesOpen ? 'Submit Entry' : 'Entries Closed'}
+
+</button>
         </form>
       </>
     )}
