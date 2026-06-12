@@ -640,10 +640,13 @@ function OldSchool({ week, fixtures, settings, maxPts }) {
             </tr>
           ))}
         </tbody>
-      </table>
+          </table>
 
       <h3>Rules</h3>
-      <p>{settings.rules}</p>
+          
+    <p className="rules">
+  {settings.rules}
+</p>
       <p>
         <b>1 point</b> correct result | <b>3 points</b> correct score | Max {maxPts}
       </p>
