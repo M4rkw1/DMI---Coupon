@@ -245,14 +245,17 @@ const entriesOpen = entryDeadline
           <section className="card">
             <h1>{week.title || 'DMI Coupon'}</h1>
             <p>{week.subtitle}</p>
-            <div className="stats">
-              <b>{fixtures.length}</b> fixtures <b>{maxPts}</b> max points{' '}
-              <b>
-                {sym(settings.currency)}
-                {pot}
-              </b>{' '}
-              pot
-            </div>
+          <div className="stats">
+  <b>{fixtures.length}</b> fixtures
+  <b>{entries.length}</b> entries
+  <b>{entries.filter(e => e.paid).length}</b> paid
+  <b>{maxPts}</b> max points
+  <b>
+    {sym(settings.currency)}
+    {pot}
+  </b>{' '}
+  pot
+</div>
             <p>{settings.rules}</p>
           </section>
         )}
