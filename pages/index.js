@@ -544,13 +544,13 @@ function Leaderboard({ ranked, fixtures, settings, maxPts, pot }) {
 
       {view === 'predictions' && settings.entries_released && (
         <>
-          <h3>Full Game Inputs</h3>
+          <h3>All Predictions</h3>
           <EntriesMatrix entries={ranked} fixtures={fixtures} />
         </>
       )}
 
       {!settings.entries_released && (
-        <p>Predictions will be available once entries are released.</p>
+        <p>All predictions will be shown here once entries are released.</p>
       )}
     </section>
   );
