@@ -276,7 +276,15 @@ const countdownText =
   </b>{' '}
   pot
 </div>
-            <p>{settings.rules}</p>
+            {entryDeadline && (
+  <p>
+    {entriesOpen
+  ? `⏰ Entries close in: ${countdownText}`
+  : `🔒 Entries closed at ${entryDeadline.toLocaleString('en-GB')}`
+}
+</p>
+)}
+  <p>{settings.rules}</p>
           </section>
         )}
 
