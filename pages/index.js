@@ -485,52 +485,76 @@ function FixtureInputs({ fixtures, predictions, setPredictions }) {
 }
 
 function Leaderboard({ ranked, fixtures, settings, maxPts, pot }) {
+  const [view, setView] = useState('leaderboard');
+
   return (
     <section className="card">
       <h2>Leaderboard</h2>
+
       <p>
         Max points: {maxPts} | Pot: {sym(settings.currency)}
         {pot}
       </p>
 
-      <table>
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>Name</th>
-            <th>Paid</th>
-            <th>Exact</th>
-            <th>Points</th>
-          </tr>
-        </thead>
-        <tbody>
-          {ranked.map((e, i) => (
-            <tr key={e.id}>
-              <td>{i + 1}</td>
-              <td>
-                {e.name} {e.department}
-              </td>
-              <td>{e.paid ? '✅' : '❌'}</td>
-              <td>{e.exact}</td>
-              <td>
-                <b>{e.pts}</b>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <div className="tabs">
+        <button
+          className={view === 'leaderboard' ? 'on' : ''}
+          onClick={() => setView('leaderboard')}
+        >
+          Leaderboard
+        </button>
 
-      {settings.entries_released && (
+        <button
+          className={view === 'predictions' ? 'on' : ''}
+          onClick={() => setView('predictions')}
+          disabled={!settings.entries_released}
+        >
+          All Predictions
+        </button>
+      </div>
+
+      {view === 'leaderboard' && (
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Name</th>
+              <th>Paid</th>
+              <th>Exact</th>
+              <th>Points</th>
+            </tr>
+          </thead>
+          <tbody>
+            {ranked.map((e, i) => (
+              <tr key={e.id}>
+                <td>{i + 1}</td>
+                <td>
+                  {e.name} {e.department}
+                </td>
+                <td>{e.paid ? '✅' : '❌'}</td>
+                <td>{e.exact}</td>
+                <td>
+                  <b>{e.pts}</b>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+
+      {view === 'predictions' && settings.entries_released && (
         <>
-          <hr />
           <h3>Full Game Inputs</h3>
           <EntriesMatrix entries={ranked} fixtures={fixtures} />
         </>
       )}
+
+      {!settings.entries_released && (
+        <p>Predictions will be available once entries are released.</p>
+      )}
     </section>
   );
 }
-
 function EntriesMatrix({ entries, fixtures }) {
   return (
     <div className="scroll">
