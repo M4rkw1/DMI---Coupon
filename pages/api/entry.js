@@ -26,12 +26,12 @@ export default async function handler(req, res) {
 
     const db = supabaseAdmin();
 
-    const { data: fixtures, error: fixturesError } = await db
+    const { data: fixtures, error: fixtureError } = await db
       .from('fixtures')
       .select('kickoff')
       .eq('week_id', week_id);
 
-    if (fixturesError) throw fixturesError;
+    if (fixtureError) throw fixtureError;
 
     const firstKickoff = (fixtures || [])
       .map(f => parseKickoff(f.kickoff))
@@ -44,7 +44,7 @@ export default async function handler(req, res) {
 
     if (entryDeadline && new Date() >= entryDeadline) {
       return res.status(403).json({
-        error: `Entries closed at ${entryDeadline.toLocaleString('en-GB')}`,
+        error: 'Entries are now closed for this coupon',
       });
     }
 
@@ -63,8 +63,8 @@ export default async function handler(req, res) {
 
     if (error) throw error;
 
-    return res.status(200).json({ entry: data });
+    res.status(200).json({ entry: data });
   } catch (e) {
-    return res.status(500).json({ error: e.message });
+    res.status(500).json({ error: e.message });
   }
 }
