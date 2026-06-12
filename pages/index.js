@@ -168,7 +168,7 @@ const firstKickoff = fixtures
   .sort((a, b) => a - b)[0];
 
 const entryDeadline = firstKickoff
-  ? new Date(firstKickoff.getTime() - 60 * 1000)
+? new Date(firstKickoff.getTime() + 24 * 60 * 60 * 1000)
   : null;
 
 const entriesOpen = entryDeadline
