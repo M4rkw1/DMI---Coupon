@@ -301,17 +301,16 @@ th {
   }
 
   .paper {
-    width: 100%;
-    max-width: none;
-    height: auto;
-    border: 0;
-    box-shadow: none;
-    padding: 8px;
-    font-size: 11px;
-    page-break-inside: avoid;
-    transform: scale(0.92);
-    transform-origin: top left;
-  }
+  width: 100%;
+  max-width: none;
+  height: 190mm;
+  overflow: hidden;
+  border: 0;
+  box-shadow: none;
+  padding: 4px;
+  font-size: 8px;
+  page-break-inside: avoid;
+}
 
   .paper h1 {
     font-size: 22px;
