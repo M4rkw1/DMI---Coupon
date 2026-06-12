@@ -290,7 +290,21 @@ const entriesOpen = entryDeadline
                 setPredictions={p => setForm({ ...form, predictions: p })}
               />
 
-              <button className="primary">Submit Entry</button>
+              {entryDeadline && (
+  <p>
+    {entriesOpen
+      ? `Entries close: ${entryDeadline.toLocaleString('en-GB')}`
+      : `Entries closed at ${entryDeadline.toLocaleString('en-GB')}`
+    }
+  </p>
+)}
+
+<button
+  className="primary"
+  disabled={!entriesOpen}
+>
+  {entriesOpen ? 'Submit Entry' : 'Entries Closed'}
+</button>
             </form>
           </section>
         )}
