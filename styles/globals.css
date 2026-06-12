@@ -273,19 +273,71 @@ th {
 
 /* Print */
 @media print {
+  @page {
+    size: A4 landscape;
+    margin: 8mm;
+  }
+
   header,
   button,
   .msg {
     display: none;
   }
 
+  body {
+    background: white;
+  }
+
   .wrap {
     max-width: none;
     margin: 0;
+    padding: 0;
+  }
+
+  .card {
+    box-shadow: none;
+    margin: 0;
+    padding: 0;
   }
 
   .paper {
+    width: 100%;
+    max-width: none;
+    height: auto;
     border: 0;
     box-shadow: none;
+    padding: 8px;
+    font-size: 11px;
+    page-break-inside: avoid;
+    transform: scale(0.92);
+    transform-origin: top left;
+  }
+
+  .paper h1 {
+    font-size: 22px;
+    margin: 0 0 6px;
+  }
+
+  .paper p {
+    margin: 4px 0;
+    line-height: 1.15;
+  }
+
+  .paper .rules {
+    white-space: nowrap;
+    font-size: 8px;
+    line-height: 1;
+  }
+
+  .fixture,
+  table,
+  th,
+  td {
+    font-size: 10px;
+  }
+
+  input {
+    height: 18px;
+    padding: 2px;
   }
 }
