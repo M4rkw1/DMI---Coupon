@@ -833,34 +833,67 @@ function Admin({
           </button>
 
           <h3>Results</h3>
-          <p>Paste: FixtureID TAB HomeScore TAB AwayScore</p>
 
-          <textarea
-            value={resultText}
-            onChange={e => setResultText(e.target.value)}
-          />
+<div>
+  {fixtures.map(f => (
+    <div className="fixture" key={f.id}>
+      <span>
+        {f.home_team} v {f.away_team}
+      </span>
 
-          <button
-            onClick={() =>
-              adminAction('setResults', {
-                fixtures: resultText
-                  .split('\n')
-                  .filter(Boolean)
-                  .map(line => {
-                    const [id, home_score, away_score] = line.split('\t');
+      <input
+        type="number"
+        min="0"
+        placeholder="H"
+        value={f.home_score ?? ''}
+        onChange={e => {
+          f.home_score = e.target.value;
+          setMsg('');
+        }}
+      />
 
-                    return {
-                      id,
-                      home_score: home_score === '' ? null : Number(home_score),
-                      away_score: away_score === '' ? null : Number(away_score),
-                      status: 'FT',
-                    };
-                  }),
-              })
-            }
-          >
-            Save Results
-          </button>
+      <span>-</span>
+
+      <input
+        type="number"
+        min="0"
+        placeholder="A"
+        value={f.away_score ?? ''}
+        onChange={e => {
+          f.away_score = e.target.value;
+          setMsg('');
+        }}
+      />
+    </div>
+  ))}
+</div>
+
+<button
+  onClick={() =>
+    adminAction('setResults', {
+      fixtures: fixtures.map(f => ({
+        id: f.id,
+        home_score:
+          f.home_score === '' || f.home_score == null
+            ? null
+            : Number(f.home_score),
+        away_score:
+          f.away_score === '' || f.away_score == null
+            ? null
+            : Number(f.away_score),
+        status:
+          f.home_score === '' ||
+          f.home_score == null ||
+          f.away_score === '' ||
+          f.away_score == null
+            ? 'NS'
+            : 'FT',
+      })),
+    })
+  }
+>
+  Save Results
+</button>
         </div>
       </div>
 
