@@ -268,46 +268,75 @@ const entriesOpen = entryDeadline
 
         {tab === 'enter coupon' && (
           <section className="card">
-            <h2>Enter Coupon</h2>
-            <form onSubmit={submitEntry}>
-              <div className="grid2">
-                <input
-                  required
-                  placeholder="Name"
-                  value={form.name}
-                  onChange={e => setForm({ ...form, name: e.target.value })}
-                />
-                <input
-                  placeholder="Department"
-                  value={form.department}
-                  onChange={e => setForm({ ...form, department: e.target.value })}
-                />
-              </div>
+    {!entriesOpen ? (
+      <>
+        <h2>Entries Closed</h2>
 
-              <FixtureInputs
-                fixtures={fixtures}
-                predictions={form.predictions}
-                setPredictions={p => setForm({ ...form, predictions: p })}
-              />
+        <p>
+          Entries closed at{' '}
+          {entryDeadline?.toLocaleString('en-GB')}
+        </p>
 
-              {entryDeadline && (
-  <p>
-    {entriesOpen
-      ? `Entries close: ${entryDeadline.toLocaleString('en-GB')}`
-      : `Entries closed at ${entryDeadline.toLocaleString('en-GB')}`
-    }
-  </p>
+        <p>Good luck everyone ⚽</p>
+      </>
+    ) : (
+      <>
+        <h2>Enter Coupon</h2>
+
+        <form onSubmit={submitEntry}>
+          <div className="grid2">
+            <input
+              required
+              placeholder="Name"
+              value={form.name}
+              onChange={e =>
+                setForm({
+                  ...form,
+                  name: e.target.value,
+                })
+              }
+            />
+
+            <input
+              placeholder="Department"
+              value={form.department}
+              onChange={e =>
+                setForm({
+                  ...form,
+                  department: e.target.value,
+                })
+              }
+            />
+          </div>
+
+          <FixtureInputs
+            fixtures={fixtures}
+            predictions={form.predictions}
+            setPredictions={p =>
+              setForm({
+                ...form,
+                predictions: p,
+              })
+            }
+          />
+
+          {entryDeadline && (
+            <p>
+              Entries close:{' '}
+              {entryDeadline.toLocaleString('en-GB')}
+            </p>
+          )}
+
+          <button className="primary">
+            Submit Entry
+          </button>
+        </form>
+      </>
+    )}
+  </section>
 )}
 
-<button
-  className="primary"
-  disabled={!entriesOpen}
->
-  {entriesOpen ? 'Submit Entry' : 'Entries Closed'}
-</button>
-            </form>
-          </section>
-        )}
+
 
         {tab === 'leaderboard' && (
           <Leaderboard
