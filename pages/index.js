@@ -172,8 +172,21 @@ const entryDeadline = firstKickoff
   : null;
 
 const entriesOpen = entryDeadline
-  ? new Date() < entryDeadline
+  ? now < entryDeadline
   : true;
+
+const countdownMs = entryDeadline
+  ? entryDeadline.getTime() - now.getTime()
+  : null;
+
+const countdownText =
+  countdownMs && countdownMs > 0
+    ? `${Math.floor(countdownMs / 86400000)}d ${Math.floor(
+        (countdownMs % 86400000) / 3600000
+      )}h ${Math.floor((countdownMs % 3600000) / 60000)}m ${Math.floor(
+        (countdownMs % 60000) / 1000
+      )}s`
+    : null;
   async function adminAction(action, payload) {
     const r = await fetch('/api/admin', {
       method: 'POST',
