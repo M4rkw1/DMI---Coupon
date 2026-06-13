@@ -282,7 +282,7 @@ const countdownText =
   <b>{entries.filter(e => e.paid).length}</b> paid
   <b>{maxPts}</b> max points
   <b>
-    {sym(settings.currency)}
+    {sym(settings?.currency || 'USD')}
     {pot}
   </b>{' '}
   pot
