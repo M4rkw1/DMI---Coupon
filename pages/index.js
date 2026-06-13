@@ -617,7 +617,7 @@ function Leaderboard({ ranked, fixtures, settings, maxPts, pot }) {
   );
 }
 
-function EntriesMatrix({ entries, fixtures, settings, maxPts, pot }) {
+function EntriesMatrix({ entries, fixtures, settings = {}, maxPts, pot }) {
   const winner = entries[0];
 
   const fixtureResult = f => {
@@ -716,7 +716,7 @@ function EntriesMatrix({ entries, fixtures, settings, maxPts, pot }) {
 
         <div className="prizeBox">
           <b>Prize Fund</b>
-          <strong>{sym(settings.currency)}{pot}</strong>
+        <strong>{sym(settings?.currency || 'USD')}{pot}</strong>
         </div>
       </aside>
 
