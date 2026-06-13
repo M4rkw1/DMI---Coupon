@@ -735,22 +735,6 @@ function OldSchool({ week, fixtures, settings = {}, maxPts }) {
         1 point correct result | 3 points correct score | Max {maxPts}
       </p>
 
-      <div className="qrwrap">
-        {settings?.whatsapp_qr_url && (
-          <div>
-            <img src={settings?.whatsapp_qr_url} alt="WhatsApp QR" />
-            <b>WhatsApp Group</b>
-          </div>
-        )}
-
-        {settings?.payment_qr_url && (
-          <div>
-          <img src={settings?.payment_qr_url} alt="Payment QR" />
-            <b>Payment</b>
-          </div>
-        )}
-      </div>
-
       <button onClick={() => print()}>Print / Save PDF</button>
     </section>
   );
