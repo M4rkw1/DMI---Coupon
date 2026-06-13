@@ -600,15 +600,13 @@ function Leaderboard({ ranked, fixtures, settings, maxPts, pot }) {
       )}
 
       {view === 'predictions' && predictionsReleased && (
-        <>
-          <h3>All Predictions</h3><EntriesMatrix
+  <EntriesMatrix
   entries={ranked}
   fixtures={fixtures}
   settings={settings}
   maxPts={maxPts}
   pot={fullPot}
 />
-          <EntriesMatrix entries={ranked} fixtures={fixtures} />
         </>
       )}
 
