@@ -419,28 +419,33 @@ th {
 }
 
 .resultsMatrix th.angledHeader {
-  height: 115px;
-  min-width: 48px;
-  max-width: 48px;
-  padding: 0;
+  height: 140px;
+  min-width: 95px;
+  max-width: 95px;
   vertical-align: bottom;
   position: relative;
+  padding: 0;
   overflow: visible;
+  background: #112b5f;
+  color: white;
 }
 
 .resultsMatrix th.angledHeader span {
-  display: block;
   position: absolute;
-  bottom: 8px;
-  left: 8px;
-  width: 145px;
+  bottom: 12px;
+  left: 10px;
+  width: 140px;
   transform: rotate(-45deg);
   transform-origin: bottom left;
   white-space: nowrap;
-  font-size: 11px;
-  line-height: 1;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.1;
 }
 
+.resultsMatrix thead th {
+    overflow: visible;
+}
 .resultsMatrix .nameHeader {
   min-width: 150px;
 }
@@ -449,6 +454,39 @@ th {
   text-align: center;
   font-size: 11px;
   padding: 5px 6px;
+}
+.resultsMatrix th.angledHeader {
+    height: 140px;
+    min-width: 95px;
+    max-width: 95px;
+    vertical-align: bottom;
+    position: relative;
+    padding: 0;
+    overflow: visible;
+    background: #112b5f;
+    color: white;
+}
+
+.resultsMatrix th.angledHeader span {
+    position: absolute;
+    bottom: 12px;
+    left: 10px;
+    width: 140px;
+    transform: rotate(-45deg);
+    transform-origin: bottom left;
+    white-space: nowrap;
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1.1;
+}
+
+.resultsMatrix thead th {
+    overflow: visible;
+}
+
+.resultsMatrix .nameHeader {
+    min-width: 220px;
+    width: 220px;
 }
 
 .resultsMatrix td:first-child,
