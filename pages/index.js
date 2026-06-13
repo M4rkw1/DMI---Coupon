@@ -618,62 +618,110 @@ function EntriesMatrix({ entries, fixtures }) {
 }
 
 function OldSchool({ week, fixtures, settings, maxPts }) {
-  return (
-    <section className="paper">
-      <h1>{week.title || 'DMI Coupon'}</h1>
-      <p>{week.subtitle}</p>
 
-      <div className="grid2">
-        <p>Name: ___________________________</p>
-        <p>Department: _____________________</p>
+  return (
+
+    <section className="paper couponSheet">
+
+      <div className="couponBox">
+
+        <h1>
+
+          <span>DMI</span> Football Coupon
+
+        </h1>
+
+        <div className="couponFixtures">
+
+          {fixtures.map(f => (
+
+            <div className="couponFixture" key={f.id}>
+
+              <div className="team home">{f.home_team}</div>
+
+              <div className="scoreCell"></div>
+
+              <div className="versus">v</div>
+
+              <div className="scoreCell"></div>
+
+              <div className="team away">{f.away_team}</div>
+
+            </div>
+
+          ))}
+
+        </div>
+
       </div>
 
-      <p>Paid: □</p>
+      <div className="couponMeta">
 
-      <table>
-        <tbody>
-          {fixtures.map((f, i) => (
-            <tr key={f.id}>
-              <td>{i + 1}</td>
-              <td>
-                {f.home_team} v {f.away_team}
-              </td>
-              <td className="scorebox">___ : ___</td>
-            </tr>
-          ))}
-        </tbody>
-          </table>
+        <div>Match Date(s)</div>
 
-      <h3>Rules</h3>
-          
-    <p className="rules">
-  {settings.rules}
-</p>
-      <p>
-        <b>1 point</b> correct result | <b>3 points</b> correct score | Max {maxPts}
+        <div className="blueText">{week.subtitle}</div>
+
+        <div>Entries Submitted By</div>
+
+        <div className="redText">Thu 11th Jun 19:45</div>
+
+        <div>Name</div>
+
+        <div className="line"></div>
+
+        <div>Company / Department</div>
+
+        <div className="line"></div>
+
+      </div>
+
+      <p className="rules">
+
+        {settings.rules}
+
+      </p>
+
+      <p className="summary">
+
+        1 point correct result | 3 points correct score | Max {maxPts}
+
       </p>
 
       <div className="qrwrap">
+
         {settings.whatsapp_qr_url && (
+
           <div>
+
             <img src={settings.whatsapp_qr_url} />
+
             <b>WhatsApp Group</b>
+
           </div>
+
         )}
 
         {settings.payment_qr_url && (
+
           <div>
+
             <img src={settings.payment_qr_url} />
+
             <b>Payment</b>
+
           </div>
+
         )}
+
       </div>
 
       <button onClick={() => print()}>Print / Save PDF</button>
-    </section>
-  );
-}
 
+    </section>
+
+  );
+
+}
 function Admin({
   state,
   adminAction,
