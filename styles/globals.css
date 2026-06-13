@@ -418,14 +418,37 @@ th {
   overflow: auto;
 }
 
-.resultsMatrix th {
+.resultsMatrix th.angledHeader {
+  height: 115px;
+  min-width: 48px;
+  max-width: 48px;
+  padding: 0;
+  vertical-align: bottom;
+  position: relative;
+  overflow: visible;
+}
+
+.resultsMatrix th.angledHeader span {
+  display: block;
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  width: 145px;
+  transform: rotate(-45deg);
+  transform-origin: bottom left;
+  white-space: nowrap;
   font-size: 11px;
-  min-width: 90px;
+  line-height: 1;
+}
+
+.resultsMatrix .nameHeader {
+  min-width: 150px;
 }
 
 .resultsMatrix td {
   text-align: center;
-  font-size: 13px;
+  font-size: 11px;
+  padding: 5px 6px;
 }
 
 .resultsMatrix td:first-child,
@@ -434,9 +457,18 @@ th {
   left: 0;
   background: white;
   color: #111;
-  z-index: 3;
+  z-index: 4;
   text-align: left;
-  min-width: 130px;
+  min-width: 150px;
+}
+
+.correctResult {
+  background: #d9e8c3;
+}
+
+.exactScore {
+  background: #b8d1ef;
+  font-weight: 700;
 }
 
 .predictionSide {
