@@ -419,28 +419,16 @@ th {
 }
 
 .resultsMatrix th.angledHeader {
-  height: 135px;
-  min-width: 78px;
-  max-width: 78px;
-  vertical-align: bottom;
-  position: relative;
-  padding: 0;
-  overflow: visible;
-  background: #112b5f;
-  color: white;
+  height: 145px;
+  min-width: 82px;
+  max-width: 82px;
 }
 
 .resultsMatrix th.angledHeader span {
-  position: absolute;
-  bottom: 20px;
-  left: 10px;
-  width: 150px;
-  transform: rotate(-45deg);
-  transform-origin: bottom left;
-  white-space: nowrap;
+  bottom: 22px;
+  left: 12px;
+  width: 155px;
   font-size: 11px;
-  font-weight: 700;
-  line-height: 1;
 }
 
 .resultsMatrix thead th {
