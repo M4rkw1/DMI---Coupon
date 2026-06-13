@@ -394,7 +394,8 @@ th {
 }
 
 .leagueTableWrap {
-  max-width: 420px;
+    max-width: 500px;
+    margin: auto;
 }
 
 .leagueTable th,
