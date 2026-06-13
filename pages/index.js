@@ -295,8 +295,10 @@ const countdownText =
 }
 </p>
 )}
-  <p className="rules">
+  <p style={{ whiteSpace: 'pre-line' }}>
+
   {settings.rules}
+
 </p>
           </section>
         )}
