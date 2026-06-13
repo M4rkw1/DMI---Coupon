@@ -28,7 +28,7 @@ function points(pred, fix) {
 
 const sym = c => ({ GBP: '£', USD: '$', EUR: '€', NAD: 'N$', ZAR: 'R' }[c] || `${c} `);
 
-export default function Home() {
+export default  Home() {
   const [state, setState] = useState(null);
   const [tab, setTab] = useState('home');
   const [admin, setAdmin] = useState('');
@@ -78,7 +78,7 @@ export default function Home() {
     };
   }, []);
 
-  async function validateAdminPassword() {
+  async  validateAdminPassword() {
     try {
       const res = await fetch('/api/validate-admin', {
         method: 'POST',
@@ -174,7 +174,7 @@ export default function Home() {
         )}s`
       : null;
 
-  async function adminAction(action, payload) {
+  async  adminAction(action, payload) {
     const r = await fetch('/api/admin', {
       method: 'POST',
       headers: {
@@ -199,7 +199,7 @@ export default function Home() {
     load();
   }
 
-  async function submitEntry(e) {
+  async  submitEntry(e) {
     e.preventDefault();
 
     if (!entriesOpen) {
@@ -390,7 +390,7 @@ export default function Home() {
   );
 }
 
-function FixtureInputs({ fixtures, predictions, setPredictions }) {
+ FixtureInputs({ fixtures, predictions, setPredictions }) {
   return (
     <div>
       {fixtures.map(f => (
@@ -436,7 +436,7 @@ function FixtureInputs({ fixtures, predictions, setPredictions }) {
   );
 }
 
-function Leaderboard({ ranked, fixtures, settings = {}, maxPts, pot }) {
+ Leaderboard({ ranked, fixtures, settings = {}, maxPts, pot }) {
   const [view, setView] = useState('leaderboard');
 
   const now = new Date();
@@ -577,18 +577,29 @@ function EntriesMatrix({ entries, fixtures, settings = {}, maxPts, pot }) {
     return 'X';
   };
 
+  const predictionClass = (entry, fixture) => {
+    const pts = points(entry.predictions?.[fixture.id], fixture);
+
+    if (pts === 3) return 'exactScore';
+    if (pts === 1) return 'correctResult';
+    return '';
+  };
+
+  const stake = Number(settings?.entry_fee || 10);
+  const prizeFund = entries.length * stake;
+
   return (
     <div className="predictionLayout">
       <div className="predictionMain scroll">
         <table className="matrix resultsMatrix">
           <thead>
             <tr>
-              <th></th>
+              <th className="nameHeader"></th>
               {fixtures.map(f => (
-                <th key={f.id}>
-                  {f.home_team}
-                  <br />v<br />
-                  {f.away_team}
+                <th key={f.id} className="angledHeader">
+                  <span>
+                    {f.home_team} v {f.away_team}
+                  </span>
                 </th>
               ))}
             </tr>
@@ -596,9 +607,7 @@ function EntriesMatrix({ entries, fixtures, settings = {}, maxPts, pot }) {
 
           <tbody>
             <tr>
-              <td>
-                <b>SCORE</b>
-              </td>
+              <td><b>SCORE</b></td>
               {fixtures.map(f => (
                 <td key={f.id}>
                   {f.home_score ?? '-'}-{f.away_score ?? '-'}
@@ -607,9 +616,7 @@ function EntriesMatrix({ entries, fixtures, settings = {}, maxPts, pot }) {
             </tr>
 
             <tr>
-              <td>
-                <b>RESULT</b>
-              </td>
+              <td><b>RESULT</b></td>
               {fixtures.map(f => (
                 <td key={f.id}>{fixtureResult(f)}</td>
               ))}
@@ -617,11 +624,9 @@ function EntriesMatrix({ entries, fixtures, settings = {}, maxPts, pot }) {
 
             {entries.map(e => (
               <tr key={e.id}>
-                <td>
-                  {e.name} {e.department}
-                </td>
+                <td>{e.name} {e.department}</td>
                 {fixtures.map(f => (
-                  <td key={f.id}>
+                  <td key={f.id} className={predictionClass(e, f)}>
                     {e.predictions?.[f.id]?.home ?? ''}-
                     {e.predictions?.[f.id]?.away ?? ''}
                   </td>
@@ -643,39 +648,35 @@ function EntriesMatrix({ entries, fixtures, settings = {}, maxPts, pot }) {
               <th>Points</th>
             </tr>
           </thead>
-
           <tbody>
             {entries.map((e, i) => (
               <tr key={e.id}>
                 <td>{i + 1}</td>
-                <td>
-                  {e.name} {e.department}
-                </td>
-                <td>
-                  <b>{e.pts}</b>
-                </td>
+                <td>{e.name} {e.department}</td>
+                <td><b>{e.pts}</b></td>
               </tr>
             ))}
           </tbody>
         </table>
 
-        <div className="legendBox greenBox">1 Point for correct result</div>
+        <div className="legendBox greenBox">
+          1 Point for correct result
+        </div>
 
-        <div className="legendBox blueBox">3 Points for correct score</div>
+        <div className="legendBox blueBox">
+          3 Points for correct score
+        </div>
 
         <div className="prizeBox">
           <b>Prize Fund</b>
-          <strong>
-            {sym(settings?.currency || 'USD')}
-            {pot}
-          </strong>
+          <strong>{sym(settings?.currency || 'USD')}{prizeFund}</strong>
         </div>
       </aside>
 
       {winner && (
         <div className="winnerBanner">
-          This week&apos;s prize goes to {winner.name} {winner.department} who finishes on{' '}
-          {winner.pts} points. Congratulations and well played!
+          This week&apos;s prize goes to {winner.name} {winner.department} who finishes on {winner.pts} points.
+          Congratulations and well played!
         </div>
       )}
     </div>
