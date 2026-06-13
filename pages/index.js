@@ -78,7 +78,7 @@ export default function Home() {
     };
   }, []);
 
-  async  validateAdminPassword() {
+async function validateAdminPassword() {
     try {
       const res = await fetch('/api/validate-admin', {
         method: 'POST',
@@ -173,8 +173,8 @@ export default function Home() {
           (countdownMs % 60000) / 1000
         )}s`
       : null;
-
-  async  adminAction(action, payload) {
+  
+async function adminAction(action, payload) {
     const r = await fetch('/api/admin', {
       method: 'POST',
       headers: {
@@ -199,7 +199,7 @@ export default function Home() {
     load();
   }
 
-  async  submitEntry(e) {
+  async function submitEntry(e) {
     e.preventDefault();
 
     if (!entriesOpen) {
