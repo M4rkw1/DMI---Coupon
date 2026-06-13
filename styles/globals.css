@@ -244,6 +244,252 @@ th {
   font-weight: bold;
 }
 
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Arial, Helvetica, sans-serif;
+  background: #eef2f7;
+  color: #14213d;
+}
+
+header {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: #07172d;
+  color: #fff;
+  padding: 14px 18px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+nav {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+button {
+  border: 0;
+  border-radius: 10px;
+  padding: 10px 14px;
+  background: #dbe7ff;
+  color: #07172d;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+button.on,
+.primary {
+  background: #ffb703;
+  color: #111;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+input,
+textarea,
+select {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #bcc8d9;
+  border-radius: 10px;
+  margin: 6px 0;
+}
+
+textarea {
+  min-height: 120px;
+}
+
+.wrap {
+  max-width: 1100px;
+  margin: 22px auto;
+  padding: 0 14px;
+}
+
+.card {
+  background: #fff;
+  border-radius: 18px;
+  padding: 22px;
+  box-shadow: 0 8px 24px rgba(10, 30, 60, 0.08);
+  margin-bottom: 18px;
+}
+
+.msg {
+  background: #fff3cd;
+  border: 1px solid #ffe08a;
+  padding: 12px;
+  border-radius: 12px;
+  margin-bottom: 12px;
+}
+
+.grid2,
+.adminGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.fixture {
+  display: grid;
+  grid-template-columns: 1fr 70px 20px 70px;
+  gap: 8px;
+  align-items: center;
+  padding: 8px;
+  border-bottom: 1px solid #eef2f7;
+}
+
+.stats {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+  background: #edf6ff;
+  padding: 14px;
+  border-radius: 14px;
+  margin: 12px 0;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+}
+
+th,
+td {
+  border: 1px solid #d7dfeb;
+  padding: 8px;
+  text-align: left;
+}
+
+th {
+  background: #10294f;
+  color: #fff;
+}
+
+.scroll {
+  overflow: auto;
+}
+
+.matrix th {
+  font-size: 11px;
+  min-width: 90px;
+}
+
+.matrix td {
+  text-align: center;
+}
+
+.matrix td:first-child,
+.matrix th:first-child {
+  text-align: left;
+  position: sticky;
+  left: 0;
+  background: #fff;
+  color: #111;
+}
+
+/* Old School Coupon */
+.paper {
+  background: #fff;
+  color: #0b1f3a;
+  padding: 24px;
+  max-width: 850px;
+  margin: auto;
+  border: 2px solid #174a8b;
+}
+
+.couponSheet {
+  max-width: 850px;
+}
+
+.couponBox {
+  border: 2px solid #174a8b;
+  margin-bottom: 14px;
+}
+
+.couponBox h1 {
+  text-align: center;
+  border-top: 2px solid #174a8b;
+  border-bottom: 2px solid #174a8b;
+  margin: 4px;
+  padding: 6px;
+  font-style: italic;
+  font-size: 24px;
+  font-weight: 500;
+}
+
+.couponBox h1 span {
+  color: #174a8b;
+  font-weight: 700;
+  margin-right: 8px;
+}
+
+.couponFixtures {
+  padding: 12px 30px;
+}
+
+.couponFixture {
+  display: grid;
+  grid-template-columns: 1fr 60px 25px 60px 1fr;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+  font-size: 18px;
+}
+
+.team.home {
+  text-align: right;
+}
+
+.team.away {
+  text-align: left;
+}
+
+.scoreCell {
+  border: 2px solid #174a8b;
+  height: 26px;
+}
+
+.versus {
+  text-align: center;
+  font-style: italic;
+  font-weight: bold;
+}
+
+.couponMeta {
+  display: grid;
+  grid-template-columns: 230px 1fr;
+  gap: 12px 18px;
+  margin-top: 12px;
+  font-size: 18px;
+}
+
+.line {
+  border-bottom: 2px solid #111;
+  min-height: 24px;
+}
+
+.blueText {
+  color: #174a8b;
+  font-style: italic;
+  font-weight: bold;
+}
+
+.redText {
+  color: red;
+  font-style: italic;
+  font-weight: bold;
+}
+
 .paper .rules {
   white-space: normal;
   font-size: 7px;
@@ -251,6 +497,421 @@ th {
   margin-top: 8px;
   text-align: left;
 }
+
+.summary {
+  font-size: 13px;
+  font-weight: bold;
+  text-align: center;
+  margin-top: 6px;
+}
+
+.qrwrap {
+  display: flex;
+  justify-content: space-around;
+  gap: 20px;
+  margin-top: 18px;
+}
+
+.qrwrap img {
+  width: 120px;
+  height: 120px;
+  object-fit: contain;
+  border: 1px solid #aaa;
+}
+
+.share {
+  width: 390px;
+  min-height: 680px;
+  background: #07172d;
+  color: white;
+  border-radius: 28px;
+  padding: 28px;
+  margin: 18px 0;
+}
+
+.share h1 {
+  color: #ffb703;
+}
+
+.entriesShare {
+  background: white;
+  color: #111;
+  padding: 22px;
+  width: 1200px;
+}
+
+.adminGrid {
+  align-items: start;
+}
+
+.adminGrid textarea {
+  min-height: 170px;
+}
+
+/* Leaderboard / Prediction Tabs */
+.tabs {
+  display: flex;
+  gap: 12px;
+  margin: 20px 0;
+}
+
+.tabs button {
+  background: #e5e7eb;
+  border: none;
+  border-radius: 9999px;
+  padding: 10px 18px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.tabs button:hover:not(:disabled) {
+  background: #d1d5db;
+}
+
+.tabs button.on {
+  background: #1e3a8a;
+  color: white;
+}
+
+.tabs button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Mobile */
+@media (max-width: 700px) {
+  header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .grid2,
+  .adminGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .fixture {
+    grid-template-columns: 1fr 55px 12px 55px;
+  }
+
+  .wrap {
+    margin: 10px auto;
+  }
+
+  .card {
+    padding: 14px;
+  }
+
+  .couponFixture {
+    grid-template-columns: 1fr 45px 18px 45px 1fr;
+    font-size: 14px;
+  }
+
+  .couponMeta {
+    grid-template-columns: 1fr;
+    font-size: 14px;
+  }
+}
+
+.dashboardStats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 14px;
+  margin: 20px 0;
+}
+
+.statCard {
+  background: #edf6ff;
+  border-radius: 16px;
+  padding: 16px;
+  text-align: center;
+}
+
+.statCard small {
+  display: block;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.statCard strong {
+  font-size: 26px;
+  color: #10294f;
+}
+
+.leagueTableWrap {
+    max-width: 500px;
+    margin: auto;
+}
+
+.leagueTable th,
+.leagueTable td {
+  text-align: center;
+}
+
+.leagueTable th:nth-child(2),
+.leagueTable td:nth-child(2) {
+  text-align: left;
+}
+.predictionLayout {
+  display: grid;
+  grid-template-columns: 1fr 240px;
+  gap: 18px;
+  align-items: start;
+}
+
+.predictionMain {
+  overflow: auto;
+}
+
+.resultsMatrix th.angledHeader {
+  height: 145px;
+  min-width: 82px;
+  max-width: 82px;
+}
+
+.resultsMatrix th.angledHeader span {
+  bottom: 22px;
+  left: 12px;
+  width: 155px;
+  font-size: 11px;
+}
+
+.resultsMatrix thead th {
+  overflow: hidden;
+}
+
+.resultsMatrix .nameHeader {
+  min-width: 140px;
+  width: 140px;
+}
+
+.resultsMatrix td {
+  text-align: center;
+  font-size: 11px;
+  padding: 5px 6px;
+}
+
+.resultsMatrix td:first-child,
+.resultsMatrix th:first-child {
+  position: sticky;
+  left: 0;
+  background: white;
+  color: #111;
+  z-index: 4;
+  text-align: left;
+  min-width: 140px;
+}
+
+.correctResult {
+  background: #d9e8c3;
+}
+
+.exactScore {
+  background: #b8d1ef;
+  font-weight: 700;
+}
+
+.predictionSide {
+  border: 2px solid #111;
+  padding: 8px;
+  background: white;
+}
+
+.predictionSide h3 {
+  text-align: center;
+  margin: 0 0 8px;
+  text-transform: uppercase;
+}
+
+.miniLeague th,
+.miniLeague td {
+  font-size: 12px;
+  padding: 4px;
+  text-align: center;
+  border: 1px solid #111;
+}
+
+.miniLeague td:nth-child(2),
+.miniLeague th:nth-child(2) {
+  text-align: left;
+}
+
+.legendBox {
+  margin-top: 14px;
+  padding: 6px;
+  text-align: center;
+  font-weight: 700;
+  border: 2px solid #111;
+  font-size: 12px;
+}
+
+.greenBox {
+  background: #d9e8c3;
+}
+
+.blueBox {
+  background: #b8d1ef;
+}
+
+.prizeBox {
+  margin-top: 14px;
+  background: #e11;
+  color: white;
+  text-align: center;
+  padding: 8px;
+  font-size: 13px;
+}
+
+.prizeBox strong {
+  display: block;
+  font-size: 22px;
+}
+
+.winnerBanner {
+  grid-column: 1 / -1;
+  border: 2px solid #174a8b;
+  color: #0050a4;
+  font-weight: 700;
+  text-align: center;
+  padding: 12px;
+  margin-top: 10px;
+}
+
+@media (max-width: 900px) {
+  .predictionLayout {
+    grid-template-columns: 1fr;
+  }
+
+  .predictionSide {
+    max-width: 360px;
+  }
+}
+
+/* Print */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 8mm;
+  }
+
+  header,
+  button,
+  .msg {
+    display: none;
+  }
+
+  body {
+    background: white;
+  }
+
+  .wrap {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .card {
+    box-shadow: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .paper {
+    width: 100%;
+    max-width: none;
+    height: 280mm;
+    overflow: hidden;
+    border: 0;
+    box-shadow: none;
+    padding: 4px;
+    font-size: 8px;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  .couponBox {
+    border: 2px solid #174a8b;
+    margin-bottom: 4px;
+  }
+
+  .couponBox h1 {
+    font-size: 18px;
+    margin: 2px;
+    padding: 3px;
+  }
+
+  .couponFixtures {
+    padding: 6px 28px;
+  }
+
+  .couponFixture {
+    grid-template-columns: 1fr 46px 18px 46px 1fr;
+    gap: 8px;
+    margin-bottom: 3px;
+    font-size: 13px;
+  }
+
+  .scoreCell {
+    height: 18px;
+    border: 2px solid #174a8b;
+  }
+
+  .couponMeta {
+    grid-template-columns: 170px 1fr;
+    gap: 7px 12px;
+    margin-top: 6px;
+    font-size: 12px;
+  }
+
+  .line {
+    min-height: 16px;
+  }
+
+ .rulesBox {
+  margin-top: 5px;
+  margin-bottom: 5px;
+  border-top: 1px solid #174a8b;
+  padding-top: 4px;
+  break-inside: avoid;
+}
+
+.ruleItem {
+  margin-bottom: 2px;
+  line-height: 1.1;
+  font-size: 7px;
+}
+
+.summaryBox {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 3px;
+  margin-top: 4px;
+  padding: 4px;
+  border: 1px solid #174a8b;
+  background: #f7f9fc;
+  font-size: 7px;
+  break-inside: avoid;
+}
+
+  .summary {
+    font-size: 9px;
+    margin-top: 3px;
+  }
+
+  .qrwrap {
+    display: flex;
+    justify-content: space-around;
+    gap: 20px;
+    margin-top: 6px;
+  }
+
+  .qrwrap img {
+    width: 85px;
+    height: 85px;
+  }
+}
+
 
 .summary {
   font-size: 13px;
