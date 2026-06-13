@@ -151,25 +151,111 @@ th {
   color: #111;
 }
 
+/* Old School Coupon */
 .paper {
   background: #fff;
   color: #0b1f3a;
-  padding: 20px;
+  padding: 24px;
   max-width: 850px;
   margin: auto;
   border: 2px solid #174a8b;
 }
 
-.paper h1 {
-  text-align: center;
-  border-bottom: 3px solid #174a8b;
-  padding-bottom: 8px;
+.couponSheet {
+  max-width: 850px;
 }
 
-.scorebox {
-  font-size: 18px;
+.couponBox {
+  border: 2px solid #174a8b;
+  margin-bottom: 14px;
+}
+
+.couponBox h1 {
   text-align: center;
-  letter-spacing: 4px;
+  border-top: 2px solid #174a8b;
+  border-bottom: 2px solid #174a8b;
+  margin: 4px;
+  padding: 6px;
+  font-style: italic;
+  font-size: 24px;
+  font-weight: 500;
+}
+
+.couponBox h1 span {
+  color: #174a8b;
+  font-weight: 700;
+  margin-right: 8px;
+}
+
+.couponFixtures {
+  padding: 12px 30px;
+}
+
+.couponFixture {
+  display: grid;
+  grid-template-columns: 1fr 60px 25px 60px 1fr;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+  font-size: 18px;
+}
+
+.team.home {
+  text-align: right;
+}
+
+.team.away {
+  text-align: left;
+}
+
+.scoreCell {
+  border: 2px solid #174a8b;
+  height: 26px;
+}
+
+.versus {
+  text-align: center;
+  font-style: italic;
+  font-weight: bold;
+}
+
+.couponMeta {
+  display: grid;
+  grid-template-columns: 230px 1fr;
+  gap: 12px 18px;
+  margin-top: 12px;
+  font-size: 18px;
+}
+
+.line {
+  border-bottom: 2px solid #111;
+  min-height: 24px;
+}
+
+.blueText {
+  color: #174a8b;
+  font-style: italic;
+  font-weight: bold;
+}
+
+.redText {
+  color: red;
+  font-style: italic;
+  font-weight: bold;
+}
+
+.paper .rules {
+  white-space: nowrap;
+  font-size: 9px;
+  line-height: 1;
+  margin-top: 10px;
+}
+
+.summary {
+  font-size: 13px;
+  font-weight: bold;
+  text-align: center;
+  margin-top: 6px;
 }
 
 .qrwrap {
@@ -269,12 +355,22 @@ th {
   .card {
     padding: 14px;
   }
+
+  .couponFixture {
+    grid-template-columns: 1fr 45px 18px 45px 1fr;
+    font-size: 14px;
+  }
+
+  .couponMeta {
+    grid-template-columns: 1fr;
+    font-size: 14px;
+  }
 }
 
 /* Print */
 @media print {
   @page {
-    size: A4 landscape;
+    size: A4 portrait;
     margin: 8mm;
   }
 
@@ -301,54 +397,77 @@ th {
   }
 
   .paper {
-  width: 100%;
-  max-width: none;
-  height: 190mm;
-  overflow: hidden;
-  border: 0;
-  box-shadow: none;
-  padding: 4px;
-  font-size: 8px;
-  page-break-inside: avoid;
-}
-
- .paper h1 {
-    font-size: 16px;
-    margin: 0 0 2px;
-}
-
-.paper p {
-    margin: 1px 0;
-    line-height: 1;
-}
-
- .paper .rules {
-  white-space: nowrap;
-  font-size: 6px;
-  line-height: 1;
-}
-
-  .fixture,
-table,
-th,
-td {
-    font-size: 7px;
-    padding: 1px 3px;
-}
-
-  input {
-    height: 18px;
-    padding: 2px;
+    width: 100%;
+    max-width: none;
+    height: 280mm;
+    overflow: hidden;
+    border: 0;
+    box-shadow: none;
+    padding: 4px;
+    font-size: 8px;
+    page-break-inside: avoid;
+    break-inside: avoid;
   }
-.qrwrap {
-  display: none;
-}
 
-.paper table {
-  page-break-inside: avoid;
-}
+  .couponBox {
+    border: 2px solid #174a8b;
+    margin-bottom: 4px;
+  }
 
-.paper {
-  break-inside: avoid;
-}
+  .couponBox h1 {
+    font-size: 18px;
+    margin: 2px;
+    padding: 3px;
+  }
+
+  .couponFixtures {
+    padding: 6px 28px;
+  }
+
+  .couponFixture {
+    grid-template-columns: 1fr 46px 18px 46px 1fr;
+    gap: 8px;
+    margin-bottom: 3px;
+    font-size: 13px;
+  }
+
+  .scoreCell {
+    height: 18px;
+    border: 2px solid #174a8b;
+  }
+
+  .couponMeta {
+    grid-template-columns: 170px 1fr;
+    gap: 7px 12px;
+    margin-top: 6px;
+    font-size: 12px;
+  }
+
+  .line {
+    min-height: 16px;
+  }
+
+  .paper .rules {
+    white-space: nowrap;
+    font-size: 5px;
+    line-height: 1;
+    margin-top: 4px;
+  }
+
+  .summary {
+    font-size: 9px;
+    margin-top: 3px;
+  }
+
+  .qrwrap {
+    display: flex;
+    justify-content: space-around;
+    gap: 20px;
+    margin-top: 6px;
+  }
+
+  .qrwrap img {
+    width: 85px;
+    height: 85px;
+  }
 }
