@@ -727,13 +727,36 @@ function OldSchool({ week, fixtures, settings = {}, maxPts }) {
         <div className="line"></div>
       </div>
 
-      <h3>Rules</h3>
+     <h3>Coupon Rules</h3>
 
-      <p className="rules">{settings?.rules}</p>
+<div className="rulesBox">
+  {settings?.rules
+    ?.split(/\d+\)/)
+    .filter(Boolean)
+    .map((rule, index) => (
+      <div key={index} className="ruleItem">
+        <strong>{index + 1}.</strong> {rule.trim()}
+      </div>
+    ))}
+</div>
 
-      <p className="summary">
-        1 point correct result | 3 points correct score | Max {maxPts}
-      </p>
+<div className="summaryBox">
+  <div>
+    <strong>Scoring:</strong> 1 point for correct result
+  </div>
+
+  <div>
+    <strong>Exact Score:</strong> 3 points
+  </div>
+
+  <div>
+    <strong>Maximum Points:</strong> {maxPts}
+  </div>
+
+  <div>
+    <strong>Winner:</strong> Highest score wins the prize fund
+  </div>
+</div>
 
       <button onClick={() => print()}>Print / Save PDF</button>
     </section>
