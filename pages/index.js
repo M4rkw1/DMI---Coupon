@@ -26,7 +26,7 @@ function points(pred, fix) {
     : 0;
 }
 
-const sym = c => ({ GBP: '£', USD: '$', EUR: '€', NAD: 'N$', ZAR: 'R' }[c] || c + ' ');
+const sym = c => ({ GBP: '£', USD: '$', EUR: '€', NAD: 'N$', ZAR: 'R' }[c] || `${c} `);
 
 export default function Home() {
   const [state, setState] = useState(null);
@@ -35,11 +35,7 @@ export default function Home() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [msg, setMsg] = useState('');
   const [now, setNow] = useState(new Date());
-  const [form, setForm] = useState({
-    name: '',
-    department: '',
-    predictions: {},
-  });
+  const [form, setForm] = useState({ name: '', department: '', predictions: {} });
 
   const imgRef = useRef(null);
   const entriesImgRef = useRef(null);
@@ -70,22 +66,17 @@ export default function Home() {
         });
       });
 
-useEffect(() => {
-  load();
-
-  const clockTimer = setInterval(() => {
-    setNow(new Date());
-  }, 1000);
-
-  const dataTimer = setInterval(() => {
+  useEffect(() => {
     load();
-  }, 60000);
 
-  return () => {
-    clearInterval(clockTimer);
-    clearInterval(dataTimer);
-  };
-}, []);
+    const clockTimer = setInterval(() => setNow(new Date()), 1000);
+    const dataTimer = setInterval(() => load(), 60000);
+
+    return () => {
+      clearInterval(clockTimer);
+      clearInterval(dataTimer);
+    };
+  }, []);
 
   async function validateAdminPassword() {
     try {
@@ -121,13 +112,8 @@ useEffect(() => {
     return [...state.entries]
       .map(e => ({
         ...e,
-        pts: state.fixtures.reduce(
-          (s, f) => s + points(e.predictions?.[f.id], f),
-          0
-        ),
-        exact: state.fixtures.filter(
-          f => points(e.predictions?.[f.id], f) === 3
-        ).length,
+        pts: state.fixtures.reduce((s, f) => s + points(e.predictions?.[f.id], f), 0),
+        exact: state.fixtures.filter(f => points(e.predictions?.[f.id], f) === 3).length,
       }))
       .sort(
         (a, b) =>
@@ -146,54 +132,48 @@ useEffect(() => {
     );
   }
 
-  const {
-    week = {},
-    fixtures = [],
-    settings = {},
-    entries = [],
-  } = state || {};
+  const { week = {}, fixtures = [], settings = {}, entries = [] } = state || {};
 
   const maxPts = fixtures.length * 3;
-  const pot = entries.filter(e => e.paid).length * Number(settings.entry_fee || 0);
-const parseKickoff = kickoff => {
-  if (!kickoff) return null;
+  const stake = Number(settings?.entry_fee || 10);
+  const pot = entries.length * stake;
 
-  const [datePart, timePart] = String(kickoff).trim().split(' ');
-  if (!datePart || !timePart) return null;
+  const parseKickoff = kickoff => {
+    if (!kickoff) return null;
 
-  const [day, month, year] = datePart.split('/').map(Number);
-  const [hour, minute] = timePart.split(':').map(Number);
+    const [datePart, timePart] = String(kickoff).trim().split(' ');
+    if (!datePart || !timePart) return null;
 
-  if (!day || !month || !year) return null;
+    const [day, month, year] = datePart.split('/').map(Number);
+    const [hour, minute] = timePart.split(':').map(Number);
 
-  return new Date(year, month - 1, day, hour || 0, minute || 0);
-};
+    if (!day || !month || !year) return null;
 
-const firstKickoff = fixtures
-  .map(f => parseKickoff(f.kickoff))
-  .filter(Boolean)
-  .sort((a, b) => a - b)[0];
+    return new Date(year, month - 1, day, hour || 0, minute || 0);
+  };
 
-const entryDeadline = firstKickoff
-  ? new Date(firstKickoff.getTime() - 60 * 1000)
-  : null;
+  const firstKickoff = fixtures
+    .map(f => parseKickoff(f.kickoff))
+    .filter(Boolean)
+    .sort((a, b) => a - b)[0];
 
-const entriesOpen = entryDeadline
-  ? now < entryDeadline
-  : true;
-
-const countdownMs = entryDeadline
-  ? entryDeadline.getTime() - now.getTime()
-  : null;
-
-const countdownText =
-  countdownMs && countdownMs > 0
-    ? `${Math.floor(countdownMs / 86400000)}d ${Math.floor(
-        (countdownMs % 86400000) / 3600000
-      )}h ${Math.floor((countdownMs % 3600000) / 60000)}m ${Math.floor(
-        (countdownMs % 60000) / 1000
-      )}s`
+  const entryDeadline = firstKickoff
+    ? new Date(firstKickoff.getTime() - 60 * 1000)
     : null;
+
+  const entriesOpen = entryDeadline ? now < entryDeadline : true;
+
+  const countdownMs = entryDeadline ? entryDeadline.getTime() - now.getTime() : null;
+
+  const countdownText =
+    countdownMs && countdownMs > 0
+      ? `${Math.floor(countdownMs / 86400000)}d ${Math.floor(
+          (countdownMs % 86400000) / 3600000
+        )}h ${Math.floor((countdownMs % 3600000) / 60000)}m ${Math.floor(
+          (countdownMs % 60000) / 1000
+        )}s`
+      : null;
+
   async function adminAction(action, payload) {
     const r = await fetch('/api/admin', {
       method: 'POST',
@@ -220,11 +200,11 @@ const countdownText =
   }
 
   async function submitEntry(e) {
-  e.preventDefault();
+    e.preventDefault();
 
-  if (!entriesOpen) {
-    return setMsg('Entries are now closed for this coupon');
-  }
+    if (!entriesOpen) {
+      return setMsg('Entries are now closed for this coupon');
+    }
 
     const r = await fetch('/api/entry', {
       method: 'POST',
@@ -235,12 +215,9 @@ const countdownText =
     const j = await r.json();
 
     if (!r.ok) {
-
-  setMsg(j.error || 'Entry failed');
-
-  return;
-
-}
+      setMsg(j.error || 'Entry failed');
+      return;
+    }
 
     setMsg('Entry submitted ✅');
     setForm({ name: '', department: '', predictions: {} });
@@ -261,9 +238,7 @@ const countdownText =
               onClick={() => setTab(n)}
               key={n}
             >
-              {n === 'old school'
-                ? 'Old School'
-                : n.replace(/\b\w/g, m => m.toUpperCase())}
+              {n === 'old school' ? 'Old School' : n.replace(/\b\w/g, m => m.toUpperCase())}
             </button>
           ))}
         </nav>
@@ -276,123 +251,79 @@ const countdownText =
           <section className="card">
             <h1>{week.title || 'DMI Coupon'}</h1>
             <p>{week.subtitle}</p>
-          <div className="stats">
-  <b>{fixtures.length}</b> fixtures
-  <b>{entries.length}</b> entries
-  <b>{entries.filter(e => e.paid).length}</b> paid
-  <b>{maxPts}</b> max points
-  <b>
-    {sym(settings?.currency || 'USD')}
-    {pot}
-  </b>{' '}
-  pot
-</div>
+
+            <div className="stats">
+              <b>{fixtures.length}</b> fixtures
+              <b>{entries.length}</b> entries
+              <b>{entries.filter(e => e.paid).length}</b> paid
+              <b>{maxPts}</b> max points
+              <b>
+                {sym(settings?.currency || 'USD')}
+                {pot}
+              </b>{' '}
+              pot
+            </div>
+
             {entryDeadline && (
-  <p>
-    {entriesOpen
-  ? `⏰ Entries close in: ${countdownText}`
-  : `🔒 Entries closed at ${entryDeadline.toLocaleString('en-GB')}`
-}
-</p>
-)}
-  <p style={{ whiteSpace: 'pre-line' }}>
+              <p>
+                {entriesOpen
+                  ? `⏰ Entries close in: ${countdownText}`
+                  : `🔒 Entries closed at ${entryDeadline.toLocaleString('en-GB')}`}
+              </p>
+            )}
 
-  {settings.rules}
-
-</p>
+            <p style={{ whiteSpace: 'pre-line' }}>{settings?.rules}</p>
           </section>
         )}
 
         {tab === 'old school' && (
-          <OldSchool
-            week={week}
-            fixtures={fixtures}
-            settings={settings}
-            maxPts={maxPts}
-          />
+          <OldSchool week={week} fixtures={fixtures} settings={settings} maxPts={maxPts} />
         )}
 
         {tab === 'enter coupon' && (
           <section className="card">
-    {!entriesOpen ? (
-      <>
-        <h2>Entries Closed</h2>
+            {!entriesOpen ? (
+              <>
+                <h2>Entries Closed</h2>
+                <p>Entries closed at {entryDeadline?.toLocaleString('en-GB')}</p>
+                <p>Good luck everyone ⚽</p>
+              </>
+            ) : (
+              <>
+                <h2>Enter Coupon</h2>
 
-        <p>
-          Entries closed at{' '}
-          {entryDeadline?.toLocaleString('en-GB')}
-        </p>
+                <form onSubmit={submitEntry}>
+                  <div className="grid2">
+                    <input
+                      required
+                      placeholder="Name"
+                      value={form.name}
+                      onChange={e => setForm({ ...form, name: e.target.value })}
+                    />
 
-        <p>Good luck everyone ⚽</p>
-      </>
-    ) : (
-      <>
-        <h2>Enter Coupon</h2>
+                    <input
+                      placeholder="Department"
+                      value={form.department}
+                      onChange={e => setForm({ ...form, department: e.target.value })}
+                    />
+                  </div>
 
-        <form onSubmit={submitEntry}>
-          <div className="grid2">
-            <input
-              required
-              placeholder="Name"
-              value={form.name}
-              onChange={e =>
-                setForm({
-                  ...form,
-                  name: e.target.value,
-                })
-              }
-            />
+                  <FixtureInputs
+                    fixtures={fixtures}
+                    predictions={form.predictions}
+                    setPredictions={p => setForm({ ...form, predictions: p })}
+                  />
 
-            <input
-              placeholder="Department"
-              value={form.department}
-              onChange={e =>
-                setForm({
-                  ...form,
-                  department: e.target.value,
-                })
-              }
-            />
-          </div>
+                  {entryDeadline && <p>Entries close: {entryDeadline.toLocaleString('en-GB')}</p>}
 
-          <FixtureInputs
-            fixtures={fixtures}
-            predictions={form.predictions}
-            setPredictions={p =>
-              setForm({
-                ...form,
-                predictions: p,
-              })
-            }
-          />
-
-          {entryDeadline && (
-            <p>
-              Entries close:{' '}
-              {entryDeadline.toLocaleString('en-GB')}
-            </p>
-          )}
-
-         <button
-
-  type="submit"
-
-  className="primary"
-
-  disabled={!entriesOpen}
-
->
-
-  {entriesOpen ? 'Submit Entry' : 'Entries Closed'}
-
-</button>
-        </form>
-      </>
-    )}
-  </section>
-)}
-
-
+                  <button type="submit" className="primary" disabled={!entriesOpen}>
+                    {entriesOpen ? 'Submit Entry' : 'Entries Closed'}
+                  </button>
+                </form>
+              </>
+            )}
+          </section>
+        )}
 
         {tab === 'leaderboard' && (
           <Leaderboard
@@ -467,6 +398,7 @@ function FixtureInputs({ fixtures, predictions, setPredictions }) {
           <span>
             {f.home_team} v {f.away_team}
           </span>
+
           <input
             type="number"
             min="0"
@@ -481,7 +413,9 @@ function FixtureInputs({ fixtures, predictions, setPredictions }) {
               })
             }
           />
+
           <b>-</b>
+
           <input
             type="number"
             min="0"
@@ -502,30 +436,29 @@ function FixtureInputs({ fixtures, predictions, setPredictions }) {
   );
 }
 
-function Leaderboard({ ranked, fixtures, settings, maxPts, pot }) {
+function Leaderboard({ ranked, fixtures, settings = {}, maxPts, pot }) {
   const [view, setView] = useState('leaderboard');
 
   const now = new Date();
 
-  const entryDeadline = settings.entry_deadline
-    ? new Date(settings.entry_deadline)
-    : null;
+  const entryDeadline = settings?.entry_deadline ? new Date(settings.entry_deadline) : null;
 
   const predictionsReleased =
-    settings.entries_released ||
-    (entryDeadline && now >= entryDeadline);
+    settings?.entries_released || (entryDeadline && now >= entryDeadline);
 
   const playersEntered = ranked.length;
   const fixturesThisWeek = fixtures.length;
 
   const gamesPlayed = fixtures.filter(
-    f => f.home_score !== null && f.home_score !== undefined &&
-         f.away_score !== null && f.away_score !== undefined
+    f =>
+      f.home_score !== null &&
+      f.home_score !== undefined &&
+      f.away_score !== null &&
+      f.away_score !== undefined
   ).length;
 
   const unpaidPlayers = ranked.filter(e => !e.paid).length;
-
-  const stake = Number(settings.entry_fee || 10);
+  const stake = Number(settings?.entry_fee || 10);
   const fullPot = playersEntered * stake;
 
   return (
@@ -545,7 +478,9 @@ function Leaderboard({ ranked, fixtures, settings, maxPts, pot }) {
 
         <div className="statCard">
           <small>Games Played / To Play</small>
-          <strong>{gamesPlayed} / {fixturesThisWeek}</strong>
+          <strong>
+            {gamesPlayed} / {fixturesThisWeek}
+          </strong>
         </div>
 
         <div className="statCard">
@@ -555,7 +490,10 @@ function Leaderboard({ ranked, fixtures, settings, maxPts, pot }) {
 
         <div className="statCard">
           <small>Pot Size</small>
-          <strong>{sym(settings.currency)}{fullPot}</strong>
+          <strong>
+            {sym(settings?.currency || 'USD')}
+            {fullPot}
+          </strong>
         </div>
       </div>
 
@@ -586,12 +524,17 @@ function Leaderboard({ ranked, fixtures, settings, maxPts, pot }) {
                 <th>Points</th>
               </tr>
             </thead>
+
             <tbody>
               {ranked.map((e, i) => (
                 <tr key={e.id}>
                   <td>{i + 1}</td>
-                  <td>{e.name} {e.department}</td>
-                  <td><b>{e.pts}</b></td>
+                  <td>
+                    {e.name} {e.department}
+                  </td>
+                  <td>
+                    <b>{e.pts}</b>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -600,14 +543,13 @@ function Leaderboard({ ranked, fixtures, settings, maxPts, pot }) {
       )}
 
       {view === 'predictions' && predictionsReleased && (
-  <EntriesMatrix
-  entries={ranked}
-  fixtures={fixtures}
-  settings={settings}
-  maxPts={maxPts}
-  pot={fullPot}
-/>
-        </>
+        <EntriesMatrix
+          entries={ranked}
+          fixtures={fixtures}
+          settings={settings}
+          maxPts={maxPts}
+          pot={fullPot}
+        />
       )}
 
       {!predictionsReleased && (
@@ -654,7 +596,9 @@ function EntriesMatrix({ entries, fixtures, settings = {}, maxPts, pot }) {
 
           <tbody>
             <tr>
-              <td><b>SCORE</b></td>
+              <td>
+                <b>SCORE</b>
+              </td>
               {fixtures.map(f => (
                 <td key={f.id}>
                   {f.home_score ?? '-'}-{f.away_score ?? '-'}
@@ -663,7 +607,9 @@ function EntriesMatrix({ entries, fixtures, settings = {}, maxPts, pot }) {
             </tr>
 
             <tr>
-              <td><b>RESULT</b></td>
+              <td>
+                <b>RESULT</b>
+              </td>
               {fixtures.map(f => (
                 <td key={f.id}>{fixtureResult(f)}</td>
               ))}
@@ -671,7 +617,9 @@ function EntriesMatrix({ entries, fixtures, settings = {}, maxPts, pot }) {
 
             {entries.map(e => (
               <tr key={e.id}>
-                <td>{e.name} {e.department}</td>
+                <td>
+                  {e.name} {e.department}
+                </td>
                 {fixtures.map(f => (
                   <td key={f.id}>
                     {e.predictions?.[f.id]?.home ?? ''}-
@@ -695,167 +643,116 @@ function EntriesMatrix({ entries, fixtures, settings = {}, maxPts, pot }) {
               <th>Points</th>
             </tr>
           </thead>
+
           <tbody>
             {entries.map((e, i) => (
               <tr key={e.id}>
                 <td>{i + 1}</td>
-                <td>{e.name} {e.department}</td>
-                <td><b>{e.pts}</b></td>
+                <td>
+                  {e.name} {e.department}
+                </td>
+                <td>
+                  <b>{e.pts}</b>
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
 
-        <div className="legendBox greenBox">
-          1 Point for correct result
-        </div>
+        <div className="legendBox greenBox">1 Point for correct result</div>
 
-        <div className="legendBox blueBox">
-          3 Points for correct score
-        </div>
+        <div className="legendBox blueBox">3 Points for correct score</div>
 
         <div className="prizeBox">
           <b>Prize Fund</b>
-        <strong>{sym(settings?.currency || 'USD')}{pot}</strong>
+          <strong>
+            {sym(settings?.currency || 'USD')}
+            {pot}
+          </strong>
         </div>
       </aside>
 
       {winner && (
         <div className="winnerBanner">
-          This week&apos;s prize goes to {winner.name} {winner.department} who finishes on {winner.pts} points.
-          Congratulations and well played!
+          This week&apos;s prize goes to {winner.name} {winner.department} who finishes on{' '}
+          {winner.pts} points. Congratulations and well played!
         </div>
       )}
     </div>
   );
 }
 
-function OldSchool({ week, fixtures, settings, maxPts }) {
-
+function OldSchool({ week, fixtures, settings = {}, maxPts }) {
   return (
-
     <section className="paper couponSheet">
-
       <div className="couponBox">
-
         <h1>
-
           <span>DMI</span> Football Coupon
-
         </h1>
 
         <div className="couponFixtures">
-
           {fixtures.map(f => (
-
             <div className="couponFixture" key={f.id}>
-
               <div className="team home">{f.home_team}</div>
-
               <div className="scoreCell"></div>
-
               <div className="versus">v</div>
-
               <div className="scoreCell"></div>
-
               <div className="team away">{f.away_team}</div>
-
             </div>
-
           ))}
-
         </div>
-
       </div>
 
       <div className="couponMeta">
-
         <div>Match Date(s)</div>
-
         <div className="blueText">{week.subtitle}</div>
 
         <div>Entries Submitted By</div>
-
         <div className="redText">Thu 11th Jun 19:45</div>
 
         <div>Name</div>
-
         <div className="line"></div>
 
         <div>Company / Department</div>
-
         <div className="line"></div>
-
       </div>
 
-      <p className="rules">
+      <h3>Rules</h3>
 
-        {settings.rules}
-
-      </p>
+      <p className="rules">{settings?.rules}</p>
 
       <p className="summary">
-
         1 point correct result | 3 points correct score | Max {maxPts}
-
       </p>
 
       <div className="qrwrap">
-
-        {settings.whatsapp_qr_url && (
-
+        {settings?.whatsapp_qr_url && (
           <div>
-
-            <img src={settings.whatsapp_qr_url} />
-
+            <img src={settings.whatsapp_qr_url} alt="WhatsApp QR" />
             <b>WhatsApp Group</b>
-
           </div>
-
         )}
 
-        {settings.payment_qr_url && (
-
+        {settings?.payment_qr_url && (
           <div>
-
-            <img src={settings.payment_qr_url} />
-
+            <img src={settings.payment_qr_url} alt="Payment QR" />
             <b>Payment</b>
-
           </div>
-
         )}
-
       </div>
 
       <button onClick={() => print()}>Print / Save PDF</button>
-
     </section>
-
   );
-
 }
-function Admin({
-  state,
-  adminAction,
-  setMsg,
-  ranked,
-  pot,
-  imgRef,
-  entriesImgRef,
-}) {
+
+function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef }) {
   const [settings, setSettings] = useState(state.settings || {});
   const [week, setWeek] = useState(state.week || {});
   const fixtures = Array.isArray(state.fixtures) ? state.fixtures : [];
 
   const [fixtureText, setFixtureText] = useState(
     fixtures.map(f => `${f.home_team}\t${f.away_team}\t${f.kickoff || ''}`).join('\n')
-  );
-
-  const [resultText, setResultText] = useState(
-    fixtures
-      .map(f => `${f.id}\t${f.home_score ?? ''}\t${f.away_score ?? ''}`)
-      .join('\n')
   );
 
   const [tsv, setTsv] = useState('');
@@ -916,9 +813,7 @@ function Admin({
             onChange={e => setWeek({ ...week, subtitle: e.target.value })}
           />
 
-          <button onClick={() => adminAction('saveWeek', week)}>
-            Save Week
-          </button>
+          <button onClick={() => adminAction('saveWeek', week)}>Save Week</button>
 
           <h3>Coupon Settings</h3>
 
@@ -945,43 +840,32 @@ function Admin({
           <input
             placeholder="WhatsApp QR image URL"
             value={settings.whatsapp_qr_url || ''}
-            onChange={e =>
-              setSettings({ ...settings, whatsapp_qr_url: e.target.value })
-            }
+            onChange={e => setSettings({ ...settings, whatsapp_qr_url: e.target.value })}
           />
 
           <input
             placeholder="Payment QR image URL"
             value={settings.payment_qr_url || ''}
-            onChange={e =>
-              setSettings({ ...settings, payment_qr_url: e.target.value })
-            }
+            onChange={e => setSettings({ ...settings, payment_qr_url: e.target.value })}
           />
 
           <label>
             <input
               type="checkbox"
               checked={!!settings.entries_released}
-              onChange={e =>
-                setSettings({ ...settings, entries_released: e.target.checked })
-              }
+              onChange={e => setSettings({ ...settings, entries_released: e.target.checked })}
             />{' '}
             Release entries on leaderboard
           </label>
 
-          <button onClick={() => adminAction('saveSettings', settings)}>
-            Save Settings
-          </button>
+          <button onClick={() => adminAction('saveSettings', settings)}>Save Settings</button>
         </div>
 
         <div>
           <h3>Fixtures</h3>
           <p>Paste: Home TAB Away TAB Kick-off</p>
 
-          <textarea
-            value={fixtureText}
-            onChange={e => setFixtureText(e.target.value)}
-          />
+          <textarea value={fixtureText} onChange={e => setFixtureText(e.target.value)} />
 
           <button
             onClick={() =>
@@ -1002,66 +886,62 @@ function Admin({
 
           <h3>Results</h3>
 
-<div>
-  {fixtures.map(f => (
-    <div className="fixture" key={f.id}>
-      <span>
-        {f.home_team} v {f.away_team}
-      </span>
+          <div>
+            {fixtures.map(f => (
+              <div className="fixture" key={f.id}>
+                <span>
+                  {f.home_team} v {f.away_team}
+                </span>
 
-      <input
-        type="number"
-        min="0"
-        placeholder="H"
-        value={f.home_score ?? ''}
-        onChange={e => {
-          f.home_score = e.target.value;
-          setMsg('');
-        }}
-      />
+                <input
+                  type="number"
+                  min="0"
+                  placeholder="H"
+                  value={f.home_score ?? ''}
+                  onChange={e => {
+                    f.home_score = e.target.value;
+                    setMsg('');
+                  }}
+                />
 
-      <span>-</span>
+                <span>-</span>
 
-      <input
-        type="number"
-        min="0"
-        placeholder="A"
-        value={f.away_score ?? ''}
-        onChange={e => {
-          f.away_score = e.target.value;
-          setMsg('');
-        }}
-      />
-    </div>
-  ))}
-</div>
+                <input
+                  type="number"
+                  min="0"
+                  placeholder="A"
+                  value={f.away_score ?? ''}
+                  onChange={e => {
+                    f.away_score = e.target.value;
+                    setMsg('');
+                  }}
+                />
+              </div>
+            ))}
+          </div>
 
-<button
-  onClick={() =>
-    adminAction('setResults', {
-      fixtures: fixtures.map(f => ({
-        id: f.id,
-        home_score:
-          f.home_score === '' || f.home_score == null
-            ? null
-            : Number(f.home_score),
-        away_score:
-          f.away_score === '' || f.away_score == null
-            ? null
-            : Number(f.away_score),
-        status:
-          f.home_score === '' ||
-          f.home_score == null ||
-          f.away_score === '' ||
-          f.away_score == null
-            ? 'NS'
-            : 'FT',
-      })),
-    })
-  }
->
-  Save Results
-</button>
+          <button
+            onClick={() =>
+              adminAction('setResults', {
+                fixtures: fixtures.map(f => ({
+                  id: f.id,
+                  home_score:
+                    f.home_score === '' || f.home_score == null ? null : Number(f.home_score),
+                  away_score:
+                    f.away_score === '' || f.away_score == null ? null : Number(f.away_score),
+                  status:
+                    f.home_score === '' ||
+                    f.home_score == null ||
+                    f.away_score === '' ||
+                    f.away_score == null
+                      ? 'NS'
+                      : 'FT',
+                })),
+              })
+            }
+          >
+            Save Results
+          </button>
         </div>
       </div>
 
@@ -1116,9 +996,10 @@ function Admin({
       <div className="share" ref={imgRef}>
         <h1>{state.week.title}</h1>
         <p>
-          Pot: {sym(state.settings.currency)}
+          Pot: {sym(state.settings?.currency || 'USD')}
           {pot}
         </p>
+
         {ranked.slice(0, 12).map((e, i) => (
           <p key={e.id}>
             <b>
@@ -1131,7 +1012,14 @@ function Admin({
 
       <div className="entriesShare" ref={entriesImgRef}>
         <h2>Released Entries</h2>
-        <EntriesMatrix entries={ranked} fixtures={fixtures} />
+
+        <EntriesMatrix
+          entries={ranked}
+          fixtures={fixtures}
+          settings={state.settings}
+          maxPts={fixtures.length * 3}
+          pot={pot}
+        />
       </div>
     </div>
   );
