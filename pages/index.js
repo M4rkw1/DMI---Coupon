@@ -563,6 +563,13 @@ function Leaderboard({ ranked, fixtures, settings = {}, maxPts, pot }) {
 
 function EntriesMatrix({ entries, fixtures, settings = {}, maxPts, pot }) {
   const winner = entries[0];
+  const allGamesFinished = fixtures.every(
+  f =>
+    f.home_score !== null &&
+    f.home_score !== undefined &&
+    f.away_score !== null &&
+    f.away_score !== undefined
+);
 
   const fixtureResult = f => {
     if (
@@ -675,15 +682,12 @@ function EntriesMatrix({ entries, fixtures, settings = {}, maxPts, pot }) {
         </div>
       </aside>
 
-      {winner && (
-        <div className="winnerBanner">
-          This week&apos;s prize goes to {winner.name} {winner.department} who finishes on {winner.pts} points.
-          Congratulations and well played!
-        </div>
-      )}
-    </div>
-  );
-}
+ {allGamesFinished && winner && (
+  <div className="winnerBanner">
+    This week&apos;s prize goes to {winner.name} {winner.department} who finishes on {winner.pts} points.
+    Congratulations and well played!
+  </div>
+)}
 
 function OldSchool({ week, fixtures, settings = {}, maxPts }) {
   return (
