@@ -515,14 +515,49 @@ function Leaderboard({ ranked, fixtures, settings, maxPts, pot }) {
     settings.entries_released ||
     (entryDeadline && now >= entryDeadline);
 
+  const playersEntered = ranked.length;
+  const fixturesThisWeek = fixtures.length;
+
+  const gamesPlayed = fixtures.filter(
+    f => f.home_score !== null && f.home_score !== undefined &&
+         f.away_score !== null && f.away_score !== undefined
+  ).length;
+
+  const unpaidPlayers = ranked.filter(e => !e.paid).length;
+
+  const stake = Number(settings.entry_fee || 10);
+  const fullPot = playersEntered * stake;
+
   return (
     <section className="card">
-      <h2>Leaderboard</h2>
+      <h2>DMI Coupon Dashboard</h2>
 
-      <p>
-        Max points: {maxPts} | Pot: {sym(settings.currency)}
-        {pot}
-      </p>
+      <div className="dashboardStats">
+        <div className="statCard">
+          <small>Players Entered</small>
+          <strong>{playersEntered}</strong>
+        </div>
+
+        <div className="statCard">
+          <small>Fixtures This Week</small>
+          <strong>{fixturesThisWeek}</strong>
+        </div>
+
+        <div className="statCard">
+          <small>Games Played / To Play</small>
+          <strong>{gamesPlayed} / {fixturesThisWeek}</strong>
+        </div>
+
+        <div className="statCard">
+          <small>Players Yet To Pay</small>
+          <strong>{unpaidPlayers}</strong>
+        </div>
+
+        <div className="statCard">
+          <small>Pot Size</small>
+          <strong>{sym(settings.currency)}{fullPot}</strong>
+        </div>
+      </div>
 
       <div className="tabs">
         <button
@@ -542,32 +577,26 @@ function Leaderboard({ ranked, fixtures, settings, maxPts, pot }) {
       </div>
 
       {view === 'leaderboard' && (
-        <table>
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Name</th>
-              <th>Paid</th>
-              <th>Exact</th>
-              <th>Points</th>
-            </tr>
-          </thead>
-          <tbody>
-            {ranked.map((e, i) => (
-              <tr key={e.id}>
-                <td>{i + 1}</td>
-                <td>
-                  {e.name} {e.department}
-                </td>
-                <td>{e.paid ? '✅' : '❌'}</td>
-                <td>{e.exact}</td>
-                <td>
-                  <b>{e.pts}</b>
-                </td>
+        <div className="leagueTableWrap">
+          <table className="leagueTable">
+            <thead>
+              <tr>
+                <th>Pos.</th>
+                <th>Player</th>
+                <th>Points</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {ranked.map((e, i) => (
+                <tr key={e.id}>
+                  <td>{i + 1}</td>
+                  <td>{e.name} {e.department}</td>
+                  <td><b>{e.pts}</b></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
 
       {view === 'predictions' && predictionsReleased && (
@@ -583,6 +612,7 @@ function Leaderboard({ ranked, fixtures, settings, maxPts, pot }) {
     </section>
   );
 }
+
 function EntriesMatrix({ entries, fixtures }) {
   return (
     <div className="scroll">
@@ -602,7 +632,7 @@ function EntriesMatrix({ entries, fixtures }) {
         <tbody>
           {entries.map(e => (
             <tr key={e.id}>
-              <td>{e.name}</td>
+              <td>{e.name} {e.department}</td>
               {fixtures.map(f => (
                 <td key={f.id}>
                   {e.predictions?.[f.id]?.home ?? ''}-
