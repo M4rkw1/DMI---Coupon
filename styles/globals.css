@@ -407,6 +407,113 @@ th {
 .leagueTable td:nth-child(2) {
   text-align: left;
 }
+.predictionLayout {
+  display: grid;
+  grid-template-columns: 1fr 240px;
+  gap: 18px;
+  align-items: start;
+}
+
+.predictionMain {
+  overflow: auto;
+}
+
+.resultsMatrix th {
+  font-size: 11px;
+  min-width: 90px;
+}
+
+.resultsMatrix td {
+  text-align: center;
+  font-size: 13px;
+}
+
+.resultsMatrix td:first-child,
+.resultsMatrix th:first-child {
+  position: sticky;
+  left: 0;
+  background: white;
+  color: #111;
+  z-index: 3;
+  text-align: left;
+  min-width: 130px;
+}
+
+.predictionSide {
+  border: 2px solid #111;
+  padding: 8px;
+  background: white;
+}
+
+.predictionSide h3 {
+  text-align: center;
+  margin: 0 0 8px;
+  text-transform: uppercase;
+}
+
+.miniLeague th,
+.miniLeague td {
+  font-size: 12px;
+  padding: 4px;
+  text-align: center;
+  border: 1px solid #111;
+}
+
+.miniLeague td:nth-child(2),
+.miniLeague th:nth-child(2) {
+  text-align: left;
+}
+
+.legendBox {
+  margin-top: 14px;
+  padding: 6px;
+  text-align: center;
+  font-weight: 700;
+  border: 2px solid #111;
+  font-size: 12px;
+}
+
+.greenBox {
+  background: #d9e8c3;
+}
+
+.blueBox {
+  background: #b8d1ef;
+}
+
+.prizeBox {
+  margin-top: 14px;
+  background: #e11;
+  color: white;
+  text-align: center;
+  padding: 8px;
+  font-size: 13px;
+}
+
+.prizeBox strong {
+  display: block;
+  font-size: 22px;
+}
+
+.winnerBanner {
+  grid-column: 1 / -1;
+  border: 2px solid #174a8b;
+  color: #0050a4;
+  font-weight: 700;
+  text-align: center;
+  padding: 12px;
+  margin-top: 10px;
+}
+
+@media (max-width: 900px) {
+  .predictionLayout {
+    grid-template-columns: 1fr;
+  }
+
+  .predictionSide {
+    max-width: 360px;
+  }
+}
 
 /* Print */
 @media print {
