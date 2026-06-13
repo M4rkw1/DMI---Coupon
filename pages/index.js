@@ -28,7 +28,7 @@ function points(pred, fix) {
 
 const sym = c => ({ GBP: '£', USD: '$', EUR: '€', NAD: 'N$', ZAR: 'R' }[c] || `${c} `);
 
-export default function Home() {
+export default  Home() {
   const [state, setState] = useState(null);
   const [tab, setTab] = useState('home');
   const [admin, setAdmin] = useState('');
@@ -78,7 +78,7 @@ export default function Home() {
     };
   }, []);
 
-  async function validateAdminPassword() {
+  async  validateAdminPassword() {
     try {
       const res = await fetch('/api/validate-admin', {
         method: 'POST',
@@ -174,7 +174,7 @@ export default function Home() {
         )}s`
       : null;
 
-  async function adminAction(action, payload) {
+  async  adminAction(action, payload) {
     const r = await fetch('/api/admin', {
       method: 'POST',
       headers: {
@@ -199,7 +199,7 @@ export default function Home() {
     load();
   }
 
-  async function submitEntry(e) {
+  async  submitEntry(e) {
     e.preventDefault();
 
     if (!entriesOpen) {
@@ -682,12 +682,15 @@ function EntriesMatrix({ entries, fixtures, settings = {}, maxPts, pot }) {
         </div>
       </aside>
 
- {allGamesFinished && winner && (
+{allGamesFinished && winner && (
   <div className="winnerBanner">
     This week&apos;s prize goes to {winner.name} {winner.department} who finishes on {winner.pts} points.
     Congratulations and well played!
   </div>
 )}
+    </div>
+  );
+}
 
 function OldSchool({ week, fixtures, settings = {}, maxPts }) {
   return (
