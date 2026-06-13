@@ -7,7 +7,7 @@ function points(pred, fix) {
     fix.home_score === null ||
     fix.away_score === null ||
     fix.home_score === undefined ||
-    fix.away_score === undefined
+    fix.away_score === undefinedsettings
   ) {
     return 0;
   }
@@ -441,7 +441,9 @@ export default  Home() {
 
   const now = new Date();
 
-  const entryDeadline = settings?.entry_deadline ? new Date(settings.entry_deadline) : null;
+  const entryDeadline = settings?.entry_deadline
+  ? new Date(settings.entry_deadline)
+  : null;
 
   const predictionsReleased =
     settings?.entries_released || (entryDeadline && now >= entryDeadline);
@@ -729,14 +731,14 @@ function OldSchool({ week, fixtures, settings = {}, maxPts }) {
       <div className="qrwrap">
         {settings?.whatsapp_qr_url && (
           <div>
-            <img src={settings.whatsapp_qr_url} alt="WhatsApp QR" />
+            <img src={settings?.whatsapp_qr_url} alt="WhatsApp QR" />
             <b>WhatsApp Group</b>
           </div>
         )}
 
         {settings?.payment_qr_url && (
           <div>
-            <img src={settings.payment_qr_url} alt="Payment QR" />
+          <img src={settings?.payment_qr_url} alt="Payment QR" />
             <b>Payment</b>
           </div>
         )}
