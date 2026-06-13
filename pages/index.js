@@ -7,7 +7,7 @@ function points(pred, fix) {
     fix.home_score === null ||
     fix.away_score === null ||
     fix.home_score === undefined ||
-    fix.away_score === undefinedsettings
+   fix.away_score === undefined
   ) {
     return 0;
   }
@@ -28,7 +28,7 @@ function points(pred, fix) {
 
 const sym = c => ({ GBP: '£', USD: '$', EUR: '€', NAD: 'N$', ZAR: 'R' }[c] || `${c} `);
 
-export default  Home() {
+export default function Home() {
   const [state, setState] = useState(null);
   const [tab, setTab] = useState('home');
   const [admin, setAdmin] = useState('');
@@ -78,7 +78,7 @@ export default  Home() {
     };
   }, []);
 
-  async  validateAdminPassword() {
+  async function validateAdminPassword() {
     try {
       const res = await fetch('/api/validate-admin', {
         method: 'POST',
@@ -174,7 +174,7 @@ export default  Home() {
         )}s`
       : null;
 
-  async  adminAction(action, payload) {
+  async function adminAction(action, payload) {
     const r = await fetch('/api/admin', {
       method: 'POST',
       headers: {
@@ -199,7 +199,7 @@ export default  Home() {
     load();
   }
 
-  async  submitEntry(e) {
+  async function submitEntry(e) {
     e.preventDefault();
 
     if (!entriesOpen) {
@@ -390,7 +390,7 @@ export default  Home() {
   );
 }
 
- FixtureInputs({ fixtures, predictions, setPredictions }) {
+function FixtureInputs({ fixtures, predictions, setPredictions }) {
   return (
     <div>
       {fixtures.map(f => (
@@ -436,7 +436,7 @@ export default  Home() {
   );
 }
 
- Leaderboard({ ranked, fixtures, settings = {}, maxPts, pot }) {
+function Leaderboard({ ranked, fixtures, settings = {}, maxPts, pot }) {
   const [view, setView] = useState('leaderboard');
 
   const now = new Date();
