@@ -245,10 +245,11 @@ th {
 }
 
 .paper .rules {
-  white-space: nowrap;
-  font-size: 9px;
-  line-height: 1;
-  margin-top: 10px;
+  white-space: normal;
+  font-size: 7px;
+  line-height: 1.1;
+  margin-top: 8px;
+  text-align: left;
 }
 
 .summary {
@@ -448,11 +449,12 @@ th {
   }
 
   .paper .rules {
-    white-space: nowrap;
-    font-size: 5px;
-    line-height: 1;
-    margin-top: 4px;
-  }
+  white-space: normal;
+  font-size: 5px;
+  line-height: 1.05;
+  margin-top: 4px;
+  text-align: left;
+}
 
   .summary {
     font-size: 9px;
