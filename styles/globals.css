@@ -368,6 +368,45 @@ th {
   }
 }
 
+.dashboardStats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 14px;
+  margin: 20px 0;
+}
+
+.statCard {
+  background: #edf6ff;
+  border-radius: 16px;
+  padding: 16px;
+  text-align: center;
+}
+
+.statCard small {
+  display: block;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.statCard strong {
+  font-size: 26px;
+  color: #10294f;
+}
+
+.leagueTableWrap {
+  max-width: 420px;
+}
+
+.leagueTable th,
+.leagueTable td {
+  text-align: center;
+}
+
+.leagueTable th:nth-child(2),
+.leagueTable td:nth-child(2) {
+  text-align: left;
+}
+
 /* Print */
 @media print {
   @page {
