@@ -601,7 +601,13 @@ function Leaderboard({ ranked, fixtures, settings, maxPts, pot }) {
 
       {view === 'predictions' && predictionsReleased && (
         <>
-          <h3>All Predictions</h3>
+          <h3>All Predictions</h3><EntriesMatrix
+  entries={ranked}
+  fixtures={fixtures}
+  settings={settings}
+  maxPts={maxPts}
+  pot={fullPot}
+/>
           <EntriesMatrix entries={ranked} fixtures={fixtures} />
         </>
       )}
@@ -613,36 +619,115 @@ function Leaderboard({ ranked, fixtures, settings, maxPts, pot }) {
   );
 }
 
-function EntriesMatrix({ entries, fixtures }) {
+function EntriesMatrix({ entries, fixtures, settings, maxPts, pot }) {
+  const winner = entries[0];
+
+  const fixtureResult = f => {
+    if (
+      f.home_score === null ||
+      f.home_score === undefined ||
+      f.away_score === null ||
+      f.away_score === undefined
+    ) {
+      return '-';
+    }
+
+    if (f.home_score > f.away_score) return '1';
+    if (f.home_score < f.away_score) return '2';
+    return 'X';
+  };
+
   return (
-    <div className="scroll">
-      <table className="matrix">
-        <thead>
-          <tr>
-            <th>Name</th>
-            {fixtures.map(f => (
-              <th key={f.id}>
-                {f.home_team}
-                <br />v<br />
-                {f.away_team}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {entries.map(e => (
-            <tr key={e.id}>
-              <td>{e.name} {e.department}</td>
+    <div className="predictionLayout">
+      <div className="predictionMain scroll">
+        <table className="matrix resultsMatrix">
+          <thead>
+            <tr>
+              <th></th>
+              {fixtures.map(f => (
+                <th key={f.id}>
+                  {f.home_team}
+                  <br />v<br />
+                  {f.away_team}
+                </th>
+              ))}
+            </tr>
+          </thead>
+
+          <tbody>
+            <tr>
+              <td><b>SCORE</b></td>
               {fixtures.map(f => (
                 <td key={f.id}>
-                  {e.predictions?.[f.id]?.home ?? ''}-
-                  {e.predictions?.[f.id]?.away ?? ''}
+                  {f.home_score ?? '-'}-{f.away_score ?? '-'}
                 </td>
               ))}
             </tr>
-          ))}
-        </tbody>
-      </table>
+
+            <tr>
+              <td><b>RESULT</b></td>
+              {fixtures.map(f => (
+                <td key={f.id}>{fixtureResult(f)}</td>
+              ))}
+            </tr>
+
+            {entries.map(e => (
+              <tr key={e.id}>
+                <td>{e.name} {e.department}</td>
+                {fixtures.map(f => (
+                  <td key={f.id}>
+                    {e.predictions?.[f.id]?.home ?? ''}-
+                    {e.predictions?.[f.id]?.away ?? ''}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <aside className="predictionSide">
+        <h3>League Table</h3>
+
+        <table className="miniLeague">
+          <thead>
+            <tr>
+              <th>Pos.</th>
+              <th>Player</th>
+              <th>Points</th>
+            </tr>
+          </thead>
+          <tbody>
+            {entries.map((e, i) => (
+              <tr key={e.id}>
+                <td>{i + 1}</td>
+                <td>{e.name} {e.department}</td>
+                <td><b>{e.pts}</b></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+        <div className="legendBox greenBox">
+          1 Point for correct result
+        </div>
+
+        <div className="legendBox blueBox">
+          3 Points for correct score
+        </div>
+
+        <div className="prizeBox">
+          <b>Prize Fund</b>
+          <strong>{sym(settings.currency)}{pot}</strong>
+        </div>
+      </aside>
+
+      {winner && (
+        <div className="winnerBanner">
+          This week&apos;s prize goes to {winner.name} {winner.department} who finishes on {winner.pts} points.
+          Congratulations and well played!
+        </div>
+      )}
     </div>
   );
 }
