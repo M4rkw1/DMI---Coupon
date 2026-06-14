@@ -189,29 +189,36 @@ th {
 }
 
 .couponFixtures {
-  padding: 14px 18px;
+  padding: 14px 42px;
 }
 
 .couponFixture {
   display: grid;
-  grid-template-columns: 34px minmax(120px, 1fr) 58px 24px 58px minmax(120px, 1fr) 128px;
+  gap: 2px;
+  margin-bottom: 8px;
+}
+
+.couponFixtureLine {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 68px 28px 68px minmax(0, 1fr);
   align-items: center;
-  gap: 8px;
-  margin-bottom: 7px;
-  font-size: 16px;
+  gap: 12px;
+  font-size: 18px;
 }
 
 .team.home {
   text-align: right;
+  justify-self: stretch;
 }
 
 .team.away {
   text-align: left;
+  justify-self: stretch;
 }
 
 .scoreCell {
   border: 2px solid #174a8b;
-  height: 30px;
+  height: 28px;
   background: #fff;
 }
 
@@ -232,23 +239,10 @@ th {
 .couponKickoff {
   display: block;
   color: #174a8b;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
   line-height: 1.15;
-  margin-top: 2px;
-}
-
-.fixtureNoInline {
-  display: inline-grid;
-  place-items: center;
-  width: 24px;
-  height: 24px;
-  border-radius: 999px;
-  background: #174a8b;
-  color: white;
-  font-size: 12px;
-  font-weight: 700;
-  margin-right: 8px;
+  text-align: center;
 }
 
 .line {
@@ -458,15 +452,20 @@ th {
 }
 
 .couponFixtures {
-  padding: 12px 30px;
+  padding: 14px 42px;
 }
 
 .couponFixture {
   display: grid;
-  grid-template-columns: 1fr 60px 25px 60px 1fr;
+  gap: 2px;
+  margin-bottom: 8px;
+}
+
+.couponFixtureLine {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 68px 28px 68px minmax(0, 1fr);
   align-items: center;
-  gap: 10px;
-  margin-bottom: 6px;
+  gap: 12px;
   font-size: 18px;
 }
 
@@ -722,7 +721,11 @@ th {
   }
 
   .couponFixture {
-    grid-template-columns: 1fr 45px 18px 45px 1fr;
+    margin-bottom: 8px;
+  }
+
+  .couponFixtureLine {
+    grid-template-columns: minmax(0, 1fr) 45px 18px 45px minmax(0, 1fr);
     font-size: 14px;
   }
 
@@ -1008,21 +1011,17 @@ th {
   }
 
   .couponFixtures {
-    padding: 6px 28px;
+    padding: 6px 24px;
   }
 
   .couponFixture {
-    grid-template-columns: 1fr 42px 16px 42px 1fr;
-    gap: 5px;
     margin-bottom: 3px;
-    font-size: 11px;
   }
 
-  .fixtureNoInline {
-    width: 16px;
-    height: 16px;
-    font-size: 8px;
-    margin-right: 4px;
+  .couponFixtureLine {
+    grid-template-columns: minmax(0, 1fr) 42px 16px 42px minmax(0, 1fr);
+    gap: 6px;
+    font-size: 11px;
   }
 
   .couponKickoff {
@@ -1195,8 +1194,8 @@ th {
     padding: 14px;
   }
 
-  .couponFixture {
-    grid-template-columns: 1fr 45px 18px 45px 1fr;
+  .couponFixtureLine {
+    grid-template-columns: minmax(0, 1fr) 45px 18px 45px minmax(0, 1fr);
     font-size: 14px;
   }
 
@@ -1440,14 +1439,17 @@ th {
   }
 
   .couponFixtures {
-    padding: 6px 28px;
+    padding: 6px 24px;
   }
 
   .couponFixture {
-    grid-template-columns: 1fr 46px 18px 46px 1fr;
-    gap: 8px;
     margin-bottom: 3px;
-    font-size: 13px;
+  }
+
+  .couponFixtureLine {
+    grid-template-columns: minmax(0, 1fr) 42px 16px 42px minmax(0, 1fr);
+    gap: 6px;
+    font-size: 11px;
   }
 
   .scoreCell {
