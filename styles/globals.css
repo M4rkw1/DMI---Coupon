@@ -718,6 +718,48 @@ th {
   font-weight: 700;
 }
 
+.historicGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 14px;
+}
+
+.historicWinner {
+  border: 1px solid #bcc8d9;
+  border-radius: 14px;
+  padding: 16px;
+  background: #f8fbff;
+}
+
+.historicWinner small {
+  color: #46618a;
+  font-weight: 700;
+}
+
+.historicWinner h3 {
+  margin: 8px 0 4px;
+  font-size: 24px;
+}
+
+.historicWinner > strong {
+  display: inline-block;
+  margin: 8px 0;
+  color: #174a8b;
+  font-size: 22px;
+}
+
+.historicWinner ol {
+  margin: 10px 0 0;
+  padding-left: 22px;
+}
+
+.historicWinner li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 3px 0;
+}
+
 /* Leaderboard / Prediction Tabs */
 .tabs {
   display: flex;

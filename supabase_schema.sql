@@ -54,6 +54,20 @@ create table if not exists entries (
   created_at timestamptz default now()
 );
 
+create table if not exists coupon_archives (
+  id uuid primary key default gen_random_uuid(),
+  week_id uuid,
+  week_title text default '',
+  week_subtitle text default '',
+  saved_as_historic boolean default false,
+  winner_name text default '',
+  winner_department text default '',
+  winner_points int default 0,
+  leaderboard jsonb not null default '[]',
+  snapshot jsonb not null default '{}',
+  created_at timestamptz default now()
+);
+
 insert into coupon_weeks(title, subtitle, is_current)
 select 'DMI Coupon – Next Coupon', 'Weekend trial', true
 where not exists (select 1 from coupon_weeks where is_current = true);

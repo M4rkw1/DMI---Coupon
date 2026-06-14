@@ -137,6 +137,7 @@ export default function Home() {
           fixtures: Array.isArray(data?.fixtures) ? data.fixtures : [],
           entries: Array.isArray(data?.entries) ? data.entries : [],
           settings: data?.settings || {},
+          archives: Array.isArray(data?.archives) ? data.archives : [],
         });
       })
       .catch(e => {
@@ -151,6 +152,7 @@ export default function Home() {
             rules: '',
             entries_released: false,
           },
+          archives: [],
         });
       });
 
@@ -220,7 +222,7 @@ async function validateAdminPassword() {
     );
   }
 
-  const { week = {}, fixtures = [], settings = {}, entries = [] } = state || {};
+  const { week = {}, fixtures = [], settings = {}, entries = [], archives = [] } = state || {};
 
   const maxPts = fixtures.length * 3;
   const stake = Number(settings?.entry_fee || 10);
@@ -292,7 +294,7 @@ async function adminAction(action, payload) {
     setTab('leaderboard');
   }
 
-  const nav = ['home', 'old school', 'enter coupon', 'leaderboard', 'admin'];
+  const nav = ['home', 'old school', 'enter coupon', 'leaderboard', 'historic winners', 'admin'];
 
   return (
     <>
@@ -411,6 +413,10 @@ async function adminAction(action, payload) {
           />
         )}
 
+        {tab === 'historic winners' && (
+          <HistoricWinners archives={archives.filter(archive => archive.saved_as_historic)} />
+        )}
+
         {tab === 'admin' && (
           <section className="card adminLock">
             <h2>Admin</h2>
@@ -457,6 +463,7 @@ async function adminAction(action, payload) {
                   imgRef={imgRef}
                   entriesImgRef={entriesImgRef}
                   admin={admin}
+                  load={load}
                 />
               </>
             )}
@@ -905,10 +912,51 @@ function parseFixtureRows(text) {
   return { fixtures, errors, rows };
 }
 
-function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef, admin }) {
+function HistoricWinners({ archives = [] }) {
+  if (!archives.length) {
+    return (
+      <section className="card">
+        <h2>Historic Winners</h2>
+        <p>No historic winners saved yet.</p>
+      </section>
+    );
+  }
+
+  return (
+    <section className="card">
+      <h2>Historic Winners</h2>
+
+      <div className="historicGrid">
+        {archives.map(archive => (
+          <article className="historicWinner" key={archive.id}>
+            <small>{archive.week_subtitle || archive.week_title}</small>
+            <h3>{archive.winner_name || 'No winner recorded'}</h3>
+            {archive.winner_department && <p>{archive.winner_department}</p>}
+            <strong>{archive.winner_points || 0} pts</strong>
+
+            {!!archive.leaderboard?.length && (
+              <ol>
+                {archive.leaderboard.slice(0, 5).map(entry => (
+                  <li key={entry.id || entry.name}>
+                    <span>{entry.name}</span>
+                    <b>{entry.pts}</b>
+                  </li>
+                ))}
+              </ol>
+            )}
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef, admin, load }) {
   const [settings, setSettings] = useState(state.settings || {});
   const [week, setWeek] = useState(state.week || {});
   const fixtures = Array.isArray(state.fixtures) ? state.fixtures : [];
+  const archives = Array.isArray(state.archives) ? state.archives : [];
+  const latestArchive = archives[0];
 
   const [fixtureText, setFixtureText] = useState(
     fixtures
@@ -917,6 +965,12 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef,
   );
   const [fixturePreview, setFixturePreview] = useState(null);
   const [confirmReplace, setConfirmReplace] = useState(false);
+  const [newCoupon, setNewCoupon] = useState({
+    title: 'DMI Coupon – New Coupon',
+    subtitle: '',
+    saveHistoric: true,
+  });
+  const [confirmNewCoupon, setConfirmNewCoupon] = useState(false);
 
   const [tsv, setTsv] = useState('');
 
@@ -965,6 +1019,62 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef,
       week_id: state.week.id,
       fixtures: parsed.fixtures,
     });
+  }
+
+  async function runAdminAction(action, payload, successMessage) {
+    const r = await fetch('/api/admin', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-admin-pass': admin,
+      },
+      body: JSON.stringify({ action, payload }),
+    });
+    const json = await r.json().catch(() => ({}));
+
+    if (!r.ok) {
+      setMsg(json.error || 'Admin action failed');
+      return false;
+    }
+
+    setMsg(successMessage || 'Saved ✅');
+    load();
+    return true;
+  }
+
+  function prepareNewCoupon() {
+    if (!confirmNewCoupon) {
+      setConfirmNewCoupon(true);
+      setMsg(
+        `Confirm new coupon: this will archive then clear ${fixtures.length} fixture(s) and ${state.entries?.length || 0} entry/entries.`
+      );
+      return;
+    }
+
+    setConfirmNewCoupon(false);
+    runAdminAction(
+      'newCoupon',
+      {
+        week_id: state.week.id,
+        title: newCoupon.title,
+        subtitle: newCoupon.subtitle,
+        saveHistoric: newCoupon.saveHistoric,
+      },
+      'New coupon started. Previous coupon snapshot saved.'
+    );
+  }
+
+  function restoreLatestArchive() {
+    if (!latestArchive) {
+      setMsg('No archive snapshot found to restore.');
+      return;
+    }
+
+    runAdminAction(
+      'restoreArchive',
+      { archive_id: latestArchive.id },
+      `Restored ${latestArchive.week_title || 'previous coupon'} from archive.`
+    );
   }
 
   async function download(ref, name) {
@@ -1109,6 +1219,47 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef,
           </label>
 
           <button onClick={() => adminAction('saveSettings', settings)}>Save Settings</button>
+
+          <h3>New Coupon</h3>
+          <p>
+            Saves a full snapshot first, optionally adds the winner to Historic Winners, then clears
+            fixtures and entries for a fresh coupon.
+          </p>
+
+          <input
+            placeholder="New coupon title"
+            value={newCoupon.title}
+            onChange={e => {
+              setNewCoupon({ ...newCoupon, title: e.target.value });
+              setConfirmNewCoupon(false);
+            }}
+          />
+
+          <input
+            placeholder="New coupon subtitle / dates"
+            value={newCoupon.subtitle}
+            onChange={e => {
+              setNewCoupon({ ...newCoupon, subtitle: e.target.value });
+              setConfirmNewCoupon(false);
+            }}
+          />
+
+          <label>
+            <input
+              type="checkbox"
+              checked={newCoupon.saveHistoric}
+              onChange={e => setNewCoupon({ ...newCoupon, saveHistoric: e.target.checked })}
+            />{' '}
+            Save current leaderboard and predictions as Historic Winners
+          </label>
+
+          <button className={confirmNewCoupon ? 'dangerButton' : ''} onClick={prepareNewCoupon}>
+            {confirmNewCoupon ? 'Confirm Start New Coupon' : 'Start New Coupon'}
+          </button>
+
+          <button disabled={!latestArchive} onClick={restoreLatestArchive}>
+            Revert Last New Coupon
+          </button>
         </div>
 
         <div>

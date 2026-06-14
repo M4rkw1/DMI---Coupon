@@ -1,5 +1,100 @@
 import { supabaseAdmin, isAdmin } from '../../lib/supabase';
 
+const resultOf = (h, a) => (h > a ? 'H' : h < a ? 'A' : 'D');
+
+function points(pred, fix) {
+  if (
+    fix.home_score === null ||
+    fix.away_score === null ||
+    fix.home_score === undefined ||
+    fix.away_score === undefined
+  ) {
+    return 0;
+  }
+
+  const ph = Number(pred?.home);
+  const pa = Number(pred?.away);
+
+  if (Number.isNaN(ph) || Number.isNaN(pa)) return 0;
+
+  if (ph === Number(fix.home_score) && pa === Number(fix.away_score)) return 3;
+
+  return resultOf(ph, pa) === resultOf(Number(fix.home_score), Number(fix.away_score)) ? 1 : 0;
+}
+
+function rankedEntries(entries, fixtures) {
+  return [...entries]
+    .map(entry => ({
+      ...entry,
+      pts: fixtures.reduce((sum, fixture) => sum + points(entry.predictions?.[fixture.id], fixture), 0),
+      exact: fixtures.filter(fixture => points(entry.predictions?.[fixture.id], fixture) === 3).length,
+    }))
+    .sort(
+      (a, b) =>
+        b.pts - a.pts ||
+        b.exact - a.exact ||
+        String(a.name || '').localeCompare(String(b.name || ''))
+    );
+}
+
+function stripRuntimeFields(row) {
+  const { created_at, ...rest } = row;
+  return rest;
+}
+
+async function loadSnapshotData(db, weekId) {
+  const [week, fixtures, entries, settings] = await Promise.all([
+    db.from('coupon_weeks').select('*').eq('id', weekId).single(),
+    db.from('fixtures').select('*').eq('week_id', weekId).order('sort_order'),
+    db.from('entries').select('*').eq('week_id', weekId).order('created_at'),
+    db.from('coupon_settings').select('*').eq('week_id', weekId).single(),
+  ]);
+
+  if (week.error) throw week.error;
+  if (fixtures.error) throw fixtures.error;
+  if (entries.error) throw entries.error;
+  if (settings.error) throw settings.error;
+
+  return {
+    week: week.data,
+    fixtures: fixtures.data || [],
+    entries: entries.data || [],
+    settings: settings.data,
+  };
+}
+
+async function createArchive(db, weekId, saveHistoric) {
+  const snapshot = await loadSnapshotData(db, weekId);
+  const ranked = rankedEntries(snapshot.entries, snapshot.fixtures);
+  const winner = ranked[0] || {};
+
+  const { data, error } = await db
+    .from('coupon_archives')
+    .insert({
+      week_id: weekId,
+      week_title: snapshot.week.title || '',
+      week_subtitle: snapshot.week.subtitle || '',
+      saved_as_historic: !!saveHistoric,
+      winner_name: winner.name || '',
+      winner_department: winner.department || '',
+      winner_points: Number(winner.pts || 0),
+      leaderboard: ranked.map(entry => ({
+        id: entry.id,
+        name: entry.name,
+        department: entry.department,
+        paid: entry.paid,
+        pts: entry.pts,
+        exact: entry.exact,
+      })),
+      snapshot,
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
 export default async function handler(req, res) {
   if (!isAdmin(req)) return res.status(401).json({ error: 'Not authorised' });
   const db = supabaseAdmin();
@@ -80,6 +175,77 @@ export default async function handler(req, res) {
     if (action === 'importEntry') {
       const { error } = await db.from('entries').insert(payload);
       if (error) throw error;
+    }
+    if (action === 'newCoupon') {
+      const { week_id, title, subtitle, saveHistoric } = payload;
+      if (!week_id) return res.status(400).json({ error: 'Missing week id' });
+
+      const archive = await createArchive(db, week_id, saveHistoric);
+
+      await db.from('entries').delete().eq('week_id', week_id);
+      await db.from('fixtures').delete().eq('week_id', week_id);
+
+      const { error: weekError } = await db
+        .from('coupon_weeks')
+        .update({
+          title: title || 'DMI Coupon – New Coupon',
+          subtitle: subtitle || '',
+        })
+        .eq('id', week_id);
+      if (weekError) throw weekError;
+
+      const { error: settingsError } = await db
+        .from('coupon_settings')
+        .update({ entries_released: false })
+        .eq('week_id', week_id);
+      if (settingsError) throw settingsError;
+
+      return res.status(200).json({ ok: true, archive_id: archive.id });
+    }
+    if (action === 'restoreArchive') {
+      const archiveId = payload?.archive_id;
+      const archiveQuery = db.from('coupon_archives').select('*').order('created_at', { ascending: false }).limit(1);
+      const { data: archive, error: archiveError } = archiveId
+        ? await db.from('coupon_archives').select('*').eq('id', archiveId).single()
+        : await archiveQuery.single();
+
+      if (archiveError) throw archiveError;
+      if (!archive?.snapshot?.week?.id) return res.status(400).json({ error: 'Archive snapshot is incomplete' });
+
+      const snapshot = archive.snapshot;
+      const weekId = snapshot.week.id;
+
+      await db.from('entries').delete().eq('week_id', weekId);
+      await db.from('fixtures').delete().eq('week_id', weekId);
+
+      const { id: weekRowId, created_at: weekCreatedAt, ...weekFields } = snapshot.week;
+      const { error: weekError } = await db.from('coupon_weeks').update(weekFields).eq('id', weekRowId);
+      if (weekError) throw weekError;
+
+      if (snapshot.settings?.id) {
+        const { id: settingsId, created_at: settingsCreatedAt, ...settingsFields } = snapshot.settings;
+        const { error: settingsError } = await db
+          .from('coupon_settings')
+          .update(settingsFields)
+          .eq('id', settingsId);
+        if (settingsError) throw settingsError;
+      }
+
+      if (snapshot.fixtures?.length) {
+        const { error: fixtureError } = await db
+          .from('fixtures')
+          .insert(snapshot.fixtures.map(stripRuntimeFields));
+        if (fixtureError) throw fixtureError;
+      }
+
+      if (snapshot.entries?.length) {
+        const { error: entryError } = await db
+          .from('entries')
+          .insert(snapshot.entries.map(stripRuntimeFields));
+        if (entryError) throw entryError;
+      }
+
+      return res.status(200).json({ ok: true, restored_archive_id: archive.id });
     }
     res.status(200).json({ ok: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
