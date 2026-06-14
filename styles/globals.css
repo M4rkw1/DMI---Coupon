@@ -851,6 +851,45 @@ th {
   padding: 3px 0;
 }
 
+.adminEntriesTable tbody tr:not(.entryEditorTableRow) td:last-child {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.entryEditor {
+  background: #f8fbff;
+  border: 1px solid #bcc8d9;
+  border-radius: 12px;
+  padding: 14px;
+}
+
+.entryPredictionEditor {
+  display: grid;
+  gap: 6px;
+  margin-top: 10px;
+  max-height: 440px;
+  overflow: auto;
+}
+
+.entryPredictionRow {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) 58px 18px 58px;
+  align-items: center;
+  gap: 8px;
+}
+
+.entryPredictionRow input {
+  text-align: center;
+}
+
+.entryEditorActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+}
+
 /* Leaderboard / Prediction Tabs */
 .tabs {
   display: flex;

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 
 const resultOf = (h, a) => (h > a ? 'H' : h < a ? 'A' : 'D');
 const hasScore = f =>
@@ -1029,6 +1029,8 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef,
     saveHistoric: true,
   });
   const [confirmNewCoupon, setConfirmNewCoupon] = useState(false);
+  const [editingEntryId, setEditingEntryId] = useState(null);
+  const [entryDraft, setEntryDraft] = useState(null);
 
   const [tsv, setTsv] = useState('');
 
@@ -1133,6 +1135,48 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef,
       { archive_id: latestArchive.id },
       `Restored ${latestArchive.week_title || 'previous coupon'} from archive.`
     );
+  }
+
+  function startEditEntry(entry) {
+    setEditingEntryId(entry.id);
+    setEntryDraft({
+      name: entry.name || '',
+      department: entry.department || '',
+      predictions: JSON.parse(JSON.stringify(entry.predictions || {})),
+    });
+  }
+
+  function updateEntryDraftPrediction(fixtureId, side, value) {
+    setEntryDraft(current => ({
+      ...current,
+      predictions: {
+        ...current.predictions,
+        [fixtureId]: {
+          ...(current.predictions?.[fixtureId] || {}),
+          [side]: value,
+        },
+      },
+    }));
+  }
+
+  function saveEntryDraft(entry) {
+    const predictions = {};
+
+    fixtures.forEach(fixture => {
+      predictions[fixture.id] = {
+        home: entryDraft.predictions?.[fixture.id]?.home ?? '',
+        away: entryDraft.predictions?.[fixture.id]?.away ?? '',
+      };
+    });
+
+    adminAction('updateEntry', {
+      id: entry.id,
+      name: entryDraft.name.trim(),
+      department: entryDraft.department.trim(),
+      predictions,
+    });
+    setEditingEntryId(null);
+    setEntryDraft(null);
   }
 
   async function download(ref, name) {
@@ -1488,31 +1532,110 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef,
 
       <h3>Entries / Payments</h3>
 
-      <table>
+      <table className="adminEntriesTable">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Department</th>
+            <th>Points</th>
+            <th>Paid</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
         <tbody>
           {ranked.map(e => (
-            <tr key={e.id}>
-              <td>{e.name}</td>
-              <td>{e.department}</td>
-              <td>{e.pts}</td>
-              <td>
-                <button
-                  onClick={() =>
-                    adminAction('updateEntry', {
-                      id: e.id,
-                      paid: !e.paid,
-                    })
-                  }
-                >
-                  {e.paid ? 'Paid ✅' : 'Unpaid ❌'}
-                </button>
-              </td>
-              <td>
-                <button onClick={() => adminAction('deleteEntry', { id: e.id })}>
-                  Delete
-                </button>
-              </td>
-            </tr>
+            <Fragment key={e.id}>
+              <tr>
+                <td>{e.name}</td>
+                <td>{e.department}</td>
+                <td>{e.pts}</td>
+                <td>
+                  <button
+                    onClick={() =>
+                      adminAction('updateEntry', {
+                        id: e.id,
+                        paid: !e.paid,
+                      })
+                    }
+                  >
+                    {e.paid ? 'Paid ✅' : 'Unpaid ❌'}
+                  </button>
+                </td>
+                <td>
+                  <button onClick={() => startEditEntry(e)}>Edit Scores</button>
+                  <button onClick={() => adminAction('deleteEntry', { id: e.id })}>
+                    Delete
+                  </button>
+                </td>
+              </tr>
+
+              {editingEntryId === e.id && entryDraft && (
+                <tr className="entryEditorTableRow">
+                  <td colSpan="5">
+                    <div className="entryEditor">
+                      <div className="grid2">
+                        <input
+                          value={entryDraft.name}
+                          onChange={event =>
+                            setEntryDraft(current => ({ ...current, name: event.target.value }))
+                          }
+                        />
+                        <input
+                          value={entryDraft.department}
+                          onChange={event =>
+                            setEntryDraft(current => ({
+                              ...current,
+                              department: event.target.value,
+                            }))
+                          }
+                        />
+                      </div>
+
+                      <div className="entryPredictionEditor">
+                        {fixtures.map(fixture => (
+                          <div className="entryPredictionRow" key={fixture.id}>
+                            <span>
+                              {fixture.home_team} v {fixture.away_team}
+                            </span>
+                            <input
+                              type="number"
+                              min="0"
+                              placeholder="H"
+                              value={entryDraft.predictions?.[fixture.id]?.home ?? ''}
+                              onChange={event =>
+                                updateEntryDraftPrediction(fixture.id, 'home', event.target.value)
+                              }
+                            />
+                            <b>-</b>
+                            <input
+                              type="number"
+                              min="0"
+                              placeholder="A"
+                              value={entryDraft.predictions?.[fixture.id]?.away ?? ''}
+                              onChange={event =>
+                                updateEntryDraftPrediction(fixture.id, 'away', event.target.value)
+                              }
+                            />
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="entryEditorActions">
+                        <button onClick={() => saveEntryDraft(e)}>Save Edited Entry</button>
+                        <button
+                          onClick={() => {
+                            setEditingEntryId(null);
+                            setEntryDraft(null);
+                          }}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              )}
+            </Fragment>
           ))}
         </tbody>
       </table>
