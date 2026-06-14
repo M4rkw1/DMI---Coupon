@@ -762,13 +762,17 @@ function OldSchool({ week, fixtures, settings = {}, maxPts, entryDeadline }) {
         <div className="couponFixtures">
           {fixtures.map((f, index) => (
             <div className="couponFixture" key={f.id}>
-              <div className="fixtureNo">{index + 1}</div>
-              <div className="team home">{f.home_team}</div>
+              <div className="team home">
+                <span className="fixtureNoInline">{index + 1}</span>
+                {f.home_team}
+              </div>
               <div className="scoreCell"></div>
               <div className="versus">v</div>
               <div className="scoreCell"></div>
-              <div className="team away">{f.away_team}</div>
-              <div className="couponKickoff">{formatKickoff(f.kickoff)}</div>
+              <div className="team away">
+                {f.away_team}
+                <small className="couponKickoff">{formatKickoff(f.kickoff)}</small>
+              </div>
             </div>
           ))}
         </div>

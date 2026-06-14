@@ -201,18 +201,6 @@ th {
   font-size: 16px;
 }
 
-.fixtureNo {
-  display: grid;
-  place-items: center;
-  width: 26px;
-  height: 26px;
-  border-radius: 999px;
-  background: #174a8b;
-  color: white;
-  font-weight: 700;
-  font-size: 13px;
-}
-
 .team.home {
   text-align: right;
 }
@@ -242,10 +230,25 @@ th {
 }
 
 .couponKickoff {
+  display: block;
   color: #174a8b;
   font-size: 12px;
   font-weight: 700;
-  text-align: right;
+  line-height: 1.15;
+  margin-top: 2px;
+}
+
+.fixtureNoInline {
+  display: inline-grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  background: #174a8b;
+  color: white;
+  font-size: 12px;
+  font-weight: 700;
+  margin-right: 8px;
 }
 
 .line {
@@ -719,13 +722,8 @@ th {
   }
 
   .couponFixture {
-    grid-template-columns: 28px 1fr 45px 18px 45px 1fr;
+    grid-template-columns: 1fr 45px 18px 45px 1fr;
     font-size: 14px;
-  }
-
-  .couponKickoff {
-    grid-column: 2 / -1;
-    text-align: left;
   }
 
   .couponMeta {
@@ -1014,16 +1012,17 @@ th {
   }
 
   .couponFixture {
-    grid-template-columns: 24px 1fr 42px 16px 42px 1fr 82px;
+    grid-template-columns: 1fr 42px 16px 42px 1fr;
     gap: 5px;
     margin-bottom: 3px;
     font-size: 11px;
   }
 
-  .fixtureNo {
-    width: 18px;
-    height: 18px;
-    font-size: 9px;
+  .fixtureNoInline {
+    width: 16px;
+    height: 16px;
+    font-size: 8px;
+    margin-right: 4px;
   }
 
   .couponKickoff {
