@@ -776,6 +776,64 @@ function EntriesMatrix({ entries, fixtures, settings = {}, maxPts, pot }) {
   );
 }
 
+function EntriesMatrixExport({ entries, fixtures, settings = {}, week = {} }) {
+  return (
+    <div className="entriesMatrixExport">
+      <div className="entriesExportHeader">
+        <div>
+          <span>DMI Football Coupon</span>
+          <h2>{week.title || 'Released Entries'}</h2>
+          {week.subtitle && <p>{week.subtitle}</p>}
+        </div>
+        <strong>
+          {entries.length} player{entries.length === 1 ? '' : 's'}
+        </strong>
+      </div>
+
+      <table className="entriesExportTable">
+        <thead>
+          <tr>
+            <th>Player</th>
+            {fixtures.map(f => (
+              <th key={f.id}>
+                {f.home_team} v {f.away_team}
+              </th>
+            ))}
+            <th>Pts</th>
+          </tr>
+        </thead>
+        <tbody>
+          {entries.map(entry => (
+            <tr key={entry.id}>
+              <td>
+                <strong>{entry.name}</strong>
+                {entry.department && <small>{entry.department}</small>}
+              </td>
+              {fixtures.map(f => {
+                const pts = points(entry.predictions?.[f.id], f);
+                const className = pts === 3 ? 'exactScore' : pts === 1 ? 'correctResult' : '';
+                return (
+                  <td className={className} key={f.id}>
+                    {entry.predictions?.[f.id]?.home ?? ''}-{entry.predictions?.[f.id]?.away ?? ''}
+                  </td>
+                );
+              })}
+              <td>
+                <b>{entry.pts}</b>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      <div className="entriesExportLegend">
+        <span className="correctResult">1 point correct result</span>
+        <span className="exactScore">3 points exact score</span>
+      </div>
+    </div>
+  );
+}
+
 function WinnerBanner({ ranked = [], fixtures = [] }) {
   const winner = ranked[0];
   const allGamesFinished = fixtures.length > 0 && fixtures.every(hasScore);
@@ -1079,9 +1137,14 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef,
 
   async function download(ref, name) {
     const html2canvas = (await import('html2canvas')).default;
+    const element = ref.current;
     const canvas = await html2canvas(ref.current, {
       scale: 2,
       backgroundColor: '#ffffff',
+      width: element.scrollWidth,
+      height: element.scrollHeight,
+      windowWidth: element.scrollWidth,
+      windowHeight: element.scrollHeight,
     });
 
     const a = document.createElement('a');
@@ -1509,14 +1572,11 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef,
       </div>
 
       <div className="entriesShare" ref={entriesImgRef}>
-        <h2>Released Entries</h2>
-
-        <EntriesMatrix
+        <EntriesMatrixExport
           entries={ranked}
           fixtures={fixtures}
           settings={state.settings}
-          maxPts={fixtures.length * 3}
-          pot={pot}
+          week={state.week}
         />
       </div>
     </div>

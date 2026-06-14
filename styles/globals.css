@@ -662,7 +662,98 @@ th {
   background: white;
   color: #111;
   padding: 22px;
-  width: 1200px;
+  display: inline-block;
+  min-width: 1200px;
+  width: max-content;
+}
+
+.entriesMatrixExport {
+  background: #fff;
+}
+
+.entriesExportHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 24px;
+  margin-bottom: 18px;
+}
+
+.entriesExportHeader span {
+  color: #174a8b;
+  display: block;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.entriesExportHeader h2 {
+  margin: 4px 0;
+  font-size: 30px;
+}
+
+.entriesExportHeader p {
+  margin: 0;
+  color: #46618a;
+  font-weight: 700;
+}
+
+.entriesExportHeader strong {
+  border: 2px solid #174a8b;
+  border-radius: 12px;
+  color: #174a8b;
+  padding: 10px 14px;
+  white-space: nowrap;
+}
+
+.entriesExportTable {
+  border-collapse: collapse;
+  width: auto;
+}
+
+.entriesExportTable th,
+.entriesExportTable td {
+  border: 1px solid #9fb0c8;
+  min-width: 76px;
+  padding: 7px 8px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.entriesExportTable th:first-child,
+.entriesExportTable td:first-child {
+  min-width: 180px;
+  text-align: left;
+}
+
+.entriesExportTable th {
+  background: #10294f;
+  color: #fff;
+  font-size: 11px;
+}
+
+.entriesExportTable td {
+  font-size: 13px;
+}
+
+.entriesExportTable small {
+  color: #46618a;
+  display: block;
+  font-size: 10px;
+}
+
+.entriesExportLegend {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.entriesExportLegend span {
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 800;
+  padding: 8px 10px;
 }
 
 .adminGrid {
@@ -1223,7 +1314,9 @@ th {
   background: white;
   color: #111;
   padding: 22px;
-  width: 1200px;
+  display: inline-block;
+  min-width: 1200px;
+  width: max-content;
 }
 
 .adminGrid {
