@@ -17,8 +17,26 @@ export default async function handler(req, res) {
     }
     if (action === 'replaceFixtures') {
       const { week_id, fixtures } = payload;
+      if (!week_id) return res.status(400).json({ error: 'Missing week id' });
+      if (!Array.isArray(fixtures) || fixtures.length === 0) {
+        return res.status(400).json({ error: 'No fixtures supplied' });
+      }
+
+      const rows = fixtures.map((f, i) => ({
+        week_id,
+        sort_order: i + 1,
+        home_team: String(f.home_team || '').trim(),
+        away_team: String(f.away_team || '').trim(),
+        kickoff: String(f.kickoff || '').trim(),
+        api_fixture_id: String(f.api_fixture_id || '').trim() || null,
+        status: f.status || 'NS',
+      }));
+      const badRow = rows.findIndex(f => !f.home_team || !f.away_team);
+      if (badRow >= 0) {
+        return res.status(400).json({ error: `Fixture row ${badRow + 1} is missing a team` });
+      }
+
       await db.from('fixtures').delete().eq('week_id', week_id);
-      const rows = fixtures.map((f, i) => ({ ...f, week_id, sort_order: i + 1 }));
       const { error } = await db.from('fixtures').insert(rows);
       if (error) throw error;
     }

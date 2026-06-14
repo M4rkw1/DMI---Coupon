@@ -159,6 +159,7 @@ th {
   max-width: 850px;
   margin: auto;
   border: 2px solid #174a8b;
+  border-radius: 8px;
 }
 
 .couponSheet {
@@ -188,16 +189,28 @@ th {
 }
 
 .couponFixtures {
-  padding: 12px 30px;
+  padding: 14px 18px;
 }
 
 .couponFixture {
   display: grid;
-  grid-template-columns: 1fr 60px 25px 60px 1fr;
+  grid-template-columns: 34px minmax(120px, 1fr) 58px 24px 58px minmax(120px, 1fr) 128px;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 6px;
-  font-size: 18px;
+  gap: 8px;
+  margin-bottom: 7px;
+  font-size: 16px;
+}
+
+.fixtureNo {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  background: #174a8b;
+  color: white;
+  font-weight: 700;
+  font-size: 13px;
 }
 
 .team.home {
@@ -210,7 +223,8 @@ th {
 
 .scoreCell {
   border: 2px solid #174a8b;
-  height: 26px;
+  height: 30px;
+  background: #fff;
 }
 
 .versus {
@@ -225,6 +239,13 @@ th {
   gap: 12px 18px;
   margin-top: 12px;
   font-size: 18px;
+}
+
+.couponKickoff {
+  color: #174a8b;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: right;
 }
 
 .line {
@@ -529,8 +550,102 @@ th {
   margin: 18px 0;
 }
 
-.share h1 {
+.shareHeader span {
   color: #ffb703;
+  display: block;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.shareHeader h1 {
+  color: #ffb703;
+  font-size: 30px;
+  line-height: 1.05;
+  margin: 8px 0;
+}
+
+.shareHeader p {
+  color: #c8d6ef;
+  margin: 0;
+}
+
+.shareMeta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin: 22px 0;
+}
+
+.shareMeta div {
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 14px;
+  padding: 12px;
+}
+
+.shareMeta small,
+.shareRow small {
+  color: #9fb3d5;
+  display: block;
+  font-size: 11px;
+  font-style: normal;
+}
+
+.shareMeta strong {
+  display: block;
+  font-size: 24px;
+  margin-top: 4px;
+}
+
+.shareRows {
+  display: grid;
+  gap: 8px;
+}
+
+.shareRow {
+  display: grid;
+  grid-template-columns: 34px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.08);
+  padding: 10px;
+}
+
+.shareRow.leader {
+  background: #ffb703;
+  color: #111;
+}
+
+.shareRow.leader small {
+  color: #443400;
+}
+
+.shareRow b {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.shareRow.leader b {
+  background: #111;
+  color: #ffb703;
+}
+
+.shareRow em {
+  font-style: normal;
+  font-weight: 800;
+}
+
+.shareFooter {
+  color: #c8d6ef;
+  font-size: 12px;
+  margin: 18px 0 0;
+  text-align: center;
 }
 
 .entriesShare {
@@ -604,8 +719,13 @@ th {
   }
 
   .couponFixture {
-    grid-template-columns: 1fr 45px 18px 45px 1fr;
+    grid-template-columns: 28px 1fr 45px 18px 45px 1fr;
     font-size: 14px;
+  }
+
+  .couponKickoff {
+    grid-column: 2 / -1;
+    text-align: left;
   }
 
   .couponMeta {
@@ -894,10 +1014,20 @@ th {
   }
 
   .couponFixture {
-    grid-template-columns: 1fr 46px 18px 46px 1fr;
-    gap: 8px;
+    grid-template-columns: 24px 1fr 42px 16px 42px 1fr 82px;
+    gap: 5px;
     margin-bottom: 3px;
-    font-size: 13px;
+    font-size: 11px;
+  }
+
+  .fixtureNo {
+    width: 18px;
+    height: 18px;
+    font-size: 9px;
+  }
+
+  .couponKickoff {
+    font-size: 7px;
   }
 
   .scoreCell {

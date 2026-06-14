@@ -63,6 +63,19 @@ const entryDeadlineFor = fixtures => {
   return firstKickoff ? new Date(firstKickoff.getTime() - 60 * 1000) : null;
 };
 
+const formatKickoff = kickoff => {
+  const date = parseKickoff(kickoff);
+  return date
+    ? date.toLocaleString('en-GB', {
+        weekday: 'short',
+        day: '2-digit',
+        month: 'short',
+        hour: '2-digit',
+        minute: '2-digit',
+      })
+    : 'TBC';
+};
+
 export default function Home() {
   const [state, setState] = useState(null);
   const [tab, setTab] = useState('home');
@@ -402,6 +415,7 @@ async function adminAction(action, payload) {
                   pot={pot}
                   imgRef={imgRef}
                   entriesImgRef={entriesImgRef}
+                  admin={admin}
                 />
               </>
             )}
@@ -746,13 +760,15 @@ function OldSchool({ week, fixtures, settings = {}, maxPts, entryDeadline }) {
         </h1>
 
         <div className="couponFixtures">
-          {fixtures.map(f => (
+          {fixtures.map((f, index) => (
             <div className="couponFixture" key={f.id}>
+              <div className="fixtureNo">{index + 1}</div>
               <div className="team home">{f.home_team}</div>
               <div className="scoreCell"></div>
               <div className="versus">v</div>
               <div className="scoreCell"></div>
               <div className="team away">{f.away_team}</div>
+              <div className="couponKickoff">{formatKickoff(f.kickoff)}</div>
             </div>
           ))}
         </div>
@@ -808,13 +824,47 @@ function OldSchool({ week, fixtures, settings = {}, maxPts, entryDeadline }) {
   );
 }
 
-function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef }) {
+function parseFixtureRows(text) {
+  const fixtures = [];
+  const errors = [];
+
+  String(text || '')
+    .split('\n')
+    .forEach((line, index) => {
+      const raw = line.trim();
+      if (!raw) return;
+
+      const parts = raw.includes('\t')
+        ? raw.split('\t')
+        : raw.split(/\s+(?:v|vs|-)\s+/i);
+      const [home, away, kickoff = '', apiFixtureId = ''] = parts.map(part => part.trim());
+
+      if (!home || !away) {
+        errors.push(`Row ${index + 1}: use Home TAB Away TAB Kick-off`);
+        return;
+      }
+
+      fixtures.push({
+        home_team: home,
+        away_team: away,
+        kickoff,
+        api_fixture_id: apiFixtureId,
+        status: 'NS',
+      });
+    });
+
+  return { fixtures, errors };
+}
+
+function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef, admin }) {
   const [settings, setSettings] = useState(state.settings || {});
   const [week, setWeek] = useState(state.week || {});
   const fixtures = Array.isArray(state.fixtures) ? state.fixtures : [];
 
   const [fixtureText, setFixtureText] = useState(
-    fixtures.map(f => `${f.home_team}\t${f.away_team}\t${f.kickoff || ''}`).join('\n')
+    fixtures
+      .map(f => `${f.home_team}\t${f.away_team}\t${f.kickoff || ''}\t${f.api_fixture_id || ''}`)
+      .join('\n')
   );
 
   const [tsv, setTsv] = useState('');
@@ -830,6 +880,25 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef 
     a.href = canvas.toDataURL('image/png');
     a.download = name;
     a.click();
+  }
+
+  async function syncLiveScores() {
+    const res = await fetch('/api/live-scores', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-admin-pass': admin,
+      },
+      body: JSON.stringify({ week_id: state.week.id }),
+    });
+    const json = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+      setMsg(json.error || 'Live score sync failed');
+      return;
+    }
+
+    setMsg(`Live score sync complete. Updated ${json.updated || 0} fixture(s).`);
   }
 
   function importTsv() {
@@ -925,26 +994,34 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef 
 
         <div>
           <h3>Fixtures</h3>
-          <p>Paste: Home TAB Away TAB Kick-off</p>
+          <p>Paste: Home TAB Away TAB Kick-off TAB API Fixture ID optional</p>
 
           <textarea value={fixtureText} onChange={e => setFixtureText(e.target.value)} />
 
           <button
-            onClick={() =>
+            onClick={() => {
+              const parsed = parseFixtureRows(fixtureText);
+
+              if (parsed.errors.length) {
+                setMsg(parsed.errors.join(' | '));
+                return;
+              }
+
+              if (!parsed.fixtures.length) {
+                setMsg('Add at least one fixture before replacing fixtures.');
+                return;
+              }
+
               adminAction('replaceFixtures', {
                 week_id: state.week.id,
-                fixtures: fixtureText
-                  .split('\n')
-                  .filter(Boolean)
-                  .map(line => {
-                    const [home_team, away_team, kickoff] = line.split('\t');
-                    return { home_team, away_team, kickoff, status: 'NS' };
-                  }),
-              })
-            }
+                fixtures: parsed.fixtures,
+              });
+            }}
           >
             Replace Fixtures
           </button>
+
+          <button onClick={syncLiveScores}>Sync Live Scores</button>
 
           <h3>Live Scores / Results</h3>
 
@@ -1093,20 +1170,40 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef 
       </button>
 
       <div className="share" ref={imgRef}>
-        <h1>{state.week.title}</h1>
-        <p>
-          Pot: {sym(state.settings?.currency || 'USD')}
-          {pot}
-        </p>
+        <div className="shareHeader">
+          <span>DMI Football Coupon</span>
+          <h1>{state.week.title}</h1>
+          {state.week.subtitle && <p>{state.week.subtitle}</p>}
+        </div>
 
-        {ranked.slice(0, 12).map((e, i) => (
-          <p key={e.id}>
-            <b>
-              {i + 1}. {e.name}
-            </b>{' '}
-            — {e.pts} pts
-          </p>
-        ))}
+        <div className="shareMeta">
+          <div>
+            <small>Prize Fund</small>
+            <strong>
+              {sym(state.settings?.currency || 'USD')}
+              {pot}
+            </strong>
+          </div>
+          <div>
+            <small>Players</small>
+            <strong>{ranked.length}</strong>
+          </div>
+        </div>
+
+        <div className="shareRows">
+          {ranked.slice(0, 12).map((e, i) => (
+            <div className={i === 0 ? 'shareRow leader' : 'shareRow'} key={e.id}>
+              <b>{i + 1}</b>
+              <span>
+                <strong>{e.name}</strong>
+                {e.department && <small>{e.department}</small>}
+              </span>
+              <em>{e.pts} pts</em>
+            </div>
+          ))}
+        </div>
+
+        <p className="shareFooter">Exact scores beat result-only ties.</p>
       </div>
 
       <div className="entriesShare" ref={entriesImgRef}>

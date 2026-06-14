@@ -14,6 +14,7 @@ Add these Environment Variables in Vercel:
 - `SUPABASE_URL`
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `ADMIN_PASSCODE` e.g. `DMI2026`
+- `API_FOOTBALL_KEY` optional, only needed for API-Football live score sync
 
 ## 3) Local test
 ```bash
@@ -33,4 +34,6 @@ Upload/import this folder into Vercel, or push it to GitHub and import the repo.
 
 ## Notes
 - QR codes are currently image URLs, so upload the QR images somewhere public first, or use Supabase Storage later.
-- Automatic football fixtures/results API is not wired in yet; this version is ready for manual fixture/result entry for the next coupon.
+- Manual score entry remains the fallback for all fixtures.
+- Live score sync uses API-Football when `API_FOOTBALL_KEY` is set and fixtures have an API fixture ID.
+- Fixture import supports `Home TAB Away TAB Kick-off TAB API Fixture ID`. The final API ID column is optional.
