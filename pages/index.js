@@ -870,6 +870,7 @@ function OldSchool({ week, fixtures, settings = {}, maxPts, entryDeadline }) {
 function parseFixtureRows(text) {
   const fixtures = [];
   const errors = [];
+  const rows = [];
 
   String(text || '')
     .split('\n')
@@ -883,20 +884,25 @@ function parseFixtureRows(text) {
       const [home, away, kickoff = '', apiFixtureId = ''] = parts.map(part => part.trim());
 
       if (!home || !away) {
-        errors.push(`Row ${index + 1}: use Home TAB Away TAB Kick-off`);
+        const error = `Row ${index + 1}: use Home TAB Away TAB Kick-off`;
+        errors.push(error);
+        rows.push({ line: index + 1, raw, home, away, kickoff, api_fixture_id: apiFixtureId, error });
         return;
       }
 
-      fixtures.push({
+      const fixture = {
         home_team: home,
         away_team: away,
         kickoff,
         api_fixture_id: apiFixtureId,
         status: 'NS',
-      });
+      };
+
+      fixtures.push(fixture);
+      rows.push({ line: index + 1, raw, ...fixture, error: '' });
     });
 
-  return { fixtures, errors };
+  return { fixtures, errors, rows };
 }
 
 function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef, admin }) {
@@ -909,8 +915,57 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef,
       .map(f => `${f.home_team}\t${f.away_team}\t${f.kickoff || ''}\t${f.api_fixture_id || ''}`)
       .join('\n')
   );
+  const [fixturePreview, setFixturePreview] = useState(null);
+  const [confirmReplace, setConfirmReplace] = useState(false);
 
   const [tsv, setTsv] = useState('');
+
+  function previewFixtures() {
+    const parsed = parseFixtureRows(fixtureText);
+    setFixturePreview(parsed);
+    setConfirmReplace(false);
+
+    if (parsed.errors.length) {
+      setMsg(`Fix ${parsed.errors.length} fixture import issue(s) before replacing fixtures.`);
+      return;
+    }
+
+    if (!parsed.fixtures.length) {
+      setMsg('Add at least one fixture before replacing fixtures.');
+      return;
+    }
+
+    setMsg(`Preview ready: ${parsed.fixtures.length} fixture(s) parsed.`);
+  }
+
+  function replacePreviewedFixtures() {
+    const parsed = fixturePreview || parseFixtureRows(fixtureText);
+
+    if (parsed.errors.length) {
+      setFixturePreview(parsed);
+      setConfirmReplace(false);
+      setMsg(`Fix ${parsed.errors.length} fixture import issue(s) before replacing fixtures.`);
+      return;
+    }
+
+    if (!parsed.fixtures.length) {
+      setConfirmReplace(false);
+      setMsg('Add at least one fixture before replacing fixtures.');
+      return;
+    }
+
+    if (!confirmReplace) {
+      setConfirmReplace(true);
+      setMsg(`Confirm replacement: this will replace ${fixtures.length} current fixture(s).`);
+      return;
+    }
+
+    setConfirmReplace(false);
+    adminAction('replaceFixtures', {
+      week_id: state.week.id,
+      fixtures: parsed.fixtures,
+    });
+  }
 
   async function download(ref, name) {
     const html2canvas = (await import('html2canvas')).default;
@@ -1060,30 +1115,62 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef,
           <h3>Fixtures</h3>
           <p>Paste: Home TAB Away TAB Kick-off TAB API Fixture ID optional</p>
 
-          <textarea value={fixtureText} onChange={e => setFixtureText(e.target.value)} />
-
-          <button
-            onClick={() => {
-              const parsed = parseFixtureRows(fixtureText);
-
-              if (parsed.errors.length) {
-                setMsg(parsed.errors.join(' | '));
-                return;
-              }
-
-              if (!parsed.fixtures.length) {
-                setMsg('Add at least one fixture before replacing fixtures.');
-                return;
-              }
-
-              adminAction('replaceFixtures', {
-                week_id: state.week.id,
-                fixtures: parsed.fixtures,
-              });
+          <textarea
+            value={fixtureText}
+            onChange={e => {
+              setFixtureText(e.target.value);
+              setFixturePreview(null);
+              setConfirmReplace(false);
             }}
-          >
-            Replace Fixtures
-          </button>
+          />
+
+          <div className="fixtureImportActions">
+            <button onClick={previewFixtures}>Preview Fixtures</button>
+            <button
+              className={confirmReplace ? 'dangerButton' : ''}
+              disabled={!fixturePreview || fixturePreview.errors.length > 0}
+              onClick={replacePreviewedFixtures}
+            >
+              {confirmReplace ? 'Confirm Replace Fixtures' : 'Replace Previewed Fixtures'}
+            </button>
+          </div>
+
+          {fixturePreview && (
+            <div className="fixturePreview">
+              <div className={fixturePreview.errors.length ? 'previewStatus bad' : 'previewStatus good'}>
+                {fixturePreview.errors.length
+                  ? `${fixturePreview.errors.length} issue(s) found`
+                  : `${fixturePreview.fixtures.length} fixture(s) ready to import`}
+              </div>
+
+              <div className="scroll">
+                <table className="previewTable">
+                  <thead>
+                    <tr>
+                      <th>Row</th>
+                      <th>Home</th>
+                      <th>Away</th>
+                      <th>Kick-off</th>
+                      <th>API ID</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {fixturePreview.rows.map(row => (
+                      <tr className={row.error ? 'previewError' : ''} key={`${row.line}-${row.raw}`}>
+                        <td>{row.line}</td>
+                        <td>{row.home_team || row.home || '-'}</td>
+                        <td>{row.away_team || row.away || '-'}</td>
+                        <td>{row.kickoff || 'TBC'}</td>
+                        <td>{row.api_fixture_id || '-'}</td>
+                        <td>{row.error || 'OK'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
 
           <button onClick={syncLiveScores}>Sync Live Scores</button>
 

@@ -673,6 +673,51 @@ th {
   min-height: 170px;
 }
 
+.fixtureImportActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.dangerButton {
+  background: #d92323;
+  color: white;
+}
+
+.fixturePreview {
+  border: 1px solid #bcc8d9;
+  border-radius: 12px;
+  margin: 8px 0 14px;
+  overflow: hidden;
+}
+
+.previewStatus {
+  font-weight: 800;
+  padding: 10px 12px;
+}
+
+.previewStatus.good {
+  background: #e7f6e9;
+  color: #126225;
+}
+
+.previewStatus.bad {
+  background: #ffe5e5;
+  color: #9f1d1d;
+}
+
+.previewTable th,
+.previewTable td {
+  font-size: 12px;
+  padding: 7px;
+}
+
+.previewError td {
+  background: #fff1f1;
+  color: #9f1d1d;
+  font-weight: 700;
+}
+
 /* Leaderboard / Prediction Tabs */
 .tabs {
   display: flex;
