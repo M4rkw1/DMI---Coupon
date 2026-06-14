@@ -15,9 +15,14 @@ create table if not exists coupon_settings (
   entry_fee numeric default 10,
   rules text default '1 point for correct result. 3 points for correct score. Highest points wins.',
   entries_released boolean default false,
+  timezone_label text default 'UK time only',
+  timezone_offset_minutes int default 0,
   whatsapp_qr_url text default '',
   payment_qr_url text default ''
 );
+
+alter table coupon_settings add column if not exists timezone_label text default 'UK time only';
+alter table coupon_settings add column if not exists timezone_offset_minutes int default 0;
 
 create table if not exists fixtures (
   id uuid primary key default gen_random_uuid(),

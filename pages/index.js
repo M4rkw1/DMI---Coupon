@@ -33,6 +33,26 @@ function points(pred, fix) {
 
 const sym = c => ({ GBP: '£', USD: '$', EUR: '€', NAD: 'N$', ZAR: 'R' }[c] || `${c} `);
 
+const TIMEZONE_OPTIONS = [
+  { label: 'UK time only', offset: 0 },
+  { label: 'UK - 4 hours', offset: -240 },
+  { label: 'UK - 3 hours', offset: -180 },
+  { label: 'UK - 2 hours', offset: -120 },
+  { label: 'UK - 1 hour', offset: -60 },
+  { label: 'UK + 1 hour', offset: 60 },
+  { label: 'UK + 2 hours', offset: 120 },
+  { label: 'UK + 3 hours', offset: 180 },
+  { label: 'UK + 4 hours', offset: 240 },
+  { label: 'UK + 5 hours', offset: 300 },
+  { label: 'UK + 6 hours', offset: 360 },
+  { label: 'UK + 7 hours', offset: 420 },
+  { label: 'UK + 8 hours', offset: 480 },
+  { label: 'UK + 9 hours', offset: 540 },
+  { label: 'UK + 10 hours', offset: 600 },
+  { label: 'UK + 11 hours', offset: 660 },
+  { label: 'UK + 12 hours', offset: 720 },
+];
+
 const parseKickoff = kickoff => {
   if (!kickoff) return null;
 
@@ -63,17 +83,37 @@ const entryDeadlineFor = fixtures => {
   return firstKickoff ? new Date(firstKickoff.getTime() - 60 * 1000) : null;
 };
 
-const formatKickoff = kickoff => {
-  const date = parseKickoff(kickoff);
-  return date
-    ? date.toLocaleString('en-GB', {
-        weekday: 'short',
-        day: '2-digit',
-        month: 'short',
-        hour: '2-digit',
-        minute: '2-digit',
-      })
-    : 'TBC';
+const formatDateTime = date =>
+  date.toLocaleString('en-GB', {
+    weekday: 'short',
+    day: '2-digit',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+
+const timezoneSelection = settings => {
+  const offset = Number(settings?.timezone_offset_minutes || 0);
+  const label = settings?.timezone_label || 'UK time only';
+  return { offset, label, hasLocalTime: offset !== 0 };
+};
+
+const formatKickoff = (kickoff, settings = {}, selectedOnly = false) => {
+  const ukDate = parseKickoff(kickoff);
+  if (!ukDate) return 'TBC';
+
+  const { offset, label, hasLocalTime } = timezoneSelection(settings);
+  const localDate = new Date(ukDate.getTime() + offset * 60000);
+
+  if (selectedOnly) {
+    return hasLocalTime ? `${formatDateTime(localDate)} (${label})` : `${formatDateTime(ukDate)} (UK)`;
+  }
+
+  if (hasLocalTime) {
+    return `UK: ${formatDateTime(ukDate)} | ${label}: ${formatDateTime(localDate)}`;
+  }
+
+  return `UK: ${formatDateTime(ukDate)}`;
 };
 
 export default function Home() {
@@ -347,6 +387,7 @@ async function adminAction(action, payload) {
                     fixtures={fixtures}
                     predictions={form.predictions}
                     setPredictions={p => setForm({ ...form, predictions: p })}
+                    settings={settings}
                   />
 
                   {entryDeadline && <p>Entries close: {entryDeadline.toLocaleString('en-GB')}</p>}
@@ -426,13 +467,14 @@ async function adminAction(action, payload) {
   );
 }
 
-function FixtureInputs({ fixtures, predictions, setPredictions }) {
+function FixtureInputs({ fixtures, predictions, setPredictions, settings = {} }) {
   return (
     <div>
       {fixtures.map(f => (
         <div className="fixture" key={f.id}>
           <span>
             {f.home_team} v {f.away_team}
+            {f.kickoff && <small className="fixtureKickoffDisplay">{formatKickoff(f.kickoff, settings)}</small>}
           </span>
 
           <input
@@ -769,7 +811,7 @@ function OldSchool({ week, fixtures, settings = {}, maxPts, entryDeadline }) {
                 <div className="scoreCell"></div>
                 <div className="team away">{f.away_team}</div>
               </div>
-              <small className="couponKickoff">{formatKickoff(f.kickoff)}</small>
+              <small className="couponKickoff">{formatKickoff(f.kickoff, settings, true)}</small>
             </div>
           ))}
         </div>
@@ -963,6 +1005,27 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef,
             value={settings.entry_fee || 10}
             onChange={e => setSettings({ ...settings, entry_fee: e.target.value })}
           />
+
+          <label>
+            Fixture time display
+            <select
+              value={String(settings.timezone_offset_minutes || 0)}
+              onChange={e => {
+                const option = TIMEZONE_OPTIONS.find(item => String(item.offset) === e.target.value);
+                setSettings({
+                  ...settings,
+                  timezone_offset_minutes: Number(e.target.value),
+                  timezone_label: option?.label || 'UK time only',
+                });
+              }}
+            >
+              {TIMEZONE_OPTIONS.map(option => (
+                <option key={option.offset} value={option.offset}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
 
           <textarea
             value={settings.rules || ''}

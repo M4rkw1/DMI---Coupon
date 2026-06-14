@@ -8,7 +8,13 @@ export default async function handler(req, res) {
     if (action === 'saveSettings') {
       const { id, ...fields } = payload;
       const { error } = await db.from('coupon_settings').update(fields).eq('id', id);
-      if (error) throw error;
+      if (error && /timezone_(label|offset_minutes)/i.test(error.message || '')) {
+        const { timezone_label, timezone_offset_minutes, ...fallbackFields } = fields;
+        const fallback = await db.from('coupon_settings').update(fallbackFields).eq('id', id);
+        if (fallback.error) throw fallback.error;
+      } else if (error) {
+        throw error;
+      }
     }
     if (action === 'saveWeek') {
       const { id, ...fields } = payload;

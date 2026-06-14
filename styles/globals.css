@@ -101,6 +101,14 @@ textarea {
   border-bottom: 1px solid #eef2f7;
 }
 
+.fixtureKickoffDisplay {
+  display: block;
+  color: #46618a;
+  font-size: 12px;
+  font-weight: 700;
+  margin-top: 3px;
+}
+
 .stats {
   display: flex;
   gap: 18px;
