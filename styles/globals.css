@@ -771,11 +771,59 @@ th {
 .winnerBanner {
   grid-column: 1 / -1;
   border: 2px solid #174a8b;
+  background: #f7fbff;
   color: #0050a4;
   font-weight: 700;
   text-align: center;
   padding: 12px;
-  margin-top: 10px;
+  margin: 0 0 16px;
+  border-radius: 12px;
+}
+
+.printButtonWrap {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 12px;
+}
+
+.couponRules h3 {
+  margin: 12px 0 8px;
+}
+
+.rulesBox {
+  border: 1px solid #174a8b;
+  border-radius: 10px;
+  padding: 10px;
+  background: #f8fbff;
+}
+
+.ruleItem {
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  gap: 6px;
+  line-height: 1.35;
+  margin-bottom: 6px;
+}
+
+.summaryBox {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+  padding: 10px;
+  border: 1px solid #174a8b;
+  border-radius: 10px;
+  background: #edf6ff;
+}
+
+.liveScoreFixture {
+  grid-template-columns: minmax(180px, 1fr) 55px 14px 55px 55px 55px 84px;
+}
+
+.liveScoreFixture input,
+.liveScoreFixture select {
+  min-width: 0;
+  text-align: center;
 }
 
 @media (max-width: 900px) {
@@ -1027,6 +1075,11 @@ th {
     grid-template-columns: 1fr;
     font-size: 14px;
   }
+
+  .summaryBox,
+  .liveScoreFixture {
+    grid-template-columns: 1fr;
+  }
 }
 
 .dashboardStats {
@@ -1212,6 +1265,7 @@ th {
 
   header,
   button,
+  .printButtonWrap,
   .msg {
     display: none;
   }

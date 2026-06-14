@@ -1,6 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 const resultOf = (h, a) => (h > a ? 'H' : h < a ? 'A' : 'D');
+const hasScore = f =>
+  f.home_score !== null &&
+  f.home_score !== undefined &&
+  f.away_score !== null &&
+  f.away_score !== undefined;
 
 function points(pred, fix) {
   if (
@@ -27,6 +32,36 @@ function points(pred, fix) {
 }
 
 const sym = c => ({ GBP: '£', USD: '$', EUR: '€', NAD: 'N$', ZAR: 'R' }[c] || `${c} `);
+
+const parseKickoff = kickoff => {
+  if (!kickoff) return null;
+
+  const value = String(kickoff).trim();
+  const [datePart, timePart] = value.split(' ');
+
+  if (datePart?.includes('/') && timePart) {
+    const [day, month, year] = datePart.split('/').map(Number);
+    const [hour, minute] = timePart.split(':').map(Number);
+
+    if (day && month && year) {
+      return new Date(year, month - 1, day, hour || 0, minute || 0);
+    }
+  }
+
+  const iso = new Date(value);
+  return Number.isNaN(iso.getTime()) ? null : iso;
+};
+
+const firstKickoffFor = fixtures =>
+  fixtures
+    .map(f => parseKickoff(f.kickoff))
+    .filter(Boolean)
+    .sort((a, b) => a - b)[0] || null;
+
+const entryDeadlineFor = fixtures => {
+  const firstKickoff = firstKickoffFor(fixtures);
+  return firstKickoff ? new Date(firstKickoff.getTime() - 60 * 1000) : null;
+};
 
 export default function Home() {
   const [state, setState] = useState(null);
@@ -138,28 +173,7 @@ async function validateAdminPassword() {
   const stake = Number(settings?.entry_fee || 10);
   const pot = entries.length * stake;
 
-  const parseKickoff = kickoff => {
-    if (!kickoff) return null;
-
-    const [datePart, timePart] = String(kickoff).trim().split(' ');
-    if (!datePart || !timePart) return null;
-
-    const [day, month, year] = datePart.split('/').map(Number);
-    const [hour, minute] = timePart.split(':').map(Number);
-
-    if (!day || !month || !year) return null;
-
-    return new Date(year, month - 1, day, hour || 0, minute || 0);
-  };
-
-  const firstKickoff = fixtures
-    .map(f => parseKickoff(f.kickoff))
-    .filter(Boolean)
-    .sort((a, b) => a - b)[0];
-
-  const entryDeadline = firstKickoff
-    ? new Date(firstKickoff.getTime() - 60 * 1000)
-    : null;
+  const entryDeadline = entryDeadlineFor(fixtures);
 
   const entriesOpen = entryDeadline ? now < entryDeadline : true;
 
@@ -247,6 +261,8 @@ async function adminAction(action, payload) {
       <main className="wrap">
         {msg && <div className="msg">{msg}</div>}
 
+        <WinnerBanner ranked={ranked} fixtures={fixtures} />
+
         {tab === 'home' && (
           <section className="card">
             <h1>{week.title || 'DMI Coupon'}</h1>
@@ -277,7 +293,13 @@ async function adminAction(action, payload) {
         )}
 
         {tab === 'old school' && (
-          <OldSchool week={week} fixtures={fixtures} settings={settings} maxPts={maxPts} />
+          <OldSchool
+            week={week}
+            fixtures={fixtures}
+            settings={settings}
+            maxPts={maxPts}
+            entryDeadline={entryDeadline}
+          />
         )}
 
         {tab === 'enter coupon' && (
@@ -562,15 +584,6 @@ function Leaderboard({ ranked, fixtures, settings = {}, maxPts, pot }) {
 }
 
 function EntriesMatrix({ entries, fixtures, settings = {}, maxPts, pot }) {
-  const winner = entries[0];
-  const allGamesFinished = fixtures.every(
-  f =>
-    f.home_score !== null &&
-    f.home_score !== undefined &&
-    f.away_score !== null &&
-    f.away_score !== undefined
-);
-
   const fixtureResult = f => {
     if (
       f.home_score === null ||
@@ -620,6 +633,20 @@ function EntriesMatrix({ entries, fixtures, settings = {}, maxPts, pot }) {
               {fixtures.map(f => (
                 <td key={f.id}>
                   {f.home_score ?? '-'}-{f.away_score ?? '-'}
+                </td>
+              ))}
+            </tr>
+
+            <tr>
+              <td><b>STATUS</b></td>
+              {fixtures.map(f => (
+                <td key={f.id}>
+                  {f.status || 'NS'}
+                  {f.ht_home_score !== null &&
+                    f.ht_home_score !== undefined &&
+                    f.ht_away_score !== null &&
+                    f.ht_away_score !== undefined &&
+                    ` HT ${f.ht_home_score}-${f.ht_away_score}`}
                 </td>
               ))}
             </tr>
@@ -682,19 +709,37 @@ function EntriesMatrix({ entries, fixtures, settings = {}, maxPts, pot }) {
         </div>
       </aside>
 
-{allGamesFinished && winner && (
-  <div className="winnerBanner">
-    This week&apos;s prize goes to {winner.name} {winner.department} who finishes on {winner.pts} points.
-    Congratulations and well played!
-  </div>
-)}
     </div>
   );
 }
 
-function OldSchool({ week, fixtures, settings = {}, maxPts }) {
+function WinnerBanner({ ranked = [], fixtures = [] }) {
+  const winner = ranked[0];
+  const allGamesFinished = fixtures.length > 0 && fixtures.every(hasScore);
+
+  if (!allGamesFinished || !winner) return null;
+
+  return (
+    <div className="winnerBanner">
+      This week&apos;s prize goes to <strong>{winner.name}</strong>{' '}
+      {winner.department ? `(${winner.department})` : ''} who finishes on{' '}
+      <strong>{winner.pts}</strong> points. Congratulations and well played!
+    </div>
+  );
+}
+
+function OldSchool({ week, fixtures, settings = {}, maxPts, entryDeadline }) {
+  const rules = String(settings?.rules || '')
+    .split(/\d+\)/)
+    .map(rule => rule.trim())
+    .filter(Boolean);
+
   return (
     <section className="paper couponSheet">
+      <div className="printButtonWrap">
+        <button onClick={() => window.print()}>Print / Save PDF</button>
+      </div>
+
       <div className="couponBox">
         <h1>
           <span>DMI</span> Football Coupon
@@ -718,7 +763,9 @@ function OldSchool({ week, fixtures, settings = {}, maxPts }) {
         <div className="blueText">{week.subtitle}</div>
 
         <div>Entries Submitted By</div>
-        <div className="redText">Thu 11th Jun 19:45</div>
+        <div className="redText">
+          {entryDeadline ? entryDeadline.toLocaleString('en-GB') : 'TBC'}
+        </div>
 
         <div>Name</div>
         <div className="line"></div>
@@ -727,38 +774,36 @@ function OldSchool({ week, fixtures, settings = {}, maxPts }) {
         <div className="line"></div>
       </div>
 
-     <h3>Coupon Rules</h3>
+      <div className="couponRules">
+        <h3>Coupon Rules</h3>
 
-<div className="rulesBox">
-  {settings?.rules
-    ?.split(/\d+\)/)
-    .filter(Boolean)
-    .map((rule, index) => (
-      <div key={index} className="ruleItem">
-        <strong>{index + 1}.</strong> {rule.trim()}
+        <div className="rulesBox">
+          {rules.map((rule, index) => (
+            <div key={`${index}-${rule}`} className="ruleItem">
+              <strong>{index + 1}.</strong>
+              <span>{rule}</span>
+            </div>
+          ))}
+        </div>
       </div>
-    ))}
-</div>
 
-<div className="summaryBox">
-  <div>
-    <strong>Scoring:</strong> 1 point for correct result
-  </div>
+      <div className="summaryBox">
+        <div>
+          <strong>Scoring:</strong> 1 point for correct result
+        </div>
 
-  <div>
-    <strong>Exact Score:</strong> 3 points
-  </div>
+        <div>
+          <strong>Exact Score:</strong> 3 points
+        </div>
 
-  <div>
-    <strong>Maximum Points:</strong> {maxPts}
-  </div>
+        <div>
+          <strong>Maximum Points:</strong> {maxPts}
+        </div>
 
-  <div>
-    <strong>Winner:</strong> Highest score wins the prize fund
-  </div>
-</div>
-
-      <button onClick={() => print()}>Print / Save PDF</button>
+        <div>
+          <strong>Winner:</strong> Highest score wins the prize fund
+        </div>
+      </div>
     </section>
   );
 }
@@ -901,11 +946,11 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef 
             Replace Fixtures
           </button>
 
-          <h3>Results</h3>
+          <h3>Live Scores / Results</h3>
 
           <div>
             {fixtures.map(f => (
-              <div className="fixture" key={f.id}>
+              <div className="fixture liveScoreFixture" key={f.id}>
                 <span>
                   {f.home_team} v {f.away_team}
                 </span>
@@ -933,6 +978,41 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef 
                     setMsg('');
                   }}
                 />
+
+                <input
+                  type="number"
+                  min="0"
+                  placeholder="HT H"
+                  value={f.ht_home_score ?? ''}
+                  onChange={e => {
+                    f.ht_home_score = e.target.value;
+                    setMsg('');
+                  }}
+                />
+
+                <input
+                  type="number"
+                  min="0"
+                  placeholder="HT A"
+                  value={f.ht_away_score ?? ''}
+                  onChange={e => {
+                    f.ht_away_score = e.target.value;
+                    setMsg('');
+                  }}
+                />
+
+                <select
+                  value={f.status || 'NS'}
+                  onChange={e => {
+                    f.status = e.target.value;
+                    setMsg('');
+                  }}
+                >
+                  <option value="NS">NS</option>
+                  <option value="LIVE">LIVE</option>
+                  <option value="HT">HT</option>
+                  <option value="FT">FT</option>
+                </select>
               </div>
             ))}
           </div>
@@ -946,13 +1026,15 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef 
                     f.home_score === '' || f.home_score == null ? null : Number(f.home_score),
                   away_score:
                     f.away_score === '' || f.away_score == null ? null : Number(f.away_score),
-                  status:
-                    f.home_score === '' ||
-                    f.home_score == null ||
-                    f.away_score === '' ||
-                    f.away_score == null
-                      ? 'NS'
-                      : 'FT',
+                  ht_home_score:
+                    f.ht_home_score === '' || f.ht_home_score == null
+                      ? null
+                      : Number(f.ht_home_score),
+                  ht_away_score:
+                    f.ht_away_score === '' || f.ht_away_score == null
+                      ? null
+                      : Number(f.ht_away_score),
+                  status: f.status || (hasScore(f) ? 'FT' : 'NS'),
                 })),
               })
             }

@@ -24,8 +24,24 @@ export default async function handler(req, res) {
     }
     if (action === 'setResults') {
       for (const f of payload.fixtures) {
-        const { error } = await db.from('fixtures').update({ home_score: f.home_score, away_score: f.away_score, status: f.status || 'FT' }).eq('id', f.id);
-        if (error) throw error;
+        const update = {
+          home_score: f.home_score,
+          away_score: f.away_score,
+          status: f.status || 'FT',
+        };
+        const liveUpdate = {
+          ...update,
+          ht_home_score: f.ht_home_score,
+          ht_away_score: f.ht_away_score,
+        };
+
+        const result = await db.from('fixtures').update(liveUpdate).eq('id', f.id);
+        if (result.error && /ht_(home|away)_score/i.test(result.error.message || '')) {
+          const fallback = await db.from('fixtures').update(update).eq('id', f.id);
+          if (fallback.error) throw fallback.error;
+        } else if (result.error) {
+          throw result.error;
+        }
       }
     }
     if (action === 'updateEntry') {

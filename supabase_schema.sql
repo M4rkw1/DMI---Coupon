@@ -26,10 +26,15 @@ create table if not exists fixtures (
   home_team text not null,
   away_team text not null,
   kickoff text default '',
+  ht_home_score int,
+  ht_away_score int,
   home_score int,
   away_score int,
   status text default 'NS'
 );
+
+alter table fixtures add column if not exists ht_home_score int;
+alter table fixtures add column if not exists ht_away_score int;
 
 create table if not exists entries (
   id uuid primary key default gen_random_uuid(),
