@@ -696,6 +696,41 @@ th {
   text-align: right;
 }
 
+.paymentShare {
+  min-height: 520px;
+}
+
+.paymentMeta {
+  margin-bottom: 18px;
+}
+
+.paymentRow em {
+  color: #ffb703;
+  font-size: 14px;
+}
+
+.shareEmpty {
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 14px;
+  padding: 24px;
+  text-align: center;
+}
+
+.shareEmpty strong,
+.shareEmpty small {
+  display: block;
+}
+
+.shareEmpty strong {
+  color: #ffb703;
+  font-size: 28px;
+}
+
+.shareEmpty small {
+  color: #9fb3d5;
+  margin-top: 6px;
+}
+
 .shareFooter {
   color: #c8d6ef;
   font-size: 12px;

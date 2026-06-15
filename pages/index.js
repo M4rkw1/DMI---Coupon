@@ -208,6 +208,7 @@ export default function Home() {
   const [form, setForm] = useState({ name: '', department: '', predictions: {} });
 
   const imgRef = useRef(null);
+  const unpaidImgRef = useRef(null);
   const entriesImgRef = useRef(null);
 
   const load = () =>
@@ -550,6 +551,7 @@ async function adminAction(action, payload) {
                   ranked={ranked}
                   pot={pot}
                   imgRef={imgRef}
+                  unpaidImgRef={unpaidImgRef}
                   entriesImgRef={entriesImgRef}
                   admin={admin}
                   load={load}
@@ -1205,13 +1207,14 @@ function HistoricWinners({ archives = [] }) {
   );
 }
 
-function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef, admin, load }) {
+function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, entriesImgRef, admin, load }) {
   const [settings, setSettings] = useState(state.settings || {});
   const [week, setWeek] = useState(state.week || {});
   const fixtures = Array.isArray(state.fixtures) ? state.fixtures : [];
   const archives = Array.isArray(state.archives) ? state.archives : [];
   const latestArchive = archives[0];
   const gamesPlayed = fixtures.filter(isFinishedFixture).length;
+  const unpaidEntries = ranked.filter(entry => !entry.paid);
 
   const [fixtureText, setFixtureText] = useState(fixturesToTsv(fixtures));
   const [fixturePreview, setFixturePreview] = useState(null);
@@ -1881,7 +1884,7 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef,
     }
   }
 
-  function leaderboardDownloadName() {
+  function datedShareImageName(label) {
     const now = new Date();
     const pad = value => String(value).padStart(2, '0');
     const stamp = [
@@ -1891,7 +1894,15 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef,
     ].join('-');
     const time = `${pad(now.getHours())}-${pad(now.getMinutes())}`;
 
-    return `Leaderboard ${stamp} ${time}.jpg`;
+    return `${label} ${stamp} ${time}.jpg`;
+  }
+
+  function leaderboardDownloadName() {
+    return datedShareImageName('Leaderboard');
+  }
+
+  function unpaidDownloadName() {
+    return datedShareImageName('Yet to pay');
   }
 
   async function runLiveScoreSync({ quietMissingIds = false } = {}) {
@@ -2646,6 +2657,19 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef,
         Download Mobile Leaderboard JPG
       </button>
 
+      <button
+        onClick={() =>
+          download(unpaidImgRef, unpaidDownloadName(), {
+            backgroundColor: '#07172d',
+            flushToEdges: true,
+            quality: 0.95,
+            type: 'image/jpeg',
+          })
+        }
+      >
+        Download Yet To Pay JPG
+      </button>
+
       <button onClick={() => download(entriesImgRef, 'released-entries.png')}>
         Download Entries Matrix PNG
       </button>
@@ -2691,6 +2715,55 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef,
         </div>
 
         <p className="shareFooter">Exact scores beat result-only ties.</p>
+      </div>
+
+      <div className="share paymentShare" ref={unpaidImgRef}>
+        <div className="shareHeader">
+          <span>DMI Football Coupon</span>
+          <h1>Yet To Pay</h1>
+          <p>{state.week.title}</p>
+          {state.week.subtitle && <p>{state.week.subtitle}</p>}
+        </div>
+
+        <div className="shareMeta paymentMeta">
+          <div>
+            <small>Outstanding</small>
+            <strong>{unpaidEntries.length}</strong>
+          </div>
+          <div>
+            <small>Paid</small>
+            <strong>{ranked.length - unpaidEntries.length}</strong>
+          </div>
+          <div>
+            <small>Entry Fee</small>
+            <strong>
+              {sym(state.settings?.currency || 'USD')}
+              {state.settings?.entry_fee || 10}
+            </strong>
+          </div>
+        </div>
+
+        <div className="shareRows">
+          {unpaidEntries.length ? (
+            unpaidEntries.map((entry, index) => (
+              <div className="shareRow paymentRow" key={entry.id}>
+                <b>{index + 1}</b>
+                <span>
+                  <strong>{entry.name}</strong>
+                  {entry.department && <small>{entry.department}</small>}
+                </span>
+                <em>To pay</em>
+              </div>
+            ))
+          ) : (
+            <div className="shareEmpty">
+              <strong>All paid</strong>
+              <small>No outstanding entries</small>
+            </div>
+          )}
+        </div>
+
+        <p className="shareFooter">Marked paid in Admin once payment is received.</p>
       </div>
 
       <div className="entriesShare" ref={entriesImgRef}>
