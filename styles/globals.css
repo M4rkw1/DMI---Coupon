@@ -809,46 +809,174 @@ th {
   font-weight: 700;
 }
 
+.historicWinnersPage {
+  overflow: hidden;
+}
+
+.sectionTitleRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 18px;
+}
+
+.sectionTitleRow h2 {
+  margin: 0;
+}
+
+.sectionTitleRow > strong {
+  background: #eaf1ff;
+  border-radius: 999px;
+  color: #174a8b;
+  padding: 8px 12px;
+  white-space: nowrap;
+}
+
+.eyebrow {
+  color: #174a8b;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  margin: 0 0 4px;
+  text-transform: uppercase;
+}
+
+.historicEmpty {
+  background: #f8fbff;
+  border: 1px dashed #9fb2ce;
+  border-radius: 12px;
+  padding: 22px;
+  text-align: center;
+}
+
+.historicEmpty h3 {
+  margin: 0 0 6px;
+}
+
+.historicEmpty p {
+  color: #46618a;
+  margin: 0 auto;
+  max-width: 520px;
+}
+
 .historicGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
 }
 
 .historicWinner {
+  background: linear-gradient(180deg, #f8fbff 0%, #fff 100%);
   border: 1px solid #bcc8d9;
   border-radius: 14px;
+  display: grid;
+  gap: 14px;
   padding: 16px;
-  background: #f8fbff;
 }
 
-.historicWinner small {
-  color: #46618a;
-  font-weight: 700;
-}
-
-.historicWinner h3 {
-  margin: 8px 0 4px;
-  font-size: 24px;
-}
-
-.historicWinner > strong {
-  display: inline-block;
-  margin: 8px 0;
-  color: #174a8b;
-  font-size: 22px;
-}
-
-.historicWinner ol {
-  margin: 10px 0 0;
-  padding-left: 22px;
-}
-
-.historicWinner li {
+.historicWinnerHeader {
   display: flex;
   justify-content: space-between;
   gap: 12px;
-  padding: 3px 0;
+}
+
+.historicWinnerHeader small {
+  color: #46618a;
+  display: block;
+  font-weight: 800;
+  margin-bottom: 4px;
+}
+
+.historicWinnerHeader h3 {
+  font-size: 20px;
+  line-height: 1.1;
+  margin: 0;
+}
+
+.historicWinnerHeader > span {
+  color: #46618a;
+  font-size: 13px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.winnerPanel {
+  background: #11284b;
+  border-radius: 12px;
+  color: #fff;
+  padding: 14px;
+}
+
+.winnerPanel p {
+  color: #bdd0f0;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  margin: 0 0 6px;
+  text-transform: uppercase;
+}
+
+.winnerPanel strong {
+  display: block;
+  font-size: 24px;
+  line-height: 1.05;
+}
+
+.winnerPanel span {
+  color: #d9e6fb;
+  display: block;
+  margin-top: 4px;
+}
+
+.winnerPanel b {
+  color: #ffd465;
+  display: inline-block;
+  font-size: 20px;
+  margin-top: 10px;
+}
+
+.historicStandings h4 {
+  margin: 0 0 8px;
+}
+
+.historicStandings ol {
+  display: grid;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.historicStandings li,
+.historicStandings li span {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+}
+
+.historicStandings li {
+  background: #f3f6fb;
+  border-radius: 8px;
+  justify-content: space-between;
+  padding: 8px 10px;
+}
+
+.historicStandings li span b {
+  align-items: center;
+  background: #174a8b;
+  border-radius: 999px;
+  color: #fff;
+  display: inline-flex;
+  font-size: 12px;
+  height: 22px;
+  justify-content: center;
+  min-width: 22px;
+}
+
+.historicStandings li > strong {
+  color: #174a8b;
+  white-space: nowrap;
 }
 
 .adminEntriesTable tbody tr:not(.entryEditorTableRow) td:last-child {

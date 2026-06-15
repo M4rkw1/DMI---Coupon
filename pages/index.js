@@ -92,6 +92,18 @@ const formatDateTime = date =>
     minute: '2-digit',
   });
 
+const formatArchiveDate = value => {
+  const date = value ? new Date(value) : null;
+
+  if (!date || Number.isNaN(date.getTime())) return '';
+
+  return date.toLocaleDateString('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  });
+};
+
 const timezoneSelection = settings => {
   const offset = Number(settings?.timezone_offset_minutes || 0);
   const label = settings?.timezone_label || 'UK time only';
@@ -980,37 +992,78 @@ function parseFixtureRows(text) {
 function HistoricWinners({ archives = [] }) {
   if (!archives.length) {
     return (
-      <section className="card">
-        <h2>Historic Winners</h2>
-        <p>No historic winners saved yet.</p>
+      <section className="card historicWinnersPage">
+        <div className="sectionTitleRow">
+          <div>
+            <p className="eyebrow">Past Coupons</p>
+            <h2>Historic Winners</h2>
+          </div>
+        </div>
+
+        <div className="historicEmpty">
+          <h3>No historic winners saved yet</h3>
+          <p>Use New Coupon in admin and tick “Save current leaderboard” to add the first winner here.</p>
+        </div>
       </section>
     );
   }
 
   return (
-    <section className="card">
-      <h2>Historic Winners</h2>
+    <section className="card historicWinnersPage">
+      <div className="sectionTitleRow">
+        <div>
+          <p className="eyebrow">Past Coupons</p>
+          <h2>Historic Winners</h2>
+        </div>
+
+        <strong>{archives.length} saved</strong>
+      </div>
 
       <div className="historicGrid">
-        {archives.map(archive => (
-          <article className="historicWinner" key={archive.id}>
-            <small>{archive.week_subtitle || archive.week_title}</small>
-            <h3>{archive.winner_name || 'No winner recorded'}</h3>
-            {archive.winner_department && <p>{archive.winner_department}</p>}
-            <strong>{archive.winner_points || 0} pts</strong>
+        {archives.map(archive => {
+          const leaderboard = Array.isArray(archive.leaderboard) ? archive.leaderboard : [];
+          const archiveDate = formatArchiveDate(archive.created_at);
+          const winnerName = archive.winner_name || leaderboard[0]?.name || 'No winner recorded';
+          const winnerDepartment = archive.winner_department || leaderboard[0]?.department || '';
+          const winnerPoints = archive.winner_points ?? leaderboard[0]?.pts ?? 0;
 
-            {!!archive.leaderboard?.length && (
-              <ol>
-                {archive.leaderboard.slice(0, 5).map(entry => (
-                  <li key={entry.id || entry.name}>
-                    <span>{entry.name}</span>
-                    <b>{entry.pts}</b>
-                  </li>
-                ))}
-              </ol>
-            )}
-          </article>
-        ))}
+          return (
+            <article className="historicWinner" key={archive.id}>
+              <div className="historicWinnerHeader">
+                <div>
+                  <small>{archive.week_subtitle || archiveDate || 'Archived coupon'}</small>
+                  <h3>{archive.week_title || 'DMI Coupon'}</h3>
+                </div>
+
+                <span>{leaderboard.length} entr{leaderboard.length === 1 ? 'y' : 'ies'}</span>
+              </div>
+
+              <div className="winnerPanel">
+                <p>Winner</p>
+                <strong>{winnerName}</strong>
+                {winnerDepartment && <span>{winnerDepartment}</span>}
+                <b>{winnerPoints} pts</b>
+              </div>
+
+              {!!leaderboard.length && (
+                <div className="historicStandings">
+                  <h4>Top 5</h4>
+                  <ol>
+                    {leaderboard.slice(0, 5).map((entry, index) => (
+                      <li key={entry.id || `${entry.name}-${index}`}>
+                        <span>
+                          <b>{index + 1}</b>
+                          {entry.name}
+                        </span>
+                        <strong>{entry.pts} pts</strong>
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              )}
+            </article>
+          );
+        })}
       </div>
     </section>
   );
