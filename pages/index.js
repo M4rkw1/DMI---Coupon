@@ -1132,7 +1132,7 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef,
 
     runAdminAction(
       'restoreArchive',
-      { archive_id: latestArchive.id },
+      {},
       `Restored ${latestArchive.week_title || 'previous coupon'} from archive.`
     );
   }

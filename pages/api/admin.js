@@ -42,6 +42,11 @@ function stripRuntimeFields(row) {
   return rest;
 }
 
+function archiveHasCouponData(archive) {
+  const snapshot = archive?.snapshot || {};
+  return Boolean(snapshot.week?.id && (snapshot.fixtures?.length || snapshot.entries?.length));
+}
+
 async function loadSnapshotData(db, weekId) {
   const [week, fixtures, entries, settings] = await Promise.all([
     db.from('coupon_weeks').select('*').eq('id', weekId).single(),
@@ -204,10 +209,23 @@ export default async function handler(req, res) {
     }
     if (action === 'restoreArchive') {
       const archiveId = payload?.archive_id;
-      const archiveQuery = db.from('coupon_archives').select('*').order('created_at', { ascending: false }).limit(1);
-      const { data: archive, error: archiveError } = archiveId
-        ? await db.from('coupon_archives').select('*').eq('id', archiveId).single()
-        : await archiveQuery.single();
+      let archive;
+      let archiveError;
+
+      if (archiveId) {
+        const result = await db.from('coupon_archives').select('*').eq('id', archiveId).single();
+        archive = result.data;
+        archiveError = result.error;
+      } else {
+        const result = await db
+          .from('coupon_archives')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(20);
+
+        archiveError = result.error;
+        archive = (result.data || []).find(archiveHasCouponData) || result.data?.[0];
+      }
 
       if (archiveError) throw archiveError;
       if (!archive?.snapshot?.week?.id) return res.status(400).json({ error: 'Archive snapshot is incomplete' });
@@ -215,8 +233,11 @@ export default async function handler(req, res) {
       const snapshot = archive.snapshot;
       const weekId = snapshot.week.id;
 
-      await db.from('entries').delete().eq('week_id', weekId);
-      await db.from('fixtures').delete().eq('week_id', weekId);
+      const deleteEntries = await db.from('entries').delete().eq('week_id', weekId);
+      if (deleteEntries.error) throw deleteEntries.error;
+
+      const deleteFixtures = await db.from('fixtures').delete().eq('week_id', weekId);
+      if (deleteFixtures.error) throw deleteFixtures.error;
 
       const { id: weekRowId, created_at: weekCreatedAt, ...weekFields } = snapshot.week;
       const { error: weekError } = await db.from('coupon_weeks').update(weekFields).eq('id', weekRowId);
