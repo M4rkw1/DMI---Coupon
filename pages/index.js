@@ -1651,9 +1651,25 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef,
     setMsg(`${selected.length} searched fixture(s) loaded into the preview.`);
   }
 
-  async function updateManualFixturesFromApi() {
+  async function updateManualFixturesFromApi({ preferSavedFixtures = false } = {}) {
+    const parsedText = parseFixtureRows(fixtureText);
     const previewReady = fixturePreview && !fixturePreview.errors.length && fixturePreview.fixtures.length;
-    const sourceFixtures = previewReady ? fixturePreview.fixtures : fixtures;
+    const textReady = !preferSavedFixtures && !parsedText.errors.length && parsedText.fixtures.length;
+    const sourceFixtures = previewReady
+      ? fixturePreview.fixtures
+      : textReady
+        ? parsedText.fixtures
+        : fixtures;
+    const sourceRows = previewReady ? fixturePreview.rows : parsedText.rows;
+    const shouldUpdatePreview = previewReady || textReady;
+    const sourceLabel = previewReady ? 'preview' : textReady ? 'TSV preview' : 'saved';
+
+    if (!preferSavedFixtures && parsedText.errors.length) {
+      setFixturePreview(parsedText);
+      setConfirmReplace(false);
+      setMsg(`Fix ${parsedText.errors.length} fixture import issue(s) before updating API data.`);
+      return 0;
+    }
 
     if (!sourceFixtures.length) {
       setMsg('Preview or save fixtures before updating API data.');
@@ -1678,12 +1694,12 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef,
     if (!matched) {
       setFixtureSearchAllResults(apiFixtures);
       setFixtureSearchResults(apiFixtures);
-      setMsg(`Found ${apiFixtures.length} API fixture(s), but none matched the ${previewReady ? 'preview' : 'saved'} fixtures.`);
+      setMsg(`Found ${apiFixtures.length} API fixture(s), but none matched the ${sourceLabel} fixtures.`);
       return 0;
     }
 
-    if (previewReady) {
-      const rows = fixturePreview.rows.map((row, index) => ({
+    if (shouldUpdatePreview) {
+      const rows = sourceRows.map((row, index) => ({
         ...row,
         ...enriched[index],
         raw: fixturesToTsv([enriched[index]]),
@@ -1698,7 +1714,7 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef,
       setFixtureSearchAllResults(apiFixtures);
       setFixtureSearchResults(apiFixtures);
       setConfirmReplace(false);
-      setMsg(`Updated preview API data for ${matched} fixture(s). Replace previewed fixtures when ready.`);
+      setMsg(`Updated ${sourceLabel} API data for ${matched} fixture(s). Replace previewed fixtures when ready.`);
       return matched;
     }
 
@@ -1892,7 +1908,7 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef,
 
     if (!hasApiIds) {
       setMsg('No API fixture IDs found. Updating fixture API data first...');
-      const matched = await updateManualFixturesFromApi();
+      const matched = await updateManualFixturesFromApi({ preferSavedFixtures: true });
 
       if (!matched) {
         setMsg('No API fixture IDs found. Use Update Fixture API Data after setting the coupon start date/season, or add API IDs in the TSV.');
@@ -2141,6 +2157,81 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef,
 
         <div>
           <h3>Fixtures</h3>
+          <p>
+            Main workflow: paste fixtures from your FotMob picks, preview them, then update API data to add
+            badges, API fixture IDs, corrected kick-off times, and live-score support before replacing the coupon.
+          </p>
+
+          <div className="tsvImportPanel">
+            <h4>TSV / Screenshot Fixture Import</h4>
+            <p>Paste: Home TAB Away TAB Kick-off TAB API Fixture ID optional</p>
+
+            <textarea
+              value={fixtureText}
+              onChange={e => {
+                setFixtureText(e.target.value);
+                setFixturePreview(null);
+                setConfirmReplace(false);
+              }}
+            />
+
+            <div className="fixtureImportActions">
+              <button onClick={previewFixtures}>Preview TSV Fixtures</button>
+              <button onClick={updateManualFixturesFromApi} disabled={fixtureSearchLoading}>
+                {fixtureSearchLoading ? 'Updating API Data...' : 'Update Preview API Data'}
+              </button>
+              <button
+                className={confirmReplace ? 'dangerButton' : ''}
+                disabled={!fixturePreview || fixturePreview.errors.length > 0}
+                onClick={replacePreviewedFixtures}
+              >
+                {confirmReplace ? 'Confirm Replace Fixtures' : 'Replace Previewed Fixtures'}
+              </button>
+            </div>
+
+            {fixturePreview && (
+              <div className="fixturePreview">
+                <div className={fixturePreview.errors.length ? 'previewStatus bad' : 'previewStatus good'}>
+                  {fixturePreview.errors.length
+                    ? `${fixturePreview.errors.length} issue(s) found`
+                    : `${fixturePreview.fixtures.length} fixture(s) ready to import`}
+                </div>
+
+                <div className="scroll">
+                  <table className="previewTable">
+                    <thead>
+                      <tr>
+                        <th>Row</th>
+                        <th>Home</th>
+                        <th>Away</th>
+                        <th>Kick-off</th>
+                        <th>API ID</th>
+                        <th>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {fixturePreview.rows.map(row => (
+                        <tr className={row.error ? 'previewError' : ''} key={`${row.line}-${row.raw}`}>
+                          <td>{row.line}</td>
+                          <td>
+                            <TeamLabel badge={row.home_badge} name={row.home_team || row.home || '-'} />
+                          </td>
+                          <td>
+                            <TeamLabel badge={row.away_badge} name={row.away_team || row.away || '-'} />
+                          </td>
+                          <td>{row.kickoff || 'TBC'}</td>
+                          <td>{row.api_fixture_id || '-'}</td>
+                          <td>{row.error || 'OK'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <h4>Optional API Fixture Search</h4>
           <p>Select a start date, choose available leagues, then select fixtures to import. The search runs through Thursday and uses the DMI approved competition ruleset when the league override is blank.</p>
 
           <div className="fixtureSearchPanel">
@@ -2305,73 +2396,7 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef,
             )}
           </div>
 
-          <p>Paste: Home TAB Away TAB Kick-off TAB API Fixture ID optional</p>
-
-          <textarea
-            value={fixtureText}
-            onChange={e => {
-              setFixtureText(e.target.value);
-              setFixturePreview(null);
-              setConfirmReplace(false);
-            }}
-          />
-
-          <div className="fixtureImportActions">
-            <button onClick={previewFixtures}>Preview Fixtures</button>
-            <button
-              className={confirmReplace ? 'dangerButton' : ''}
-              disabled={!fixturePreview || fixturePreview.errors.length > 0}
-              onClick={replacePreviewedFixtures}
-            >
-              {confirmReplace ? 'Confirm Replace Fixtures' : 'Replace Previewed Fixtures'}
-            </button>
-          </div>
-
-          {fixturePreview && (
-            <div className="fixturePreview">
-              <div className={fixturePreview.errors.length ? 'previewStatus bad' : 'previewStatus good'}>
-                {fixturePreview.errors.length
-                  ? `${fixturePreview.errors.length} issue(s) found`
-                  : `${fixturePreview.fixtures.length} fixture(s) ready to import`}
-              </div>
-
-              <div className="scroll">
-                <table className="previewTable">
-                  <thead>
-                    <tr>
-                      <th>Row</th>
-                      <th>Home</th>
-                      <th>Away</th>
-                      <th>Kick-off</th>
-                      <th>API ID</th>
-                      <th>Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {fixturePreview.rows.map(row => (
-                      <tr className={row.error ? 'previewError' : ''} key={`${row.line}-${row.raw}`}>
-                        <td>{row.line}</td>
-                        <td>
-                          <TeamLabel badge={row.home_badge} name={row.home_team || row.home || '-'} />
-                        </td>
-                        <td>
-                          <TeamLabel badge={row.away_badge} name={row.away_team || row.away || '-'} />
-                        </td>
-                        <td>{row.kickoff || 'TBC'}</td>
-                        <td>{row.api_fixture_id || '-'}</td>
-                        <td>{row.error || 'OK'}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
           <div className="fixtureApiActions">
-            <button onClick={updateManualFixturesFromApi} disabled={fixtureSearchLoading}>
-              {fixtureSearchLoading ? 'Updating API Data...' : 'Update Fixture API Data'}
-            </button>
             <button onClick={syncLiveScores}>Sync Live Scores</button>
           </div>
 
@@ -2392,55 +2417,76 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef,
 
               return (
               <div className="fixture liveScoreFixture" key={f.id}>
-                <span>
-                  {f.home_team} v {f.away_team}
+                <span className="liveScoreTeams">
+                  <strong>{f.home_team}</strong>
+                  <small>v</small>
+                  <strong>{f.away_team}</strong>
                 </span>
 
-                <input
-                  type="number"
-                  min="0"
-                  placeholder="H"
-                  value={draft.home_score ?? ''}
-                  onChange={e => updateScoreDraft(f.id, 'home_score', e.target.value)}
-                />
+                <label>
+                  <small>Home</small>
+                  <input
+                    type="number"
+                    min="0"
+                    inputMode="numeric"
+                    placeholder="H"
+                    value={draft.home_score ?? ''}
+                    onChange={e => updateScoreDraft(f.id, 'home_score', e.target.value)}
+                  />
+                </label>
 
-                <span>-</span>
+                <span className="scoreDash">-</span>
 
-                <input
-                  type="number"
-                  min="0"
-                  placeholder="A"
-                  value={draft.away_score ?? ''}
-                  onChange={e => updateScoreDraft(f.id, 'away_score', e.target.value)}
-                />
+                <label>
+                  <small>Away</small>
+                  <input
+                    type="number"
+                    min="0"
+                    inputMode="numeric"
+                    placeholder="A"
+                    value={draft.away_score ?? ''}
+                    onChange={e => updateScoreDraft(f.id, 'away_score', e.target.value)}
+                  />
+                </label>
 
-                <input
-                  type="number"
-                  min="0"
-                  placeholder="HT H"
-                  value={draft.ht_home_score ?? ''}
-                  onChange={e => updateScoreDraft(f.id, 'ht_home_score', e.target.value)}
-                />
+                <label className="halfTimeScore">
+                  <small>HT H</small>
+                  <input
+                    type="number"
+                    min="0"
+                    inputMode="numeric"
+                    placeholder="HT H"
+                    value={draft.ht_home_score ?? ''}
+                    onChange={e => updateScoreDraft(f.id, 'ht_home_score', e.target.value)}
+                  />
+                </label>
 
-                <input
-                  type="number"
-                  min="0"
-                  placeholder="HT A"
-                  value={draft.ht_away_score ?? ''}
-                  onChange={e => updateScoreDraft(f.id, 'ht_away_score', e.target.value)}
-                />
+                <label className="halfTimeScore">
+                  <small>HT A</small>
+                  <input
+                    type="number"
+                    min="0"
+                    inputMode="numeric"
+                    placeholder="HT A"
+                    value={draft.ht_away_score ?? ''}
+                    onChange={e => updateScoreDraft(f.id, 'ht_away_score', e.target.value)}
+                  />
+                </label>
 
-                <select
-                  value={draft.status || 'NS'}
-                  onChange={e => updateScoreDraft(f.id, 'status', e.target.value)}
-                >
-                  <option value="NS">NS</option>
-                  <option value="LIVE">LIVE</option>
-                  <option value="HT">HT</option>
-                  <option value="FT">FT</option>
-                  <option value="AET">AET</option>
-                  <option value="PEN">PEN</option>
-                </select>
+                <label className="scoreStatus">
+                  <small>Status</small>
+                  <select
+                    value={draft.status || 'NS'}
+                    onChange={e => updateScoreDraft(f.id, 'status', e.target.value)}
+                  >
+                    <option value="NS">NS</option>
+                    <option value="LIVE">LIVE</option>
+                    <option value="HT">HT</option>
+                    <option value="FT">FT</option>
+                    <option value="AET">AET</option>
+                    <option value="PEN">PEN</option>
+                  </select>
+                </label>
               </div>
               );
             })}
