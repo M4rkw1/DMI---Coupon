@@ -54,6 +54,19 @@ const normaliseMatchText = value =>
     .trim();
 const fixtureMatchKey = fixture =>
   `${normaliseMatchText(fixture.home_team)}__${normaliseMatchText(fixture.away_team)}`;
+const fixtureKickoffIsoDate = value => {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+
+  const iso = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (iso) return `${iso[1]}-${iso[2]}-${iso[3]}`;
+
+  const uk = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if (uk) return `${uk[3]}-${uk[2].padStart(2, '0')}-${uk[1].padStart(2, '0')}`;
+
+  const parsed = new Date(raw);
+  return Number.isNaN(parsed.getTime()) ? '' : parsed.toISOString().slice(0, 10);
+};
 
 const TIMEZONE_OPTIONS = [
   { label: 'UK time only', offset: 0 },
@@ -1417,6 +1430,22 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef,
     };
   }
 
+  function listedFixtureSearchPayload(overrides = {}) {
+    const dates = [
+      ...new Set(fixtures.map(fixture => fixtureKickoffIsoDate(fixture.kickoff)).filter(Boolean)),
+    ].sort();
+
+    return {
+      ...fixtureSearch,
+      from: dates[0] || '',
+      to: dates[dates.length - 1] || '',
+      dates,
+      leagues: '',
+      approved_competitions: DMI_APPROVED_COMPETITIONS.map(competition => competition.name),
+      ...overrides,
+    };
+  }
+
   function toggleApprovedCompetition(name) {
     setSelectedApprovedCompetitions(current => ({
       ...current,
@@ -1592,15 +1621,14 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef,
       return 0;
     }
 
-    if (
-      !fixtureSearch.leagues.trim() &&
-      !DMI_APPROVED_COMPETITIONS.some(competition => selectedApprovedCompetitions[competition.name])
-    ) {
-      setMsg('Select at least one approved competition before updating fixture API data.');
+    const searchPayload = listedFixtureSearchPayload();
+
+    if (!searchPayload.dates.length) {
+      setMsg('Current fixtures need kick-off dates before API data can be matched.');
       return 0;
     }
 
-    const search = await fetchApiFixtures(weeklyFixtureSearchPayload());
+    const search = await fetchApiFixtures(searchPayload);
     if (!search) return 0;
 
     const apiFixtures = search.fixtures || [];

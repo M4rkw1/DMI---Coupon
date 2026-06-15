@@ -181,6 +181,20 @@ async function fetchFixturesByDateRange({ apiKey, from, to }) {
   };
 }
 
+async function fetchFixturesByDates({ apiKey, dates }) {
+  const normalisedDates = [...new Set((dates || []).map(normaliseApiDate).filter(Boolean))];
+
+  if (!normalisedDates.length) {
+    throw new Error('Choose at least one fixture search date.');
+  }
+
+  const batches = await Promise.all(normalisedDates.map(date => fetchFixtures({ apiKey, date })));
+  return {
+    dates: normalisedDates,
+    fixtures: batches.flat(),
+  };
+}
+
 async function searchLeagues({ apiKey, name, season }) {
   const params = new URLSearchParams({ search: name });
   if (season) params.set('season', season);
@@ -334,12 +348,16 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { from, to, leagues, season, approved_competitions } = req.body || {};
-    if (!from) {
+    const { from, to, dates, leagues, season, approved_competitions } = req.body || {};
+    const exactDates = Array.isArray(dates)
+      ? [...new Set(dates.map(normaliseApiDate).filter(Boolean))]
+      : [];
+
+    if (!from && !exactDates.length) {
       return res.status(400).json({ error: 'Choose a fixture search start date.' });
     }
 
-    const searchDates = dateRange(from, to);
+    const searchDates = exactDates.length ? exactDates : dateRange(from, to);
 
     if (!searchDates.length) {
       return res.status(400).json({ error: 'Choose a valid fixture search start date.' });
@@ -371,26 +389,27 @@ export default async function handler(req, res) {
     }
 
     let checkedDates = searchDates;
-    const searchFrom = searchDates[0];
-    const searchTo = searchDates[searchDates.length - 1];
     const batches = leagueDescriptors.length
       ? await Promise.all(
-          leagueDescriptors.map(async league => {
-            const fixtures = await fetchFixtures({
-              apiKey,
-              from: searchFrom,
-              to: searchTo,
-              league: league.id,
-              season,
-            });
-            return fixtures.map(fixture => ({
-              ...fixture,
-              dmi_priority: league.priority,
-              dmi_group: league.group,
-            }));
-          })
+          leagueDescriptors.flatMap(league =>
+            searchDates.map(async date => {
+              const fixtures = await fetchFixtures({
+                apiKey,
+                date,
+                league: league.id,
+                season,
+              });
+              return fixtures.map(fixture => ({
+                ...fixture,
+                dmi_priority: league.priority,
+                dmi_group: league.group,
+              }));
+            })
+          )
         )
-      : [await fetchFixturesByDateRange({ apiKey, from, to: searchTo })];
+      : exactDates.length
+        ? [await fetchFixturesByDates({ apiKey, dates: searchDates })]
+        : [await fetchFixturesByDateRange({ apiKey, from, to })];
     const rawFixtures = batches.flatMap(batch => {
       if (Array.isArray(batch)) return batch;
       checkedDates = batch.dates || checkedDates;

@@ -841,7 +841,10 @@ th {
 .approvedCompetitionGroups {
   display: grid;
   gap: 8px;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  max-height: 420px;
+  overflow: auto;
+  padding-right: 4px;
 }
 
 .approvedCompetitionActions {
@@ -857,6 +860,7 @@ th {
 .approvedCompetitionGroup {
   background: #f8fbff;
   border-radius: 8px;
+  min-width: 0;
   padding: 8px;
 }
 
@@ -884,10 +888,16 @@ th {
   font-weight: 700;
   gap: 7px;
   line-height: 1.4;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .approvedCompetitionChecks input {
-  margin-top: 2px;
+  flex: 0 0 auto;
+  height: 16px;
+  margin: 1px 0 0;
+  padding: 0;
+  width: 16px;
 }
 
 .leaguePicker {
