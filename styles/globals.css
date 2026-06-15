@@ -823,6 +823,49 @@ th {
   margin-top: 4px;
 }
 
+.fixtureSearchActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.leaguePicker {
+  margin-top: 12px;
+}
+
+.leaguePickerGrid {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+}
+
+.leaguePickerItem {
+  align-items: flex-start;
+  background: #fff;
+  border: 1px solid #e5ebf4;
+  border-radius: 10px;
+  cursor: pointer;
+  display: flex;
+  gap: 8px;
+  padding: 10px;
+}
+
+.leaguePickerItem input {
+  margin-top: 3px;
+}
+
+.leaguePickerItem strong,
+.leaguePickerItem small {
+  display: block;
+}
+
+.leaguePickerItem small {
+  color: #46618a;
+  font-size: 12px;
+  margin-top: 3px;
+}
+
 .fixtureSearchResults {
   margin-top: 12px;
 }

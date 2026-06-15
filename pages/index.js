@@ -1190,7 +1190,9 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef,
     leagues: '',
     season: String(new Date().getFullYear()),
   });
+  const [fixtureSearchAllResults, setFixtureSearchAllResults] = useState([]);
   const [fixtureSearchResults, setFixtureSearchResults] = useState([]);
+  const [selectedApiLeagues, setSelectedApiLeagues] = useState({});
   const [selectedApiFixtures, setSelectedApiFixtures] = useState({});
   const [fixtureSearchLoading, setFixtureSearchLoading] = useState(false);
 
@@ -1341,9 +1343,8 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef,
     });
   }
 
-  async function searchApiFixtures() {
+  async function fetchApiFixtures(searchPayload) {
     setFixtureSearchLoading(true);
-    setSelectedApiFixtures({});
 
     try {
       const response = await fetch('/api/fixture-search', {
@@ -1352,25 +1353,83 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef,
           'Content-Type': 'application/json',
           'x-admin-pass': admin,
         },
-        body: JSON.stringify(fixtureSearch),
+        body: JSON.stringify(searchPayload),
       });
       const json = await response.json().catch(() => ({}));
 
       if (!response.ok) {
         setMsg(json.error || 'Fixture search failed');
-        setFixtureSearchResults([]);
-        return;
+        return null;
       }
 
-      setFixtureSearchResults(json.fixtures || []);
-      if (json.fixtures?.length) {
-        setMsg(`Found ${json.fixtures.length} fixture(s).`);
-      } else {
-        setMsg('Found 0 fixture(s). Try a wider date range, a numeric league ID, or a different season.');
-      }
+      return json.fixtures || [];
     } finally {
       setFixtureSearchLoading(false);
     }
+  }
+
+  async function findAvailableLeagues() {
+    setSelectedApiFixtures({});
+    setSelectedApiLeagues({});
+    setFixtureSearchResults([]);
+
+    const fixturesFound = await fetchApiFixtures({ ...fixtureSearch, leagues: '' });
+    if (!fixturesFound) {
+      setFixtureSearchAllResults([]);
+      return;
+    }
+
+    setFixtureSearchAllResults(fixturesFound);
+
+    const leagueCount = new Set(fixturesFound.map(fixture => fixture.league_id).filter(Boolean)).size;
+    setMsg(`Found ${leagueCount} league(s) and ${fixturesFound.length} fixture(s) in that date range.`);
+  }
+
+  async function searchApiFixtures() {
+    setSelectedApiFixtures({});
+    setFixtureSearchAllResults([]);
+    setSelectedApiLeagues({});
+
+    const fixturesFound = await fetchApiFixtures(fixtureSearch);
+
+    if (fixturesFound) {
+      setFixtureSearchResults(fixturesFound);
+      setMsgForFixtureSearch(fixturesFound);
+    }
+  }
+
+  function setMsgForFixtureSearch(fixturesFound) {
+    if (fixturesFound.length) {
+      setMsg(`Found ${fixturesFound.length} fixture(s).`);
+    } else {
+      setMsg('Found 0 fixture(s). Try a wider date range, a numeric league ID, or a different season.');
+    }
+  }
+
+  function toggleApiLeague(id) {
+    setSelectedApiLeagues(current => ({
+      ...current,
+      [id]: !current[id],
+    }));
+  }
+
+  function showSelectedLeagueFixtures() {
+    const selectedLeagueIds = Object.entries(selectedApiLeagues)
+      .filter(([, selected]) => selected)
+      .map(([id]) => id);
+
+    if (!selectedLeagueIds.length) {
+      setMsg('Select at least one league first.');
+      return;
+    }
+
+    const fixturesFound = fixtureSearchAllResults.filter(fixture =>
+      selectedLeagueIds.includes(String(fixture.league_id))
+    );
+
+    setSelectedApiFixtures({});
+    setFixtureSearchResults(fixturesFound);
+    setMsgForFixtureSearch(fixturesFound);
   }
 
   function toggleApiFixture(id) {
@@ -1649,6 +1708,29 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef,
     return groups;
   }, {});
 
+  const availableApiLeagues = Object.values(
+    fixtureSearchAllResults.reduce((leagues, fixture) => {
+      const id = String(fixture.league_id || fixture.league_name || 'other');
+
+      if (!leagues[id]) {
+        leagues[id] = {
+          id,
+          name: fixture.league_name || 'Other Fixtures',
+          country: fixture.country || '',
+          season: fixture.season || '',
+          count: 0,
+        };
+      }
+
+      leagues[id].count += 1;
+      return leagues;
+    }, {})
+  ).sort(
+    (a, b) =>
+      String(a.country || '').localeCompare(String(b.country || '')) ||
+      String(a.name || '').localeCompare(String(b.name || ''))
+  );
+
   return (
     <div>
       <div className="adminGrid">
@@ -1777,7 +1859,7 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef,
 
         <div>
           <h3>Fixtures</h3>
-          <p>Search API-Football by date range and league IDs or names, then select fixtures to import.</p>
+          <p>Select a date range, choose available leagues, then select fixtures to import.</p>
 
           <div className="fixtureSearchPanel">
             <div className="fixtureSearchControls">
@@ -1800,9 +1882,9 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef,
               </label>
 
               <label>
-                League IDs or names
+                Direct league IDs or names
                 <input
-                  placeholder="e.g. World Cup, 1, 39"
+                  placeholder="Optional: World Cup, 1, 39"
                   value={fixtureSearch.leagues}
                   onChange={e => setFixtureSearch({ ...fixtureSearch, leagues: e.target.value })}
                 />
@@ -1818,9 +1900,43 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef,
               </label>
             </div>
 
-            <button onClick={searchApiFixtures} disabled={fixtureSearchLoading}>
-              {fixtureSearchLoading ? 'Searching Fixtures...' : 'Search API Fixtures'}
-            </button>
+            <div className="fixtureSearchActions">
+              <button onClick={findAvailableLeagues} disabled={fixtureSearchLoading}>
+                {fixtureSearchLoading ? 'Searching...' : 'Find Available Leagues'}
+              </button>
+
+              <button onClick={searchApiFixtures} disabled={fixtureSearchLoading}>
+                Direct Fixture Search
+              </button>
+            </div>
+
+            {!!availableApiLeagues.length && (
+              <div className="leaguePicker">
+                <div className="fixtureSearchSummary">
+                  <strong>{availableApiLeagues.length} league(s) available</strong>
+                  <button onClick={showSelectedLeagueFixtures}>Show Fixtures For Selected Leagues</button>
+                </div>
+
+                <div className="leaguePickerGrid">
+                  {availableApiLeagues.map(league => (
+                    <label className="leaguePickerItem" key={league.id}>
+                      <input
+                        type="checkbox"
+                        checked={!!selectedApiLeagues[league.id]}
+                        onChange={() => toggleApiLeague(league.id)}
+                      />
+                      <span>
+                        <strong>{league.name}</strong>
+                        <small>
+                          {league.country || 'International'}
+                          {league.season ? ` · ${league.season}` : ''} · {league.count} fixture{league.count === 1 ? '' : 's'}
+                        </small>
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {!!fixtureSearchResults.length && (
               <div className="fixtureSearchResults">
