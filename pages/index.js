@@ -1126,6 +1126,15 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef,
   const [scoreDrafts, setScoreDrafts] = useState({});
   const [scoreSaveState, setScoreSaveState] = useState('idle');
   const scoreSaveTimer = useRef(null);
+  const [fixtureSearch, setFixtureSearch] = useState({
+    from: '',
+    to: '',
+    leagues: '',
+    season: String(new Date().getFullYear()),
+  });
+  const [fixtureSearchResults, setFixtureSearchResults] = useState([]);
+  const [selectedApiFixtures, setSelectedApiFixtures] = useState({});
+  const [fixtureSearchLoading, setFixtureSearchLoading] = useState(false);
 
   const [tsv, setTsv] = useState('');
 
@@ -1272,6 +1281,66 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef,
       week_id: state.week.id,
       fixtures: parsed.fixtures,
     });
+  }
+
+  async function searchApiFixtures() {
+    setFixtureSearchLoading(true);
+    setSelectedApiFixtures({});
+
+    try {
+      const response = await fetch('/api/fixture-search', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-pass': admin,
+        },
+        body: JSON.stringify(fixtureSearch),
+      });
+      const json = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        setMsg(json.error || 'Fixture search failed');
+        setFixtureSearchResults([]);
+        return;
+      }
+
+      setFixtureSearchResults(json.fixtures || []);
+      setMsg(`Found ${json.fixtures?.length || 0} fixture(s).`);
+    } finally {
+      setFixtureSearchLoading(false);
+    }
+  }
+
+  function toggleApiFixture(id) {
+    setSelectedApiFixtures(current => ({
+      ...current,
+      [id]: !current[id],
+    }));
+  }
+
+  function useSelectedApiFixtures() {
+    const selected = fixtureSearchResults.filter(fixture => selectedApiFixtures[fixture.api_fixture_id]);
+
+    if (!selected.length) {
+      setMsg('Select at least one searched fixture first.');
+      return;
+    }
+
+    const text = selected
+      .map(fixture =>
+        [
+          fixture.home_team,
+          fixture.away_team,
+          fixture.kickoff,
+          fixture.api_fixture_id,
+        ].join('\t')
+      )
+      .join('\n');
+
+    setFixtureText(text);
+    setFixturePreview(parseFixtureRows(text));
+    setConfirmReplace(false);
+    setMsg(`${selected.length} searched fixture(s) loaded into the preview.`);
   }
 
   async function runAdminAction(action, payload, successMessage) {
@@ -1618,6 +1687,97 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef,
 
         <div>
           <h3>Fixtures</h3>
+          <p>Search API-Football by date range and league IDs, then select fixtures to import.</p>
+
+          <div className="fixtureSearchPanel">
+            <div className="fixtureSearchControls">
+              <label>
+                From
+                <input
+                  type="date"
+                  value={fixtureSearch.from}
+                  onChange={e => setFixtureSearch({ ...fixtureSearch, from: e.target.value })}
+                />
+              </label>
+
+              <label>
+                To
+                <input
+                  type="date"
+                  value={fixtureSearch.to}
+                  onChange={e => setFixtureSearch({ ...fixtureSearch, to: e.target.value })}
+                />
+              </label>
+
+              <label>
+                League IDs
+                <input
+                  placeholder="e.g. 1, 2, 39"
+                  value={fixtureSearch.leagues}
+                  onChange={e => setFixtureSearch({ ...fixtureSearch, leagues: e.target.value })}
+                />
+              </label>
+
+              <label>
+                Season
+                <input
+                  placeholder="2026"
+                  value={fixtureSearch.season}
+                  onChange={e => setFixtureSearch({ ...fixtureSearch, season: e.target.value })}
+                />
+              </label>
+            </div>
+
+            <button onClick={searchApiFixtures} disabled={fixtureSearchLoading}>
+              {fixtureSearchLoading ? 'Searching Fixtures...' : 'Search API Fixtures'}
+            </button>
+
+            {!!fixtureSearchResults.length && (
+              <div className="fixtureSearchResults">
+                <div className="fixtureSearchSummary">
+                  <strong>{fixtureSearchResults.length} fixture(s) found</strong>
+                  <button onClick={useSelectedApiFixtures}>Use Selected Fixtures</button>
+                </div>
+
+                <div className="scroll">
+                  <table className="previewTable">
+                    <thead>
+                      <tr>
+                        <th>Select</th>
+                        <th>Kick-off</th>
+                        <th>Home</th>
+                        <th>Away</th>
+                        <th>League</th>
+                        <th>API ID</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {fixtureSearchResults.map(fixture => (
+                        <tr key={fixture.api_fixture_id}>
+                          <td>
+                            <input
+                              type="checkbox"
+                              checked={!!selectedApiFixtures[fixture.api_fixture_id]}
+                              onChange={() => toggleApiFixture(fixture.api_fixture_id)}
+                            />
+                          </td>
+                          <td>{fixture.kickoff || 'TBC'}</td>
+                          <td>{fixture.home_team}</td>
+                          <td>{fixture.away_team}</td>
+                          <td>
+                            {fixture.league_name}
+                            {fixture.country ? ` (${fixture.country})` : ''}
+                          </td>
+                          <td>{fixture.api_fixture_id}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
+
           <p>Paste: Home TAB Away TAB Kick-off TAB API Fixture ID optional</p>
 
           <textarea

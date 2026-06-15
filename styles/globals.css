@@ -764,6 +764,43 @@ th {
   min-height: 170px;
 }
 
+.fixtureSearchPanel {
+  background: #f8fbff;
+  border: 1px solid #bcc8d9;
+  border-radius: 12px;
+  margin-bottom: 14px;
+  padding: 12px;
+}
+
+.fixtureSearchControls {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.fixtureSearchControls label {
+  color: #46618a;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.fixtureSearchControls input {
+  margin-top: 4px;
+}
+
+.fixtureSearchResults {
+  margin-top: 12px;
+}
+
+.fixtureSearchSummary {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
 .fixtureImportActions {
   display: flex;
   flex-wrap: wrap;
@@ -1388,6 +1425,10 @@ th {
 }
 
 @media (max-width: 900px) {
+  .fixtureSearchControls {
+    grid-template-columns: 1fr;
+  }
+
   .winnerBanner {
     align-items: stretch;
     flex-direction: column;
