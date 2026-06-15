@@ -830,6 +830,48 @@ th {
   margin-top: 10px;
 }
 
+.approvedCompetitionPreview {
+  background: #fff;
+  border: 1px solid #e5ebf4;
+  border-radius: 10px;
+  margin-top: 12px;
+  padding: 10px;
+}
+
+.approvedCompetitionPreview > strong {
+  display: block;
+  margin-bottom: 8px;
+}
+
+.approvedCompetitionGroups {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.approvedCompetitionGroup {
+  background: #f8fbff;
+  border-radius: 8px;
+  padding: 8px;
+}
+
+.approvedCompetitionGroup span,
+.approvedCompetitionGroup small {
+  display: block;
+}
+
+.approvedCompetitionGroup span {
+  color: #154c8f;
+  font-weight: 800;
+}
+
+.approvedCompetitionGroup small {
+  color: #46618a;
+  font-size: 12px;
+  line-height: 1.4;
+  margin-top: 4px;
+}
+
 .leaguePicker {
   margin-top: 12px;
 }

@@ -1,4 +1,5 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
+import { DMI_APPROVED_COMPETITIONS } from '../lib/dmiCompetitions';
 
 const resultOf = (h, a) => (h > a ? 'H' : h < a ? 'A' : 'D');
 const FINAL_STATUSES = new Set(['FT', 'AET', 'PEN']);
@@ -1729,6 +1730,13 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef,
     return groups;
   }, {});
 
+  const approvedCompetitionGroups = DMI_APPROVED_COMPETITIONS.reduce((groups, competition) => {
+    const key = competition.group || competition.name;
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(competition);
+    return groups;
+  }, {});
+
   const availableApiLeagues = Object.values(
     fixtureSearchAllResults.reduce((leagues, fixture) => {
       const id = String(fixture.league_id || fixture.league_name || 'other');
@@ -1932,6 +1940,23 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef,
                 Direct Fixture Search
               </button>
             </div>
+
+            {!fixtureSearch.leagues.trim() && (
+              <div className="approvedCompetitionPreview">
+                <strong>
+                  Searching {DMI_APPROVED_COMPETITIONS.length} DMI approved competition rules
+                </strong>
+
+                <div className="approvedCompetitionGroups">
+                  {Object.entries(approvedCompetitionGroups).map(([group, competitions]) => (
+                    <div className="approvedCompetitionGroup" key={group}>
+                      <span>{group}</span>
+                      <small>{competitions.map(competition => competition.name).join(', ')}</small>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {!!availableApiLeagues.length && (
               <div className="leaguePicker">
