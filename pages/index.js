@@ -67,6 +67,19 @@ const fixtureKickoffIsoDate = value => {
   const parsed = new Date(raw);
   return Number.isNaN(parsed.getTime()) ? '' : parsed.toISOString().slice(0, 10);
 };
+const fixturesToTsv = fixtures =>
+  fixtures
+    .map(fixture =>
+      [
+        fixture.home_team,
+        fixture.away_team,
+        fixture.kickoff || '',
+        fixture.api_fixture_id || '',
+        fixture.home_badge || '',
+        fixture.away_badge || '',
+      ].join('\t')
+    )
+    .join('\n');
 
 const TIMEZONE_OPTIONS = [
   { label: 'UK time only', offset: 0 },
@@ -1199,20 +1212,7 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef,
   const archives = Array.isArray(state.archives) ? state.archives : [];
   const latestArchive = archives[0];
 
-  const [fixtureText, setFixtureText] = useState(
-    fixtures
-      .map(f =>
-        [
-          f.home_team,
-          f.away_team,
-          f.kickoff || '',
-          f.api_fixture_id || '',
-          f.home_badge || '',
-          f.away_badge || '',
-        ].join('\t')
-      )
-      .join('\n')
-  );
+  const [fixtureText, setFixtureText] = useState(fixturesToTsv(fixtures));
   const [fixturePreview, setFixturePreview] = useState(null);
   const [confirmReplace, setConfirmReplace] = useState(false);
   const [newCoupon, setNewCoupon] = useState({
@@ -1430,9 +1430,9 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef,
     };
   }
 
-  function listedFixtureSearchPayload(overrides = {}) {
+  function fixtureListSearchPayload(sourceFixtures, overrides = {}) {
     const dates = [
-      ...new Set(fixtures.map(fixture => fixtureKickoffIsoDate(fixture.kickoff)).filter(Boolean)),
+      ...new Set((sourceFixtures || []).map(fixture => fixtureKickoffIsoDate(fixture.kickoff)).filter(Boolean)),
     ].sort();
 
     return {
@@ -1444,6 +1444,42 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef,
       approved_competitions: DMI_APPROVED_COMPETITIONS.map(competition => competition.name),
       ...overrides,
     };
+  }
+
+  function listedFixtureSearchPayload(overrides = {}) {
+    return fixtureListSearchPayload(fixtures, overrides);
+  }
+
+  function enrichFixturesWithApi(sourceFixtures, apiFixtures) {
+    const byApiId = new Map(apiFixtures.map(fixture => [String(fixture.api_fixture_id), fixture]));
+    const byTeams = new Map(apiFixtures.map(fixture => [fixtureMatchKey(fixture), fixture]));
+    let matched = 0;
+    const matchedFixtures = [];
+    const enriched = sourceFixtures.map(fixture => {
+      const apiFixture =
+        (fixture.api_fixture_id && byApiId.get(String(fixture.api_fixture_id))) ||
+        byTeams.get(fixtureMatchKey(fixture));
+
+      if (!apiFixture) return fixture;
+
+      matched += 1;
+      const enrichedFixture = {
+        ...fixture,
+        api_fixture_id: apiFixture.api_fixture_id,
+        kickoff: apiFixture.kickoff || fixture.kickoff || '',
+        home_badge: apiFixture.home_badge || fixture.home_badge || '',
+        away_badge: apiFixture.away_badge || fixture.away_badge || '',
+        status: apiFixture.status || fixture.status || 'NS',
+        home_score: apiFixture.home_score,
+        away_score: apiFixture.away_score,
+        ht_home_score: apiFixture.ht_home_score,
+        ht_away_score: apiFixture.ht_away_score,
+      };
+      matchedFixtures.push(enrichedFixture);
+      return enrichedFixture;
+    });
+
+    return { enriched, matched, matchedFixtures };
   }
 
   function toggleApprovedCompetition(name) {
@@ -1616,15 +1652,20 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef,
   }
 
   async function updateManualFixturesFromApi() {
-    if (!fixtures.length) {
-      setMsg('Add fixtures before updating API data.');
+    const previewReady = fixturePreview && !fixturePreview.errors.length && fixturePreview.fixtures.length;
+    const sourceFixtures = previewReady ? fixturePreview.fixtures : fixtures;
+
+    if (!sourceFixtures.length) {
+      setMsg('Preview or save fixtures before updating API data.');
       return 0;
     }
 
-    const searchPayload = listedFixtureSearchPayload();
+    const searchPayload = previewReady
+      ? fixtureListSearchPayload(sourceFixtures)
+      : listedFixtureSearchPayload();
 
     if (!searchPayload.dates.length) {
-      setMsg('Current fixtures need kick-off dates before API data can be matched.');
+      setMsg('Fixture rows need kick-off dates before API data can be matched.');
       return 0;
     }
 
@@ -1632,42 +1673,39 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef,
     if (!search) return 0;
 
     const apiFixtures = search.fixtures || [];
-    const byApiId = new Map(apiFixtures.map(fixture => [String(fixture.api_fixture_id), fixture]));
-    const byTeams = new Map(apiFixtures.map(fixture => [fixtureMatchKey(fixture), fixture]));
-    const matched = fixtures
-      .map(fixture => {
-        const apiFixture =
-          (fixture.api_fixture_id && byApiId.get(String(fixture.api_fixture_id))) ||
-          byTeams.get(fixtureMatchKey(fixture));
+    const { enriched, matched, matchedFixtures } = enrichFixturesWithApi(sourceFixtures, apiFixtures);
 
-        if (!apiFixture) return null;
-
-        return {
-          id: fixture.id,
-          api_fixture_id: apiFixture.api_fixture_id,
-          kickoff: apiFixture.kickoff || fixture.kickoff || '',
-          home_badge: apiFixture.home_badge || fixture.home_badge || '',
-          away_badge: apiFixture.away_badge || fixture.away_badge || '',
-          status: apiFixture.status || fixture.status || 'NS',
-          home_score: apiFixture.home_score,
-          away_score: apiFixture.away_score,
-          ht_home_score: apiFixture.ht_home_score,
-          ht_away_score: apiFixture.ht_away_score,
-        };
-      })
-      .filter(Boolean);
-
-    if (!matched.length) {
+    if (!matched) {
       setFixtureSearchAllResults(apiFixtures);
       setFixtureSearchResults(apiFixtures);
-      setMsg(`Found ${apiFixtures.length} API fixture(s), but none matched the current manual fixtures.`);
+      setMsg(`Found ${apiFixtures.length} API fixture(s), but none matched the ${previewReady ? 'preview' : 'saved'} fixtures.`);
       return 0;
+    }
+
+    if (previewReady) {
+      const rows = fixturePreview.rows.map((row, index) => ({
+        ...row,
+        ...enriched[index],
+        raw: fixturesToTsv([enriched[index]]),
+      }));
+
+      setFixturePreview({
+        fixtures: enriched,
+        errors: [],
+        rows,
+      });
+      setFixtureText(fixturesToTsv(enriched));
+      setFixtureSearchAllResults(apiFixtures);
+      setFixtureSearchResults(apiFixtures);
+      setConfirmReplace(false);
+      setMsg(`Updated preview API data for ${matched} fixture(s). Replace previewed fixtures when ready.`);
+      return matched;
     }
 
     const updated = await runAdminAction(
       'updateFixtureApiData',
-      { fixtures: matched },
-      `Updated API data for ${matched.length} fixture(s).`
+      { fixtures: matchedFixtures.map(fixture => ({ ...fixture, id: fixture.id })) },
+      `Updated API data for ${matched} fixture(s).`
     );
 
     if (updated) {
@@ -1675,7 +1713,7 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef,
       setFixtureSearchResults(apiFixtures);
     }
 
-    return updated ? matched.length : 0;
+    return updated ? matched : 0;
   }
 
   async function runAdminAction(action, payload, successMessage) {
