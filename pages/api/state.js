@@ -1,8 +1,8 @@
-import { supabaseAdmin } from '../../lib/supabase';
+import { supabasePublic } from '../../lib/supabase';
 
 export default async function handler(req, res) {
   try {
-    const db = supabaseAdmin();
+    const db = supabasePublic();
     const { data: week, error: wErr } = await db.from('coupon_weeks').select('*').eq('is_current', true).single();
     if (wErr) throw wErr;
     const weekId = week.id;

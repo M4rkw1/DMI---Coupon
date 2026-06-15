@@ -118,8 +118,9 @@ async function createArchive(db, weekId, saveHistoric) {
 
 export default async function handler(req, res) {
   if (!isAdmin(req)) return res.status(401).json({ error: 'Not authorised' });
-  const db = supabaseAdmin();
+
   try {
+    const db = supabaseAdmin();
     const { action, payload } = req.body;
     if (action === 'saveSettings') {
       const { id, ...fields } = payload;

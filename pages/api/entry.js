@@ -1,4 +1,4 @@
-import { supabaseAdmin } from '../../lib/supabase';
+import { supabasePublic } from '../../lib/supabase';
 
 function parseKickoff(kickoff) {
   if (!kickoff) return null;
@@ -24,7 +24,7 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Missing entry details' });
     }
 
-    const db = supabaseAdmin();
+    const db = supabasePublic();
 
     const { data: fixtures, error: fixtureError } = await db
       .from('fixtures')
