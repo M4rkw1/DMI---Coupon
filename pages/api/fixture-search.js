@@ -47,6 +47,20 @@ function dateRange(from, to) {
   return dates;
 }
 
+function apiErrorMessage(errors) {
+  if (!errors) return '';
+  if (typeof errors === 'string') return errors;
+  if (Array.isArray(errors)) return errors.filter(Boolean).join(' ');
+  if (typeof errors === 'object') {
+    return Object.values(errors)
+      .flat()
+      .filter(Boolean)
+      .join(' ');
+  }
+
+  return '';
+}
+
 function mapFixture(item) {
   const league = item.league || {};
 
@@ -83,9 +97,10 @@ async function fetchFixtures({ apiKey, from, to, date, league, season }) {
     },
   });
   const json = await response.json().catch(() => ({}));
+  const apiError = apiErrorMessage(json.errors);
 
-  if (!response.ok) {
-    throw new Error(json?.message || 'Fixture provider request failed.');
+  if (!response.ok || apiError) {
+    throw new Error(apiError || json?.message || 'Fixture provider request failed.');
   }
 
   return Array.isArray(json.response) ? json.response : [];
@@ -99,7 +114,10 @@ async function fetchFixturesByDateRange({ apiKey, from, to }) {
   }
 
   const batches = await Promise.all(dates.map(date => fetchFixtures({ apiKey, date })));
-  return batches.flat();
+  return {
+    dates,
+    fixtures: batches.flat(),
+  };
 }
 
 async function searchLeagues({ apiKey, name, season }) {
@@ -112,9 +130,10 @@ async function searchLeagues({ apiKey, name, season }) {
     },
   });
   const json = await response.json().catch(() => ({}));
+  const apiError = apiErrorMessage(json.errors);
 
-  if (!response.ok) {
-    throw new Error(json?.message || `League search failed for "${name}".`);
+  if (!response.ok || apiError) {
+    throw new Error(apiError || json?.message || `League search failed for "${name}".`);
   }
 
   return (json.response || [])
@@ -161,14 +180,20 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Choose a from and to date.' });
     }
 
+    let checkedDates = [];
     const batches = leagueIds.length
       ? await Promise.all(
           leagueIds.map(league => fetchFixtures({ apiKey, from, to, league, season }))
         )
       : [await fetchFixturesByDateRange({ apiKey, from, to })];
+    const rawFixtures = batches.flatMap(batch => {
+      if (Array.isArray(batch)) return batch;
+      checkedDates = batch.dates || checkedDates;
+      return batch.fixtures || [];
+    });
 
     const unique = new Map();
-    batches.flat().forEach(item => {
+    rawFixtures.forEach(item => {
       const mapped = mapFixture(item);
       if (mapped.api_fixture_id && mapped.home_team && mapped.away_team) {
         unique.set(mapped.api_fixture_id, mapped);
@@ -181,7 +206,14 @@ export default async function handler(req, res) {
         String(a.home_team || '').localeCompare(String(b.home_team || ''))
     );
 
-    res.status(200).json({ fixtures });
+    res.status(200).json({
+      fixtures,
+      meta: {
+        checked_dates: checkedDates,
+        resolved_league_ids: leagueIds,
+        raw_fixture_count: rawFixtures.length,
+      },
+    });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }

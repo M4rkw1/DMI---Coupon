@@ -1362,7 +1362,10 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef,
         return null;
       }
 
-      return json.fixtures || [];
+      return {
+        fixtures: json.fixtures || [],
+        meta: json.meta || {},
+      };
     } finally {
       setFixtureSearchLoading(false);
     }
@@ -1373,16 +1376,20 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef,
     setSelectedApiLeagues({});
     setFixtureSearchResults([]);
 
-    const fixturesFound = await fetchApiFixtures({ ...fixtureSearch, leagues: '' });
-    if (!fixturesFound) {
+    const search = await fetchApiFixtures({ ...fixtureSearch, leagues: '' });
+    if (!search) {
       setFixtureSearchAllResults([]);
       return;
     }
 
+    const fixturesFound = search.fixtures;
     setFixtureSearchAllResults(fixturesFound);
 
     const leagueCount = new Set(fixturesFound.map(fixture => fixture.league_id).filter(Boolean)).size;
-    setMsg(`Found ${leagueCount} league(s) and ${fixturesFound.length} fixture(s) in that date range.`);
+    const checkedDates = search.meta?.checked_dates?.length || 0;
+    setMsg(
+      `Found ${leagueCount} league(s) and ${fixturesFound.length} fixture(s) across ${checkedDates || 'the selected'} date(s).`
+    );
   }
 
   async function searchApiFixtures() {
@@ -1390,19 +1397,26 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef,
     setFixtureSearchAllResults([]);
     setSelectedApiLeagues({});
 
-    const fixturesFound = await fetchApiFixtures(fixtureSearch);
+    const search = await fetchApiFixtures(fixtureSearch);
 
-    if (fixturesFound) {
+    if (search) {
+      const fixturesFound = search.fixtures;
       setFixtureSearchResults(fixturesFound);
-      setMsgForFixtureSearch(fixturesFound);
+      setMsgForFixtureSearch(fixturesFound, search.meta);
     }
   }
 
-  function setMsgForFixtureSearch(fixturesFound) {
+  function setMsgForFixtureSearch(fixturesFound, meta = {}) {
     if (fixturesFound.length) {
       setMsg(`Found ${fixturesFound.length} fixture(s).`);
     } else {
-      setMsg('Found 0 fixture(s). Try a wider date range, a numeric league ID, or a different season.');
+      const checkedDates = meta.checked_dates?.length;
+      const resolvedLeagues = meta.resolved_league_ids?.length;
+      setMsg(
+        `Found 0 fixture(s). Checked ${checkedDates || 'the selected'} date(s)${
+          resolvedLeagues ? ` and ${resolvedLeagues} league ID(s)` : ''
+        }. Try a wider date range, a numeric league ID, or a different season.`
+      );
     }
   }
 
