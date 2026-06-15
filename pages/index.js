@@ -1589,7 +1589,7 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef,
   async function updateManualFixturesFromApi() {
     if (!fixtures.length) {
       setMsg('Add fixtures before updating API data.');
-      return;
+      return 0;
     }
 
     if (
@@ -1597,11 +1597,11 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef,
       !DMI_APPROVED_COMPETITIONS.some(competition => selectedApprovedCompetitions[competition.name])
     ) {
       setMsg('Select at least one approved competition before updating fixture API data.');
-      return;
+      return 0;
     }
 
     const search = await fetchApiFixtures(weeklyFixtureSearchPayload());
-    if (!search) return;
+    if (!search) return 0;
 
     const apiFixtures = search.fixtures || [];
     const byApiId = new Map(apiFixtures.map(fixture => [String(fixture.api_fixture_id), fixture]));
@@ -1633,7 +1633,7 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef,
       setFixtureSearchAllResults(apiFixtures);
       setFixtureSearchResults(apiFixtures);
       setMsg(`Found ${apiFixtures.length} API fixture(s), but none matched the current manual fixtures.`);
-      return;
+      return 0;
     }
 
     const updated = await runAdminAction(
@@ -1646,6 +1646,8 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef,
       setFixtureSearchAllResults(apiFixtures);
       setFixtureSearchResults(apiFixtures);
     }
+
+    return updated ? matched.length : 0;
   }
 
   async function runAdminAction(action, payload, successMessage) {
@@ -1781,7 +1783,7 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef,
     a.click();
   }
 
-  async function syncLiveScores() {
+  async function runLiveScoreSync({ quietMissingIds = false } = {}) {
     const res = await fetch('/api/live-scores', {
       method: 'POST',
       headers: {
@@ -1793,11 +1795,35 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef,
     const json = await res.json().catch(() => ({}));
 
     if (!res.ok) {
-      setMsg(json.error || 'Live score sync failed');
-      return;
+      const error = json.error || 'Live score sync failed';
+      if (!quietMissingIds || !/api fixture ids/i.test(error)) {
+        setMsg(error);
+      }
+      return { ok: false, error };
     }
 
     setMsg(`Live score sync complete. Updated ${json.updated || 0} fixture(s).`);
+    return { ok: true, updated: json.updated || 0 };
+  }
+
+  async function syncLiveScores() {
+    const hasApiIds = fixtures.some(fixture => fixture.api_fixture_id);
+
+    if (!hasApiIds) {
+      setMsg('No API fixture IDs found. Updating fixture API data first...');
+      const matched = await updateManualFixturesFromApi();
+
+      if (!matched) {
+        setMsg('No API fixture IDs found. Use Update Fixture API Data after setting the coupon start date/season, or add API IDs in the TSV.');
+        return;
+      }
+    }
+
+    const firstSync = await runLiveScoreSync({ quietMissingIds: true });
+
+    if (!firstSync.ok && /api fixture ids/i.test(firstSync.error || '')) {
+      setMsg('Fixture API data was updated. Click Sync Live Scores again once the page reloads.');
+    }
   }
 
   async function importTsv() {
