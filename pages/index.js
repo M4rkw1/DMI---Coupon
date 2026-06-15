@@ -1214,6 +1214,9 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef,
   const [fixtureSearchResults, setFixtureSearchResults] = useState([]);
   const [selectedApiLeagues, setSelectedApiLeagues] = useState({});
   const [selectedApiFixtures, setSelectedApiFixtures] = useState({});
+  const [selectedApprovedCompetitions, setSelectedApprovedCompetitions] = useState(() =>
+    Object.fromEntries(DMI_APPROVED_COMPETITIONS.map(competition => [competition.name, true]))
+  );
   const [fixtureSearchLoading, setFixtureSearchLoading] = useState(false);
   const fixtureSearchTo = nextThursdayIsoDate(fixtureSearch.from);
 
@@ -1393,17 +1396,47 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef,
   }
 
   function weeklyFixtureSearchPayload(overrides = {}) {
+    const selectedCompetitions = DMI_APPROVED_COMPETITIONS
+      .filter(competition => selectedApprovedCompetitions[competition.name])
+      .map(competition => competition.name);
+
     return {
       ...fixtureSearch,
+      approved_competitions: selectedCompetitions,
       ...overrides,
       to: fixtureSearchTo,
     };
+  }
+
+  function toggleApprovedCompetition(name) {
+    setSelectedApprovedCompetitions(current => ({
+      ...current,
+      [name]: !current[name],
+    }));
+  }
+
+  function selectAllApprovedCompetitions() {
+    setSelectedApprovedCompetitions(
+      Object.fromEntries(DMI_APPROVED_COMPETITIONS.map(competition => [competition.name, true]))
+    );
+  }
+
+  function clearApprovedCompetitions() {
+    setSelectedApprovedCompetitions(
+      Object.fromEntries(DMI_APPROVED_COMPETITIONS.map(competition => [competition.name, false]))
+    );
   }
 
   async function findAvailableLeagues() {
     setSelectedApiFixtures({});
     setSelectedApiLeagues({});
     setFixtureSearchResults([]);
+
+    if (!DMI_APPROVED_COMPETITIONS.some(competition => selectedApprovedCompetitions[competition.name])) {
+      setFixtureSearchAllResults([]);
+      setMsg('Select at least one approved competition before searching.');
+      return;
+    }
 
     const search = await fetchApiFixtures(weeklyFixtureSearchPayload({ leagues: '' }));
     if (!search) {
@@ -1417,9 +1450,10 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef,
     const leagueCount = new Set(fixturesFound.map(fixture => fixture.league_id).filter(Boolean)).size;
     const checkedDates = search.meta?.checked_dates?.length || 0;
     const resolvedLeagues = search.meta?.resolved_league_ids?.length || 0;
+    const approvedCount = search.meta?.approved_competitions_count || selectedApprovedCompetitionCount;
     const unresolved = search.meta?.unresolved_competitions?.length || 0;
     setMsg(
-      `Found ${leagueCount} league(s) and ${fixturesFound.length} fixture(s) from ${resolvedLeagues} DMI approved league ID(s)${
+      `Found ${leagueCount} league(s) and ${fixturesFound.length} fixture(s) from ${resolvedLeagues} league ID(s) across ${approvedCount} selected DMI rule(s)${
         checkedDates ? ` across ${checkedDates} date(s)` : ''
       }${unresolved ? `. ${unresolved} approved competition(s) did not resolve for this season.` : '.'}`
     );
@@ -1429,6 +1463,14 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef,
     setSelectedApiFixtures({});
     setFixtureSearchAllResults([]);
     setSelectedApiLeagues({});
+
+    if (
+      !fixtureSearch.leagues.trim() &&
+      !DMI_APPROVED_COMPETITIONS.some(competition => selectedApprovedCompetitions[competition.name])
+    ) {
+      setMsg('Select at least one approved competition before searching.');
+      return;
+    }
 
     const search = await fetchApiFixtures(weeklyFixtureSearchPayload());
 
@@ -1538,6 +1580,14 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef,
   async function updateManualFixturesFromApi() {
     if (!fixtures.length) {
       setMsg('Add fixtures before updating API data.');
+      return;
+    }
+
+    if (
+      !fixtureSearch.leagues.trim() &&
+      !DMI_APPROVED_COMPETITIONS.some(competition => selectedApprovedCompetitions[competition.name])
+    ) {
+      setMsg('Select at least one approved competition before updating fixture API data.');
       return;
     }
 
@@ -1818,6 +1868,9 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef,
     groups[key].push(competition);
     return groups;
   }, {});
+  const selectedApprovedCompetitionCount = DMI_APPROVED_COMPETITIONS.filter(
+    competition => selectedApprovedCompetitions[competition.name]
+  ).length;
 
   const availableApiLeagues = Object.values(
     fixtureSearchAllResults.reduce((leagues, fixture) => {
@@ -2031,15 +2084,36 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef,
 
             {!fixtureSearch.leagues.trim() && (
               <div className="approvedCompetitionPreview">
-                <strong>
-                  Searching {DMI_APPROVED_COMPETITIONS.length} DMI approved competition rules
-                </strong>
+                <div className="fixtureSearchSummary">
+                  <strong>
+                    Searching {selectedApprovedCompetitionCount} of {DMI_APPROVED_COMPETITIONS.length} DMI approved competition rules
+                  </strong>
+                  <span className="approvedCompetitionActions">
+                    <button type="button" onClick={selectAllApprovedCompetitions}>
+                      Select All
+                    </button>
+                    <button type="button" onClick={clearApprovedCompetitions}>
+                      Clear All
+                    </button>
+                  </span>
+                </div>
 
                 <div className="approvedCompetitionGroups">
                   {Object.entries(approvedCompetitionGroups).map(([group, competitions]) => (
                     <div className="approvedCompetitionGroup" key={group}>
                       <span>{group}</span>
-                      <small>{competitions.map(competition => competition.name).join(', ')}</small>
+                      <div className="approvedCompetitionChecks">
+                        {competitions.map(competition => (
+                          <label key={competition.name}>
+                            <input
+                              type="checkbox"
+                              checked={!!selectedApprovedCompetitions[competition.name]}
+                              onChange={() => toggleApprovedCompetition(competition.name)}
+                            />
+                            {competition.name}
+                          </label>
+                        ))}
+                      </div>
                     </div>
                   ))}
                 </div>

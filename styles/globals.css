@@ -838,15 +838,20 @@ th {
   padding: 10px;
 }
 
-.approvedCompetitionPreview > strong {
-  display: block;
-  margin-bottom: 8px;
-}
-
 .approvedCompetitionGroups {
   display: grid;
   gap: 8px;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.approvedCompetitionActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.approvedCompetitionActions button {
+  padding: 8px 10px;
 }
 
 .approvedCompetitionGroup {
@@ -855,21 +860,34 @@ th {
   padding: 8px;
 }
 
-.approvedCompetitionGroup span,
-.approvedCompetitionGroup small {
+.approvedCompetitionGroup span {
   display: block;
 }
 
 .approvedCompetitionGroup span {
   color: #154c8f;
   font-weight: 800;
+  margin-bottom: 6px;
 }
 
-.approvedCompetitionGroup small {
+.approvedCompetitionChecks {
+  display: grid;
+  gap: 5px;
+}
+
+.approvedCompetitionChecks label {
+  align-items: flex-start;
   color: #46618a;
-  font-size: 12px;
+  cursor: pointer;
+  display: flex;
+  font-size: 13px;
+  font-weight: 700;
+  gap: 7px;
   line-height: 1.4;
-  margin-top: 4px;
+}
+
+.approvedCompetitionChecks input {
+  margin-top: 2px;
 }
 
 .leaguePicker {

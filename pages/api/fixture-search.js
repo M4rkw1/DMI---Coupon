@@ -214,11 +214,17 @@ function leagueDescriptorsFromSearchResults(results, competition) {
     .filter(item => item.id);
 }
 
-async function resolveApprovedCompetitions({ apiKey, season }) {
+async function resolveApprovedCompetitions({ apiKey, season, approvedCompetitions }) {
   const resolved = [];
   const unresolved = [];
+  const selected = Array.isArray(approvedCompetitions)
+    ? new Set(approvedCompetitions.map(item => String(item || '').trim()).filter(Boolean))
+    : null;
+  const competitions = selected
+    ? DMI_APPROVED_COMPETITIONS.filter(competition => selected.has(competition.name))
+    : DMI_APPROVED_COMPETITIONS;
 
-  for (const competition of DMI_APPROVED_COMPETITIONS) {
+  for (const competition of competitions) {
     const searches = [competition.name, ...(competition.aliases || [])];
     const results = [];
 
@@ -297,7 +303,7 @@ async function resolveDirectLeagues({ apiKey, leagues, season }) {
   return uniqueLeagueDescriptors(resolved);
 }
 
-async function resolveLeagues({ apiKey, leagues, season }) {
+async function resolveLeagues({ apiKey, leagues, season, approvedCompetitions }) {
   if (String(leagues || '').trim()) {
     return {
       leagues: await resolveDirectLeagues({ apiKey, leagues, season }),
@@ -306,7 +312,11 @@ async function resolveLeagues({ apiKey, leagues, season }) {
     };
   }
 
-  const { resolved, unresolved } = await resolveApprovedCompetitions({ apiKey, season });
+  const { resolved, unresolved } = await resolveApprovedCompetitions({
+    apiKey,
+    season,
+    approvedCompetitions,
+  });
   return {
     leagues: resolved,
     unresolved,
@@ -324,7 +334,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { from, to, leagues, season } = req.body || {};
+    const { from, to, leagues, season, approved_competitions } = req.body || {};
     if (!from) {
       return res.status(400).json({ error: 'Choose a fixture search start date.' });
     }
@@ -335,7 +345,15 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Choose a valid fixture search start date.' });
     }
 
-    const leagueResolution = await resolveLeagues({ apiKey, leagues, season });
+    const approvedCompetitionCount = Array.isArray(approved_competitions)
+      ? approved_competitions.length
+      : DMI_APPROVED_COMPETITIONS.length;
+    const leagueResolution = await resolveLeagues({
+      apiKey,
+      leagues,
+      season,
+      approvedCompetitions: approved_competitions,
+    });
     const leagueDescriptors = leagueResolution.leagues;
 
     if (leagueResolution.usingApprovedDefaults && !leagueDescriptors.length) {
@@ -344,7 +362,7 @@ export default async function handler(req, res) {
         meta: {
           checked_dates: [],
           approved_defaults_used: true,
-          approved_competitions_count: DMI_APPROVED_COMPETITIONS.length,
+          approved_competitions_count: approvedCompetitionCount,
           resolved_league_ids: [],
           unresolved_competitions: leagueResolution.unresolved,
           raw_fixture_count: 0,
@@ -399,7 +417,7 @@ export default async function handler(req, res) {
       meta: {
         checked_dates: checkedDates,
         approved_defaults_used: leagueResolution.usingApprovedDefaults,
-        approved_competitions_count: DMI_APPROVED_COMPETITIONS.length,
+        approved_competitions_count: approvedCompetitionCount,
         resolved_league_ids: leagueDescriptors.map(league => league.id),
         unresolved_competitions: leagueResolution.unresolved,
         raw_fixture_count: rawFixtures.length,
