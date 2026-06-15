@@ -1387,8 +1387,12 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef,
 
     const leagueCount = new Set(fixturesFound.map(fixture => fixture.league_id).filter(Boolean)).size;
     const checkedDates = search.meta?.checked_dates?.length || 0;
+    const resolvedLeagues = search.meta?.resolved_league_ids?.length || 0;
+    const unresolved = search.meta?.unresolved_competitions?.length || 0;
     setMsg(
-      `Found ${leagueCount} league(s) and ${fixturesFound.length} fixture(s) across ${checkedDates || 'the selected'} date(s).`
+      `Found ${leagueCount} league(s) and ${fixturesFound.length} fixture(s) from ${resolvedLeagues} DMI approved league ID(s)${
+        checkedDates ? ` across ${checkedDates} date(s)` : ''
+      }${unresolved ? `. ${unresolved} approved competition(s) did not resolve for this season.` : '.'}`
     );
   }
 
@@ -1412,9 +1416,12 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef,
     } else {
       const checkedDates = meta.checked_dates?.length;
       const resolvedLeagues = meta.resolved_league_ids?.length;
+      const unresolved = meta.unresolved_competitions?.length;
       setMsg(
         `Found 0 fixture(s). Checked ${checkedDates || 'the selected'} date(s)${
           resolvedLeagues ? ` and ${resolvedLeagues} league ID(s)` : ''
+        }${
+          unresolved ? `. ${unresolved} approved competition(s) did not resolve for this season` : ''
         }. Try a wider date range, a numeric league ID, or a different season.`
       );
     }
@@ -1732,6 +1739,7 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef,
           name: fixture.league_name || 'Other Fixtures',
           country: fixture.country || '',
           season: fixture.season || '',
+          priority: fixture.priority || 999,
           count: 0,
         };
       }
@@ -1741,6 +1749,7 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef,
     }, {})
   ).sort(
     (a, b) =>
+      Number(a.priority || 999) - Number(b.priority || 999) ||
       String(a.country || '').localeCompare(String(b.country || '')) ||
       String(a.name || '').localeCompare(String(b.name || ''))
   );
@@ -1873,7 +1882,7 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef,
 
         <div>
           <h3>Fixtures</h3>
-          <p>Select a date range, choose available leagues, then select fixtures to import. League discovery checks each day in the range.</p>
+          <p>Select a date range, choose available leagues, then select fixtures to import. Leaving league search blank uses the DMI approved competition ruleset.</p>
 
           <div className="fixtureSearchPanel">
             <div className="fixtureSearchControls">
@@ -1898,7 +1907,7 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef,
               <label>
                 Direct league IDs or names
                 <input
-                  placeholder="Optional: World Cup, 1, 39"
+                  placeholder="Optional override: World Cup, 1, 39"
                   value={fixtureSearch.leagues}
                   onChange={e => setFixtureSearch({ ...fixtureSearch, leagues: e.target.value })}
                 />

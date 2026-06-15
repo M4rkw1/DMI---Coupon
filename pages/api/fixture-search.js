@@ -1,4 +1,33 @@
 import { isAdmin } from '../../lib/supabase';
+import { DMI_APPROVED_COMPETITIONS } from '../../lib/dmiCompetitions';
+
+const API_FOOTBALL_BASE_URL = 'https://v3.football.api-sports.io';
+
+function normaliseText(value) {
+  return String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+}
+
+function competitionTerms(competition) {
+  return [competition.name, ...(competition.aliases || [])].map(normaliseText).filter(Boolean);
+}
+
+function matchesCompetition(item, competition) {
+  const leagueName = normaliseText(item.league?.name);
+  const country = normaliseText(item.country?.name || item.country || '');
+  const terms = competitionTerms(competition);
+  const countryMatches = !competition.country || country === normaliseText(competition.country);
+
+  return countryMatches && terms.some(term => leagueName === term || leagueName.includes(term));
+}
+
+function apiFootballUrl(path, params) {
+  return `${API_FOOTBALL_BASE_URL}${path}?${params}`;
+}
 
 function formatUkKickoff(value) {
   const date = value ? new Date(value) : null;
@@ -76,6 +105,8 @@ function mapFixture(item) {
     league_name: league.name || '',
     country: league.country || '',
     season: league.season || '',
+    priority: item.dmi_priority || 999,
+    competition_group: item.dmi_group || '',
     status: item.fixture?.status?.short || 'NS',
   };
 }
@@ -91,7 +122,7 @@ async function fetchFixtures({ apiKey, from, to, date, league, season }) {
   if (league) params.set('league', league);
   if (season) params.set('season', season);
 
-  const response = await fetch(`https://v3.football.api-sports.io/fixtures?${params}`, {
+  const response = await fetch(apiFootballUrl('/fixtures', params), {
     headers: {
       'x-apisports-key': apiKey,
     },
@@ -124,7 +155,7 @@ async function searchLeagues({ apiKey, name, season }) {
   const params = new URLSearchParams({ search: name });
   if (season) params.set('season', season);
 
-  const response = await fetch(`https://v3.football.api-sports.io/leagues?${params}`, {
+  const response = await fetch(apiFootballUrl('/leagues', params), {
     headers: {
       'x-apisports-key': apiKey,
     },
@@ -136,31 +167,121 @@ async function searchLeagues({ apiKey, name, season }) {
     throw new Error(apiError || json?.message || `League search failed for "${name}".`);
   }
 
-  return (json.response || [])
-    .map(item => item.league?.id)
-    .filter(Boolean)
-    .map(String);
+  return Array.isArray(json.response) ? json.response : [];
 }
 
-async function resolveLeagues({ apiKey, leagues, season }) {
+function leagueDescriptorsFromSearchResults(results, competition) {
+  return results
+    .filter(item => matchesCompetition(item, competition))
+    .map(item => ({
+      id: String(item.league?.id || ''),
+      name: item.league?.name || competition.name,
+      country: item.country?.name || competition.country || '',
+      priority: competition.priority || 999,
+      group: competition.group || competition.name,
+      requested_name: competition.name,
+    }))
+    .filter(item => item.id);
+}
+
+async function resolveApprovedCompetitions({ apiKey, season }) {
+  const resolved = [];
+  const unresolved = [];
+
+  for (const competition of DMI_APPROVED_COMPETITIONS) {
+    const searches = [competition.name, ...(competition.aliases || [])];
+    const results = [];
+
+    for (const name of searches) {
+      const matches = await searchLeagues({ apiKey, name, season });
+      results.push(...matches);
+    }
+
+    const descriptors = leagueDescriptorsFromSearchResults(results, competition);
+
+    if (descriptors.length) {
+      resolved.push(...descriptors);
+    } else {
+      unresolved.push(competition.name);
+    }
+  }
+
+  return { resolved: uniqueLeagueDescriptors(resolved), unresolved };
+}
+
+function uniqueLeagueDescriptors(descriptors) {
+  const unique = new Map();
+
+  descriptors.forEach(descriptor => {
+    const current = unique.get(descriptor.id);
+    if (!current || descriptor.priority < current.priority) {
+      unique.set(descriptor.id, descriptor);
+    }
+  });
+
+  return [...unique.values()].sort(
+    (a, b) =>
+      Number(a.priority || 999) - Number(b.priority || 999) ||
+      String(a.country || '').localeCompare(String(b.country || '')) ||
+      String(a.name || '').localeCompare(String(b.name || ''))
+  );
+}
+
+async function resolveDirectLeagues({ apiKey, leagues, season }) {
   const tokens = String(leagues || '')
     .split(',')
     .map(item => item.trim())
-    .filter(Boolean);
+    .filter(Boolean)
+    .map((value, index) => ({ value, priority: index + 1 }));
 
   const resolved = [];
 
   for (const token of tokens) {
-    if (/^\d+$/.test(token)) {
-      resolved.push(token);
+    if (/^\d+$/.test(token.value)) {
+      resolved.push({
+        id: token.value,
+        name: token.value,
+        country: '',
+        priority: token.priority,
+        group: 'Direct league search',
+        requested_name: token.value,
+      });
       continue;
     }
 
-    const matches = await searchLeagues({ apiKey, name: token, season });
-    resolved.push(...matches);
+    const matches = await searchLeagues({ apiKey, name: token.value, season });
+    resolved.push(
+      ...matches
+        .map(item => ({
+          id: String(item.league?.id || ''),
+          name: item.league?.name || token.value,
+          country: item.country?.name || '',
+          priority: token.priority,
+          group: 'Direct league search',
+          requested_name: token.value,
+        }))
+        .filter(item => item.id)
+    );
   }
 
-  return [...new Set(resolved)];
+  return uniqueLeagueDescriptors(resolved);
+}
+
+async function resolveLeagues({ apiKey, leagues, season }) {
+  if (String(leagues || '').trim()) {
+    return {
+      leagues: await resolveDirectLeagues({ apiKey, leagues, season }),
+      unresolved: [],
+      usingApprovedDefaults: false,
+    };
+  }
+
+  const { resolved, unresolved } = await resolveApprovedCompetitions({ apiKey, season });
+  return {
+    leagues: resolved,
+    unresolved,
+    usingApprovedDefaults: true,
+  };
 }
 
 export default async function handler(req, res) {
@@ -174,16 +295,38 @@ export default async function handler(req, res) {
 
   try {
     const { from, to, leagues, season } = req.body || {};
-    const leagueIds = await resolveLeagues({ apiKey, leagues, season });
-
     if (!from || !to) {
       return res.status(400).json({ error: 'Choose a from and to date.' });
     }
 
+    const leagueResolution = await resolveLeagues({ apiKey, leagues, season });
+    const leagueDescriptors = leagueResolution.leagues;
+
+    if (leagueResolution.usingApprovedDefaults && !leagueDescriptors.length) {
+      return res.status(200).json({
+        fixtures: [],
+        meta: {
+          checked_dates: [],
+          approved_defaults_used: true,
+          approved_competitions_count: DMI_APPROVED_COMPETITIONS.length,
+          resolved_league_ids: [],
+          unresolved_competitions: leagueResolution.unresolved,
+          raw_fixture_count: 0,
+        },
+      });
+    }
+
     let checkedDates = [];
-    const batches = leagueIds.length
+    const batches = leagueDescriptors.length
       ? await Promise.all(
-          leagueIds.map(league => fetchFixtures({ apiKey, from, to, league, season }))
+          leagueDescriptors.map(async league => {
+            const fixtures = await fetchFixtures({ apiKey, from, to, league: league.id, season });
+            return fixtures.map(fixture => ({
+              ...fixture,
+              dmi_priority: league.priority,
+              dmi_group: league.group,
+            }));
+          })
         )
       : [await fetchFixturesByDateRange({ apiKey, from, to })];
     const rawFixtures = batches.flatMap(batch => {
@@ -202,6 +345,7 @@ export default async function handler(req, res) {
 
     const fixtures = [...unique.values()].sort(
       (a, b) =>
+        Number(a.priority || 999) - Number(b.priority || 999) ||
         Number(a.kickoff_timestamp || 0) - Number(b.kickoff_timestamp || 0) ||
         String(a.home_team || '').localeCompare(String(b.home_team || ''))
     );
@@ -210,7 +354,10 @@ export default async function handler(req, res) {
       fixtures,
       meta: {
         checked_dates: checkedDates,
-        resolved_league_ids: leagueIds,
+        approved_defaults_used: leagueResolution.usingApprovedDefaults,
+        approved_competitions_count: DMI_APPROVED_COMPETITIONS.length,
+        resolved_league_ids: leagueDescriptors.map(league => league.id),
+        unresolved_competitions: leagueResolution.unresolved,
         raw_fixture_count: rawFixtures.length,
       },
     });
