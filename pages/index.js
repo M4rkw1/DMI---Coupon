@@ -1,11 +1,13 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 
 const resultOf = (h, a) => (h > a ? 'H' : h < a ? 'A' : 'D');
+const FINAL_STATUSES = new Set(['FT', 'AET', 'PEN']);
 const hasScore = f =>
   f.home_score !== null &&
   f.home_score !== undefined &&
   f.away_score !== null &&
   f.away_score !== undefined;
+const isFinishedFixture = f => hasScore(f) && FINAL_STATUSES.has(String(f.status || '').toUpperCase());
 
 function points(pred, fix) {
   if (
@@ -335,7 +337,7 @@ async function adminAction(action, payload) {
       <main className="wrap">
         {msg && <div className="msg">{msg}</div>}
 
-        <WinnerBanner ranked={ranked} fixtures={fixtures} />
+        <WinnerBanner ranked={ranked} fixtures={fixtures} pot={pot} settings={settings} />
 
         {tab === 'home' && (
           <section className="card">
@@ -853,18 +855,48 @@ function EntriesMatrixExport({ entries, fixtures, settings = {}, week = {} }) {
   );
 }
 
-function WinnerBanner({ ranked = [], fixtures = [] }) {
-  const winner = ranked[0];
-  const allGamesFinished = fixtures.length > 0 && fixtures.every(hasScore);
+function WinnerBanner({ ranked = [], fixtures = [], pot = 0, settings = {} }) {
+  const completedFixtures = fixtures.filter(isFinishedFixture).length;
+  const allGamesFinished = fixtures.length > 0 && completedFixtures === fixtures.length;
+  const leader = ranked[0];
 
-  if (!allGamesFinished || !winner) return null;
+  if (!allGamesFinished || !leader) return null;
+
+  const winners = ranked.filter(
+    entry => entry.pts === leader.pts && entry.exact === leader.exact
+  );
+  const prize = `${sym(settings?.currency || 'GBP')}${pot}`;
 
   return (
-    <div className="winnerBanner">
-      This week&apos;s prize goes to <strong>{winner.name}</strong>{' '}
-      {winner.department ? `(${winner.department})` : ''} who finishes on{' '}
-      <strong>{winner.pts}</strong> points. Congratulations and well played!
-    </div>
+    <section className="winnerBanner" aria-live="polite">
+      <div>
+        <span className="winnerLabel">Winner Confirmed</span>
+        <h2>
+          {winners.length === 1
+            ? leader.name
+            : `${winners.length} players tied at the top`}
+        </h2>
+        {winners.length === 1 && leader.department && <p>{leader.department}</p>}
+        {winners.length > 1 && (
+          <p>{winners.map(entry => entry.name).join(', ')}</p>
+        )}
+      </div>
+
+      <div className="winnerBannerStats">
+        <span>
+          <b>{leader.pts}</b>
+          points
+        </span>
+        <span>
+          <b>{leader.exact}</b>
+          exact scores
+        </span>
+        <span>
+          <b>{prize}</b>
+          prize pot
+        </span>
+      </div>
+    </section>
   );
 }
 

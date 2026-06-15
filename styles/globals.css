@@ -1243,15 +1243,61 @@ th {
 }
 
 .winnerBanner {
-  grid-column: 1 / -1;
-  border: 2px solid #174a8b;
-  background: #f7fbff;
-  color: #0050a4;
-  font-weight: 700;
-  text-align: center;
-  padding: 12px;
-  margin: 0 0 16px;
+  align-items: center;
+  background: #11284b;
+  border: 1px solid #315d99;
+  border-radius: 16px;
+  box-shadow: 0 14px 30px rgba(17, 40, 75, 0.18);
+  color: #fff;
+  display: flex;
+  gap: 18px;
+  justify-content: space-between;
+  margin: 0 0 18px;
+  padding: 18px;
+}
+
+.winnerBanner h2 {
+  color: #fff;
+  font-size: 28px;
+  line-height: 1.05;
+  margin: 6px 0 0;
+}
+
+.winnerBanner p {
+  color: #d9e6fb;
+  margin: 6px 0 0;
+}
+
+.winnerLabel {
+  color: #ffd465;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.winnerBannerStats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.winnerBannerStats span {
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.18);
   border-radius: 12px;
+  color: #d9e6fb;
+  min-width: 96px;
+  padding: 10px 12px;
+  text-align: center;
+}
+
+.winnerBannerStats b {
+  color: #fff;
+  display: block;
+  font-size: 22px;
+  line-height: 1;
 }
 
 .printButtonWrap {
@@ -1301,6 +1347,19 @@ th {
 }
 
 @media (max-width: 900px) {
+  .winnerBanner {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .winnerBannerStats {
+    justify-content: stretch;
+  }
+
+  .winnerBannerStats span {
+    flex: 1;
+  }
+
   .predictionLayout {
     grid-template-columns: 1fr;
   }
@@ -1717,16 +1776,6 @@ th {
 .prizeBox strong {
   display: block;
   font-size: 22px;
-}
-
-.winnerBanner {
-  grid-column: 1 / -1;
-  border: 2px solid #174a8b;
-  color: #0050a4;
-  font-weight: 700;
-  text-align: center;
-  padding: 12px;
-  margin-top: 10px;
 }
 
 @media (max-width: 900px) {
