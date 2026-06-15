@@ -200,6 +200,18 @@ export default async function handler(req, res) {
       const { error } = await db.from('entries').insert(payload);
       if (error) throw error;
     }
+    if (action === 'importEntries') {
+      const rows = Array.isArray(payload?.entries) ? payload.entries : [];
+
+      if (!rows.length) {
+        return res.status(400).json({ error: 'No entries supplied' });
+      }
+
+      const { error } = await db.from('entries').insert(rows);
+      if (error) throw error;
+
+      return res.status(200).json({ ok: true, imported: rows.length });
+    }
     if (action === 'newCoupon') {
       const { week_id, title, subtitle, saveHistoric } = payload;
       if (!week_id) return res.status(400).json({ error: 'Missing week id' });

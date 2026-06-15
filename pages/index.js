@@ -1238,31 +1238,68 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef,
     setMsg(`Live score sync complete. Updated ${json.updated || 0} fixture(s).`);
   }
 
-  function importTsv() {
-    const parts = tsv.trim().split(/\t/);
+  async function importTsv() {
+    const lines = tsv
+      .split(/\r?\n/)
+      .map(line => line.trim())
+      .filter(Boolean);
 
-    if (parts.length < 2 + fixtures.length) {
-      return setMsg('TSV needs Name, Dept, then one score per fixture');
+    if (!lines.length) {
+      setMsg('Paste at least one TSV entry row.');
+      return;
     }
 
-    const predictions = {};
+    const parsed = lines.map((line, index) => {
+      const parts = line.split(/\t/).map(part => part.trim());
+      const rowNumber = index + 1;
 
-    fixtures.forEach((f, i) => {
-      const m = (parts[i + 2] || '').match(/(\d+)\D+(\d+)/);
+      if (parts.length < 2 + fixtures.length) {
+        return {
+          rowNumber,
+          error: `Row ${rowNumber} needs Name, Department, then ${fixtures.length} score(s).`,
+        };
+      }
 
-      predictions[f.id] = m
-        ? { home: m[1], away: m[2] }
-        : { home: '', away: '' };
+      const predictions = {};
+
+      fixtures.forEach((fixture, fixtureIndex) => {
+        const m = (parts[fixtureIndex + 2] || '').match(/(\d+)\D+(\d+)/);
+
+        predictions[fixture.id] = m
+          ? { home: m[1], away: m[2] }
+          : { home: '', away: '' };
+      });
+
+      return {
+        rowNumber,
+        entry: {
+          week_id: state.week.id,
+          name: parts[0],
+          department: parts[1],
+          predictions,
+          paid: false,
+          payment_method: '',
+        },
+      };
     });
 
-    adminAction('importEntry', {
-      week_id: state.week.id,
-      name: parts[0],
-      department: parts[1],
-      predictions,
-      paid: false,
-      payment_method: '',
-    });
+    const errors = parsed.filter(row => row.error).map(row => row.error);
+    const missingNames = parsed
+      .filter(row => !row.error && !row.entry.name)
+      .map(row => `Row ${row.rowNumber} is missing a name.`);
+
+    if (errors.length || missingNames.length) {
+      setMsg([...errors, ...missingNames].slice(0, 3).join(' '));
+      return;
+    }
+
+    const imported = await runAdminAction(
+      'importEntries',
+      { entries: parsed.map(row => row.entry) },
+      `Imported ${parsed.length} TSV entr${parsed.length === 1 ? 'y' : 'ies'}.`
+    );
+
+    if (imported) setTsv('');
   }
 
   return (
@@ -1663,11 +1700,11 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef,
       </table>
 
       <h3>TSV Paper Entry Import</h3>
-      <p>Name TAB Department TAB 1-0 TAB 2-1 etc</p>
+      <p>One entry per line: Name TAB Department TAB 1-0 TAB 2-1 etc</p>
 
       <textarea value={tsv} onChange={e => setTsv(e.target.value)} />
 
-      <button onClick={importTsv}>Import TSV Entry</button>
+      <button onClick={importTsv}>Import TSV Entries</button>
 
       <h3>Share Images</h3>
 
