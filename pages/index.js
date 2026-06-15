@@ -1831,22 +1831,37 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef,
     setEntryDraft(null);
   }
 
-  async function download(ref, name) {
+  async function download(ref, name, options = {}) {
     const html2canvas = (await import('html2canvas')).default;
     const element = ref.current;
-    const canvas = await html2canvas(ref.current, {
-      scale: 2,
-      backgroundColor: '#ffffff',
-      width: element.scrollWidth,
-      height: element.scrollHeight,
-      windowWidth: element.scrollWidth,
-      windowHeight: element.scrollHeight,
-    });
+    if (!element) return;
 
-    const a = document.createElement('a');
-    a.href = canvas.toDataURL('image/png');
-    a.download = name;
-    a.click();
+    const previousMargin = element.style.margin;
+    const previousBorderRadius = element.style.borderRadius;
+
+    if (options.flushToEdges) {
+      element.style.margin = '0';
+      element.style.borderRadius = '0';
+    }
+
+    try {
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        backgroundColor: options.backgroundColor || '#ffffff',
+        width: element.scrollWidth,
+        height: element.scrollHeight,
+        windowWidth: element.scrollWidth,
+        windowHeight: element.scrollHeight,
+      });
+
+      const a = document.createElement('a');
+      a.href = canvas.toDataURL(options.type || 'image/png', options.quality || 1);
+      a.download = name;
+      a.click();
+    } finally {
+      element.style.margin = previousMargin;
+      element.style.borderRadius = previousBorderRadius;
+    }
   }
 
   async function runLiveScoreSync({ quietMissingIds = false } = {}) {
@@ -2558,8 +2573,17 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef,
 
       <h3>Share Images</h3>
 
-      <button onClick={() => download(imgRef, 'leaderboard.png')}>
-        Download Mobile Leaderboard PNG
+      <button
+        onClick={() =>
+          download(imgRef, 'leaderboard.jpg', {
+            backgroundColor: '#07172d',
+            flushToEdges: true,
+            quality: 0.95,
+            type: 'image/jpeg',
+          })
+        }
+      >
+        Download Mobile Leaderboard JPG
       </button>
 
       <button onClick={() => download(entriesImgRef, 'released-entries.png')}>
