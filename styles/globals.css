@@ -101,6 +101,32 @@ textarea {
   border-bottom: 1px solid #eef2f7;
 }
 
+.fixtureTeams {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.teamLabel {
+  align-items: center;
+  display: inline-flex;
+  gap: 6px;
+  min-width: 0;
+}
+
+.teamLabel.right {
+  justify-content: flex-end;
+}
+
+.teamBadge {
+  border-radius: 999px;
+  flex: 0 0 auto;
+  height: 24px;
+  object-fit: contain;
+  width: 24px;
+}
+
 .fixtureKickoffDisplay {
   display: block;
   color: #46618a;
@@ -222,6 +248,15 @@ th {
 .team.away {
   text-align: left;
   justify-self: stretch;
+}
+
+.couponFixture .teamLabel {
+  width: 100%;
+}
+
+.couponFixture .teamBadge {
+  height: 22px;
+  width: 22px;
 }
 
 .scoreCell {
@@ -799,6 +834,47 @@ th {
   gap: 10px;
   justify-content: space-between;
   margin-bottom: 8px;
+}
+
+.apiFixtureGroups {
+  display: grid;
+  gap: 12px;
+  max-height: 520px;
+  overflow: auto;
+  padding-right: 2px;
+}
+
+.apiFixtureGroup {
+  background: #fff;
+  border: 1px solid #e5ebf4;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.apiFixtureGroup h4 {
+  background: #f3f6fb;
+  color: #11284b;
+  margin: 0;
+  padding: 10px 12px;
+}
+
+.apiFixtureRow {
+  align-items: center;
+  border-top: 1px solid #eef2f7;
+  cursor: pointer;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 24px minmax(100px, 1fr) 58px minmax(100px, 1fr);
+  padding: 10px 12px;
+}
+
+.apiFixtureRow strong {
+  color: #555;
+  text-align: center;
+}
+
+.apiFixtureRow input {
+  margin: 0;
 }
 
 .fixtureImportActions {
@@ -1427,6 +1503,15 @@ th {
 @media (max-width: 900px) {
   .fixtureSearchControls {
     grid-template-columns: 1fr;
+  }
+
+  .apiFixtureRow {
+    grid-template-columns: 22px 1fr;
+  }
+
+  .apiFixtureRow strong {
+    grid-column: 2;
+    text-align: left;
   }
 
   .winnerBanner {

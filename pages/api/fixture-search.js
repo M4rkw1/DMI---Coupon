@@ -25,6 +25,8 @@ function mapFixture(item) {
     api_fixture_id: String(item.fixture?.id || ''),
     home_team: item.teams?.home?.name || '',
     away_team: item.teams?.away?.name || '',
+    home_badge: item.teams?.home?.logo || '',
+    away_badge: item.teams?.away?.logo || '',
     kickoff: formatUkKickoff(item.fixture?.date),
     kickoff_timestamp: item.fixture?.timestamp || 0,
     league_id: league.id || '',

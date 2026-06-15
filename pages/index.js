@@ -106,6 +106,28 @@ const formatArchiveDate = value => {
   });
 };
 
+function TeamBadge({ src, name, className = '' }) {
+  if (!src) return null;
+
+  return (
+    <img
+      alt=""
+      aria-hidden="true"
+      className={`teamBadge ${className}`}
+      src={src}
+    />
+  );
+}
+
+function TeamLabel({ name, badge, align = 'left' }) {
+  return (
+    <span className={`teamLabel ${align}`}>
+      <TeamBadge src={badge} name={name} />
+      <span>{name}</span>
+    </span>
+  );
+}
+
 const timezoneSelection = settings => {
   const offset = Number(settings?.timezone_offset_minutes || 0);
   const label = settings?.timezone_label || 'UK time only';
@@ -501,7 +523,11 @@ function FixtureInputs({ fixtures, predictions, setPredictions, settings = {} })
       {fixtures.map(f => (
         <div className="fixture" key={f.id}>
           <span>
-            {f.home_team} v {f.away_team}
+            <span className="fixtureTeams">
+              <TeamLabel badge={f.home_badge} name={f.home_team} />
+              <b>v</b>
+              <TeamLabel badge={f.away_badge} name={f.away_team} />
+            </span>
             {f.kickoff && <small className="fixtureKickoffDisplay">{formatKickoff(f.kickoff, settings)}</small>}
           </span>
 
@@ -921,11 +947,15 @@ function OldSchool({ week, fixtures, settings = {}, maxPts, entryDeadline }) {
           {fixtures.map(f => (
             <div className="couponFixture" key={f.id}>
               <div className="couponFixtureLine">
-                <div className="team home">{f.home_team}</div>
+                <div className="team home">
+                  <TeamLabel align="right" badge={f.home_badge} name={f.home_team} />
+                </div>
                 <div className="scoreCell"></div>
                 <div className="versus">v</div>
                 <div className="scoreCell"></div>
-                <div className="team away">{f.away_team}</div>
+                <div className="team away">
+                  <TeamLabel badge={f.away_badge} name={f.away_team} />
+                </div>
               </div>
               <small className="couponKickoff">{formatKickoff(f.kickoff, settings, true)}</small>
             </div>
@@ -997,12 +1027,29 @@ function parseFixtureRows(text) {
       const parts = raw.includes('\t')
         ? raw.split('\t')
         : raw.split(/\s+(?:v|vs|-)\s+/i);
-      const [home, away, kickoff = '', apiFixtureId = ''] = parts.map(part => part.trim());
+      const [
+        home,
+        away,
+        kickoff = '',
+        apiFixtureId = '',
+        homeBadge = '',
+        awayBadge = '',
+      ] = parts.map(part => part.trim());
 
       if (!home || !away) {
         const error = `Row ${index + 1}: use Home TAB Away TAB Kick-off`;
         errors.push(error);
-        rows.push({ line: index + 1, raw, home, away, kickoff, api_fixture_id: apiFixtureId, error });
+        rows.push({
+          line: index + 1,
+          raw,
+          home,
+          away,
+          kickoff,
+          api_fixture_id: apiFixtureId,
+          home_badge: homeBadge,
+          away_badge: awayBadge,
+          error,
+        });
         return;
       }
 
@@ -1011,6 +1058,8 @@ function parseFixtureRows(text) {
         away_team: away,
         kickoff,
         api_fixture_id: apiFixtureId,
+        home_badge: homeBadge,
+        away_badge: awayBadge,
         status: 'NS',
       };
 
@@ -1110,7 +1159,16 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef,
 
   const [fixtureText, setFixtureText] = useState(
     fixtures
-      .map(f => `${f.home_team}\t${f.away_team}\t${f.kickoff || ''}\t${f.api_fixture_id || ''}`)
+      .map(f =>
+        [
+          f.home_team,
+          f.away_team,
+          f.kickoff || '',
+          f.api_fixture_id || '',
+          f.home_badge || '',
+          f.away_badge || '',
+        ].join('\t')
+      )
       .join('\n')
   );
   const [fixturePreview, setFixturePreview] = useState(null);
@@ -1333,12 +1391,33 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef,
           fixture.away_team,
           fixture.kickoff,
           fixture.api_fixture_id,
+          fixture.home_badge || '',
+          fixture.away_badge || '',
         ].join('\t')
       )
       .join('\n');
 
+    const preview = {
+      fixtures: selected.map(fixture => ({
+        home_team: fixture.home_team,
+        away_team: fixture.away_team,
+        kickoff: fixture.kickoff,
+        api_fixture_id: fixture.api_fixture_id,
+        home_badge: fixture.home_badge || '',
+        away_badge: fixture.away_badge || '',
+        status: 'NS',
+      })),
+      errors: [],
+      rows: selected.map((fixture, index) => ({
+        line: index + 1,
+        raw: '',
+        ...fixture,
+        error: '',
+      })),
+    };
+
     setFixtureText(text);
-    setFixturePreview(parseFixtureRows(text));
+    setFixturePreview(preview);
     setConfirmReplace(false);
     setMsg(`${selected.length} searched fixture(s) loaded into the preview.`);
   }
@@ -1559,6 +1638,13 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef,
     if (imported) setTsv('');
   }
 
+  const fixtureSearchGroups = fixtureSearchResults.reduce((groups, fixture) => {
+    const key = `${fixture.league_name || 'Other Fixtures'}${fixture.country ? ` (${fixture.country})` : ''}`;
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(fixture);
+    return groups;
+  }, {});
+
   return (
     <div>
       <div className="adminGrid">
@@ -1739,40 +1825,35 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef,
                   <button onClick={useSelectedApiFixtures}>Use Selected Fixtures</button>
                 </div>
 
-                <div className="scroll">
-                  <table className="previewTable">
-                    <thead>
-                      <tr>
-                        <th>Select</th>
-                        <th>Kick-off</th>
-                        <th>Home</th>
-                        <th>Away</th>
-                        <th>League</th>
-                        <th>API ID</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {fixtureSearchResults.map(fixture => (
-                        <tr key={fixture.api_fixture_id}>
-                          <td>
-                            <input
-                              type="checkbox"
-                              checked={!!selectedApiFixtures[fixture.api_fixture_id]}
-                              onChange={() => toggleApiFixture(fixture.api_fixture_id)}
-                            />
-                          </td>
-                          <td>{fixture.kickoff || 'TBC'}</td>
-                          <td>{fixture.home_team}</td>
-                          <td>{fixture.away_team}</td>
-                          <td>
-                            {fixture.league_name}
-                            {fixture.country ? ` (${fixture.country})` : ''}
-                          </td>
-                          <td>{fixture.api_fixture_id}</td>
-                        </tr>
+                <div className="apiFixtureGroups">
+                  {Object.entries(fixtureSearchGroups).map(([group, groupFixtures]) => (
+                    <section className="apiFixtureGroup" key={group}>
+                      <h4>{group}</h4>
+
+                      {groupFixtures.map(fixture => (
+                        <label className="apiFixtureRow" key={fixture.api_fixture_id}>
+                          <input
+                            type="checkbox"
+                            checked={!!selectedApiFixtures[fixture.api_fixture_id]}
+                            onChange={() => toggleApiFixture(fixture.api_fixture_id)}
+                          />
+
+                          <TeamLabel
+                            align="right"
+                            badge={fixture.home_badge}
+                            name={fixture.home_team}
+                          />
+
+                          <strong>{fixture.kickoff?.split(' ')[1] || 'TBC'}</strong>
+
+                          <TeamLabel
+                            badge={fixture.away_badge}
+                            name={fixture.away_team}
+                          />
+                        </label>
                       ))}
-                    </tbody>
-                  </table>
+                    </section>
+                  ))}
                 </div>
               </div>
             )}
@@ -1824,8 +1905,12 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef,
                     {fixturePreview.rows.map(row => (
                       <tr className={row.error ? 'previewError' : ''} key={`${row.line}-${row.raw}`}>
                         <td>{row.line}</td>
-                        <td>{row.home_team || row.home || '-'}</td>
-                        <td>{row.away_team || row.away || '-'}</td>
+                        <td>
+                          <TeamLabel badge={row.home_badge} name={row.home_team || row.home || '-'} />
+                        </td>
+                        <td>
+                          <TeamLabel badge={row.away_badge} name={row.away_team || row.away || '-'} />
+                        </td>
                         <td>{row.kickoff || 'TBC'}</td>
                         <td>{row.api_fixture_id || '-'}</td>
                         <td>{row.error || 'OK'}</td>

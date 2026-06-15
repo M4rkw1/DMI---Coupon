@@ -50,9 +50,9 @@ function archiveHasCouponData(archive) {
 async function insertFixtures(db, rows) {
   const result = await db.from('fixtures').insert(rows);
 
-  if (result.error && /api_fixture_id/i.test(result.error.message || '')) {
-    const rowsWithoutApiIds = rows.map(({ api_fixture_id, ...row }) => row);
-    return db.from('fixtures').insert(rowsWithoutApiIds);
+  if (result.error && /(api_fixture_id|home_badge|away_badge)/i.test(result.error.message || '')) {
+    const fallbackRows = rows.map(({ api_fixture_id, home_badge, away_badge, ...row }) => row);
+    return db.from('fixtures').insert(fallbackRows);
   }
 
   return result;
@@ -152,6 +152,8 @@ export default async function handler(req, res) {
         away_team: String(f.away_team || '').trim(),
         kickoff: String(f.kickoff || '').trim(),
         api_fixture_id: String(f.api_fixture_id || '').trim() || null,
+        home_badge: String(f.home_badge || '').trim() || null,
+        away_badge: String(f.away_badge || '').trim() || null,
         status: f.status || 'NS',
       }));
       const badRow = rows.findIndex(f => !f.home_team || !f.away_team);

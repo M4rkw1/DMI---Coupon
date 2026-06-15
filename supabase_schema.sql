@@ -30,6 +30,8 @@ create table if not exists fixtures (
   sort_order int default 0,
   home_team text not null,
   away_team text not null,
+  home_badge text,
+  away_badge text,
   kickoff text default '',
   api_fixture_id text,
   ht_home_score int,
@@ -40,6 +42,8 @@ create table if not exists fixtures (
 );
 
 alter table fixtures add column if not exists api_fixture_id text;
+alter table fixtures add column if not exists home_badge text;
+alter table fixtures add column if not exists away_badge text;
 alter table fixtures add column if not exists ht_home_score int;
 alter table fixtures add column if not exists ht_away_score int;
 
