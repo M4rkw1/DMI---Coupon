@@ -676,6 +676,15 @@ th {
   background: rgba(255, 255, 255, 0.16);
 }
 
+.shareRow span {
+  min-width: 0;
+  text-align: center;
+}
+
+.shareRow span strong {
+  display: block;
+}
+
 .shareRow.leader b {
   background: #111;
   color: #ffb703;
@@ -684,6 +693,7 @@ th {
 .shareRow em {
   font-style: normal;
   font-weight: 800;
+  text-align: right;
 }
 
 .shareFooter {
