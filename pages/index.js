@@ -1363,7 +1363,11 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef,
       }
 
       setFixtureSearchResults(json.fixtures || []);
-      setMsg(`Found ${json.fixtures?.length || 0} fixture(s).`);
+      if (json.fixtures?.length) {
+        setMsg(`Found ${json.fixtures.length} fixture(s).`);
+      } else {
+        setMsg('Found 0 fixture(s). Try a wider date range, a numeric league ID, or a different season.');
+      }
     } finally {
       setFixtureSearchLoading(false);
     }
@@ -1773,7 +1777,7 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef,
 
         <div>
           <h3>Fixtures</h3>
-          <p>Search API-Football by date range and league IDs, then select fixtures to import.</p>
+          <p>Search API-Football by date range and league IDs or names, then select fixtures to import.</p>
 
           <div className="fixtureSearchPanel">
             <div className="fixtureSearchControls">
@@ -1796,9 +1800,9 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef,
               </label>
 
               <label>
-                League IDs
+                League IDs or names
                 <input
-                  placeholder="e.g. 1, 2, 39"
+                  placeholder="e.g. World Cup, 1, 39"
                   value={fixtureSearch.leagues}
                   onChange={e => setFixtureSearch({ ...fixtureSearch, leagues: e.target.value })}
                 />

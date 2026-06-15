@@ -56,6 +56,48 @@ async function fetchFixtures({ apiKey, from, to, league, season }) {
   return Array.isArray(json.response) ? json.response : [];
 }
 
+async function searchLeagues({ apiKey, name, season }) {
+  const params = new URLSearchParams({ search: name });
+  if (season) params.set('season', season);
+
+  const response = await fetch(`https://v3.football.api-sports.io/leagues?${params}`, {
+    headers: {
+      'x-apisports-key': apiKey,
+    },
+  });
+  const json = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(json?.message || `League search failed for "${name}".`);
+  }
+
+  return (json.response || [])
+    .map(item => item.league?.id)
+    .filter(Boolean)
+    .map(String);
+}
+
+async function resolveLeagues({ apiKey, leagues, season }) {
+  const tokens = String(leagues || '')
+    .split(',')
+    .map(item => item.trim())
+    .filter(Boolean);
+
+  const resolved = [];
+
+  for (const token of tokens) {
+    if (/^\d+$/.test(token)) {
+      resolved.push(token);
+      continue;
+    }
+
+    const matches = await searchLeagues({ apiKey, name: token, season });
+    resolved.push(...matches);
+  }
+
+  return [...new Set(resolved)];
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
   if (!isAdmin(req)) return res.status(401).json({ error: 'Not authorised' });
@@ -67,10 +109,7 @@ export default async function handler(req, res) {
 
   try {
     const { from, to, leagues, season } = req.body || {};
-    const leagueIds = String(leagues || '')
-      .split(',')
-      .map(item => item.trim())
-      .filter(Boolean);
+    const leagueIds = await resolveLeagues({ apiKey, leagues, season });
 
     if (!from || !to) {
       return res.status(400).json({ error: 'Choose a from and to date.' });
