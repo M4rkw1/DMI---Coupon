@@ -47,6 +47,17 @@ function archiveHasCouponData(archive) {
   return Boolean(snapshot.week?.id && (snapshot.fixtures?.length || snapshot.entries?.length));
 }
 
+async function insertFixtures(db, rows) {
+  const result = await db.from('fixtures').insert(rows);
+
+  if (result.error && /api_fixture_id/i.test(result.error.message || '')) {
+    const rowsWithoutApiIds = rows.map(({ api_fixture_id, ...row }) => row);
+    return db.from('fixtures').insert(rowsWithoutApiIds);
+  }
+
+  return result;
+}
+
 async function loadSnapshotData(db, weekId) {
   const [week, fixtures, entries, settings] = await Promise.all([
     db.from('coupon_weeks').select('*').eq('id', weekId).single(),
@@ -147,8 +158,10 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: `Fixture row ${badRow + 1} is missing a team` });
       }
 
-      await db.from('fixtures').delete().eq('week_id', week_id);
-      const { error } = await db.from('fixtures').insert(rows);
+      const deleteFixtures = await db.from('fixtures').delete().eq('week_id', week_id);
+      if (deleteFixtures.error) throw deleteFixtures.error;
+
+      const { error } = await insertFixtures(db, rows);
       if (error) throw error;
     }
     if (action === 'setResults') {
@@ -264,9 +277,10 @@ export default async function handler(req, res) {
       }
 
       if (snapshot.fixtures?.length) {
-        const { error: fixtureError } = await db
-          .from('fixtures')
-          .insert(snapshot.fixtures.map(stripRuntimeFields));
+        const { error: fixtureError } = await insertFixtures(
+          db,
+          snapshot.fixtures.map(stripRuntimeFields)
+        );
         if (fixtureError) throw fixtureError;
       }
 

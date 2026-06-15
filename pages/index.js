@@ -253,7 +253,14 @@ async function adminAction(action, payload) {
       body: JSON.stringify({ action, payload }),
     });
 
-    const j = await r.json();
+    const text = await r.text();
+    let j = {};
+
+    try {
+      j = text ? JSON.parse(text) : {};
+    } catch {
+      j = { error: text };
+    }
 
     if (!r.ok) {
       if (r.status === 401) {
@@ -261,7 +268,7 @@ async function adminAction(action, payload) {
         setAdmin('');
       }
 
-      return setMsg(j.error || 'Admin action failed');
+      return setMsg(j.error || `Admin action failed (${r.status})`);
     }
 
     setMsg('Saved ✅');
@@ -1090,10 +1097,17 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef,
       },
       body: JSON.stringify({ action, payload }),
     });
-    const json = await r.json().catch(() => ({}));
+    const text = await r.text();
+    let json = {};
+
+    try {
+      json = text ? JSON.parse(text) : {};
+    } catch {
+      json = { error: text };
+    }
 
     if (!r.ok) {
-      setMsg(json.error || 'Admin action failed');
+      setMsg(json.error || `Admin action failed (${r.status})`);
       return false;
     }
 
