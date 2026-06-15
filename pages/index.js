@@ -951,9 +951,18 @@ function OldSchool({ week, fixtures, settings = {}, maxPts, entryDeadline }) {
     .split(/\d+\)/)
     .map(rule => rule.trim())
     .filter(Boolean);
+  const fixturePrintFont = fixtures.length > 22 ? '8px' : fixtures.length > 18 ? '9px' : '10.5px';
+  const fixtureBadgeSize = fixtures.length > 22 ? '12px' : fixtures.length > 18 ? '14px' : '16px';
 
   return (
-    <section className="paper couponSheet">
+    <section
+      className="paper couponSheet"
+      style={{
+        '--fixture-count': fixtures.length || 1,
+        '--fixture-print-font': fixturePrintFont,
+        '--fixture-badge-size': fixtureBadgeSize,
+      }}
+    >
       <div className="printButtonWrap">
         <button onClick={() => window.print()}>Print / Save PDF</button>
       </div>
