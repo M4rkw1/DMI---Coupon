@@ -2,7 +2,7 @@ import { isAdmin } from '../../lib/supabase';
 import { DMI_APPROVED_COMPETITIONS } from '../../lib/dmiCompetitions';
 
 const API_FOOTBALL_BASE_URL = 'https://v3.football.api-sports.io';
-const FIXTURE_SEARCH_DAYS = 7;
+const MAX_FIXTURE_SEARCH_DAYS = 7;
 
 function normaliseText(value) {
   return String(value || '')
@@ -58,14 +58,25 @@ function normaliseApiDate(value) {
   return raw;
 }
 
+function nextThursday(date) {
+  const end = new Date(date);
+  const daysUntilThursday = (4 - end.getUTCDay() + 7) % 7;
+  end.setUTCDate(end.getUTCDate() + daysUntilThursday);
+  return end;
+}
+
 function dateRange(from, to) {
   const start = new Date(`${normaliseApiDate(from)}T00:00:00Z`);
   const requestedEnd = to
     ? new Date(`${normaliseApiDate(to)}T00:00:00Z`)
     : new Date(start);
   const maxEnd = new Date(start);
-  maxEnd.setUTCDate(maxEnd.getUTCDate() + FIXTURE_SEARCH_DAYS - 1);
-  const end = requestedEnd < maxEnd ? requestedEnd : maxEnd;
+  maxEnd.setUTCDate(maxEnd.getUTCDate() + MAX_FIXTURE_SEARCH_DAYS - 1);
+  const couponEnd = nextThursday(start);
+  const end = [requestedEnd, maxEnd, couponEnd].reduce(
+    (earliest, date) => (date < earliest ? date : earliest),
+    requestedEnd
+  );
 
   if (
     Number.isNaN(start.getTime()) ||
@@ -79,7 +90,7 @@ function dateRange(from, to) {
   const dates = [];
   const cursor = new Date(start);
 
-  while (cursor <= end && dates.length < FIXTURE_SEARCH_DAYS) {
+  while (cursor <= end && dates.length < MAX_FIXTURE_SEARCH_DAYS) {
     dates.push(cursor.toISOString().slice(0, 10));
     cursor.setUTCDate(cursor.getUTCDate() + 1);
   }
