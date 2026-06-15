@@ -1123,8 +1123,109 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef,
   const [confirmNewCoupon, setConfirmNewCoupon] = useState(false);
   const [editingEntryId, setEditingEntryId] = useState(null);
   const [entryDraft, setEntryDraft] = useState(null);
+  const [scoreDrafts, setScoreDrafts] = useState({});
+  const [scoreSaveState, setScoreSaveState] = useState('idle');
+  const scoreSaveTimer = useRef(null);
 
   const [tsv, setTsv] = useState('');
+
+  useEffect(() => {
+    setScoreDrafts(
+      Object.fromEntries(
+        fixtures.map(fixture => [
+          fixture.id,
+          {
+            home_score: fixture.home_score ?? '',
+            away_score: fixture.away_score ?? '',
+            ht_home_score: fixture.ht_home_score ?? '',
+            ht_away_score: fixture.ht_away_score ?? '',
+            status: fixture.status || 'NS',
+          },
+        ])
+      )
+    );
+  }, [fixtures]);
+
+  useEffect(
+    () => () => {
+      if (scoreSaveTimer.current) clearTimeout(scoreSaveTimer.current);
+    },
+    []
+  );
+
+  function normaliseScore(value) {
+    return value === '' || value === null || value === undefined ? null : Number(value);
+  }
+
+  function resultPayloadFromDrafts(drafts = scoreDrafts) {
+    return fixtures.map(fixture => {
+      const draft = drafts[fixture.id] || {};
+      const homeScore = normaliseScore(draft.home_score);
+      const awayScore = normaliseScore(draft.away_score);
+
+      return {
+        id: fixture.id,
+        home_score: homeScore,
+        away_score: awayScore,
+        ht_home_score: normaliseScore(draft.ht_home_score),
+        ht_away_score: normaliseScore(draft.ht_away_score),
+        status: draft.status || (homeScore !== null && awayScore !== null ? 'FT' : 'NS'),
+      };
+    });
+  }
+
+  async function saveScoreDrafts(drafts = scoreDrafts, silent = false) {
+    if (!fixtures.length) return false;
+    if (scoreSaveTimer.current) {
+      clearTimeout(scoreSaveTimer.current);
+      scoreSaveTimer.current = null;
+    }
+
+    setScoreSaveState('saving');
+    const saved = await runAdminAction(
+      'setResults',
+      { fixtures: resultPayloadFromDrafts(drafts) },
+      silent ? false : 'Results saved.'
+    );
+    setScoreSaveState(saved ? 'saved' : 'error');
+    return saved;
+  }
+
+  function updateScoreDraft(fixtureId, field, value) {
+    setScoreDrafts(current => {
+      const currentDraft = current[fixtureId] || {};
+      const nextDraft = {
+        ...currentDraft,
+        [field]: value,
+      };
+
+      if (
+        ['home_score', 'away_score'].includes(field) &&
+        (nextDraft.status || 'NS') === 'NS' &&
+        nextDraft.home_score !== '' &&
+        nextDraft.home_score !== undefined &&
+        nextDraft.away_score !== '' &&
+        nextDraft.away_score !== undefined
+      ) {
+        nextDraft.status = 'FT';
+      }
+
+      const next = {
+        ...current,
+        [fixtureId]: nextDraft,
+      };
+
+      setMsg('');
+      setScoreSaveState('pending');
+
+      if (scoreSaveTimer.current) clearTimeout(scoreSaveTimer.current);
+      scoreSaveTimer.current = setTimeout(() => {
+        saveScoreDrafts(next, true);
+      }, 900);
+
+      return next;
+    });
+  }
 
   function previewFixtures() {
     const parsed = parseFixtureRows(fixtureText);
@@ -1196,8 +1297,10 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef,
       return false;
     }
 
-    setMsg(successMessage || 'Saved ✅');
-    load();
+    if (successMessage !== false) {
+      setMsg(successMessage || 'Saved ✅');
+      load();
+    }
     return true;
   }
 
@@ -1576,10 +1679,22 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef,
 
           <button onClick={syncLiveScores}>Sync Live Scores</button>
 
-          <h3>Live Scores / Results</h3>
+          <div className="scoreHeader">
+            <h3>Live Scores / Results</h3>
+            <span className={`scoreSaveState ${scoreSaveState}`}>
+              {scoreSaveState === 'pending' && 'Autosave pending'}
+              {scoreSaveState === 'saving' && 'Saving scores...'}
+              {scoreSaveState === 'saved' && 'Scores saved'}
+              {scoreSaveState === 'error' && 'Autosave failed'}
+              {scoreSaveState === 'idle' && 'Autosave ready'}
+            </span>
+          </div>
 
           <div>
-            {fixtures.map(f => (
+            {fixtures.map(f => {
+              const draft = scoreDrafts[f.id] || {};
+
+              return (
               <div className="fixture liveScoreFixture" key={f.id}>
                 <span>
                   {f.home_team} v {f.away_team}
@@ -1589,11 +1704,8 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef,
                   type="number"
                   min="0"
                   placeholder="H"
-                  value={f.home_score ?? ''}
-                  onChange={e => {
-                    f.home_score = e.target.value;
-                    setMsg('');
-                  }}
+                  value={draft.home_score ?? ''}
+                  onChange={e => updateScoreDraft(f.id, 'home_score', e.target.value)}
                 />
 
                 <span>-</span>
@@ -1602,74 +1714,46 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef,
                   type="number"
                   min="0"
                   placeholder="A"
-                  value={f.away_score ?? ''}
-                  onChange={e => {
-                    f.away_score = e.target.value;
-                    setMsg('');
-                  }}
+                  value={draft.away_score ?? ''}
+                  onChange={e => updateScoreDraft(f.id, 'away_score', e.target.value)}
                 />
 
                 <input
                   type="number"
                   min="0"
                   placeholder="HT H"
-                  value={f.ht_home_score ?? ''}
-                  onChange={e => {
-                    f.ht_home_score = e.target.value;
-                    setMsg('');
-                  }}
+                  value={draft.ht_home_score ?? ''}
+                  onChange={e => updateScoreDraft(f.id, 'ht_home_score', e.target.value)}
                 />
 
                 <input
                   type="number"
                   min="0"
                   placeholder="HT A"
-                  value={f.ht_away_score ?? ''}
-                  onChange={e => {
-                    f.ht_away_score = e.target.value;
-                    setMsg('');
-                  }}
+                  value={draft.ht_away_score ?? ''}
+                  onChange={e => updateScoreDraft(f.id, 'ht_away_score', e.target.value)}
                 />
 
                 <select
-                  value={f.status || 'NS'}
-                  onChange={e => {
-                    f.status = e.target.value;
-                    setMsg('');
-                  }}
+                  value={draft.status || 'NS'}
+                  onChange={e => updateScoreDraft(f.id, 'status', e.target.value)}
                 >
                   <option value="NS">NS</option>
                   <option value="LIVE">LIVE</option>
                   <option value="HT">HT</option>
                   <option value="FT">FT</option>
+                  <option value="AET">AET</option>
+                  <option value="PEN">PEN</option>
                 </select>
               </div>
-            ))}
+              );
+            })}
           </div>
 
           <button
-            onClick={() =>
-              adminAction('setResults', {
-                fixtures: fixtures.map(f => ({
-                  id: f.id,
-                  home_score:
-                    f.home_score === '' || f.home_score == null ? null : Number(f.home_score),
-                  away_score:
-                    f.away_score === '' || f.away_score == null ? null : Number(f.away_score),
-                  ht_home_score:
-                    f.ht_home_score === '' || f.ht_home_score == null
-                      ? null
-                      : Number(f.ht_home_score),
-                  ht_away_score:
-                    f.ht_away_score === '' || f.ht_away_score == null
-                      ? null
-                      : Number(f.ht_away_score),
-                  status: f.status || (hasScore(f) ? 'FT' : 'NS'),
-                })),
-              })
-            }
+            onClick={() => saveScoreDrafts(scoreDrafts)}
           >
-            Save Results
+            Save Results Now
           </button>
         </div>
       </div>
