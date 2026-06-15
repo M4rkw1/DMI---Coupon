@@ -112,6 +112,10 @@ function apiErrorMessage(errors) {
   return '';
 }
 
+function normaliseScore(value) {
+  return value === null || value === undefined ? null : Number(value);
+}
+
 function mapFixture(item) {
   const league = item.league || {};
 
@@ -130,6 +134,10 @@ function mapFixture(item) {
     priority: item.dmi_priority || 999,
     competition_group: item.dmi_group || '',
     status: item.fixture?.status?.short || 'NS',
+    home_score: normaliseScore(item.goals?.home),
+    away_score: normaliseScore(item.goals?.away),
+    ht_home_score: normaliseScore(item.score?.halftime?.home),
+    ht_away_score: normaliseScore(item.score?.halftime?.away),
   };
 }
 

@@ -45,6 +45,15 @@ const nextThursdayIsoDate = value => {
   date.setUTCDate(date.getUTCDate() + daysUntilThursday);
   return date.toISOString().slice(0, 10);
 };
+const normaliseMatchText = value =>
+  String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+const fixtureMatchKey = fixture =>
+  `${normaliseMatchText(fixture.home_team)}__${normaliseMatchText(fixture.away_team)}`;
 
 const TIMEZONE_OPTIONS = [
   { label: 'UK time only', offset: 0 },
@@ -1526,6 +1535,60 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef,
     setMsg(`${selected.length} searched fixture(s) loaded into the preview.`);
   }
 
+  async function updateManualFixturesFromApi() {
+    if (!fixtures.length) {
+      setMsg('Add fixtures before updating API data.');
+      return;
+    }
+
+    const search = await fetchApiFixtures(weeklyFixtureSearchPayload());
+    if (!search) return;
+
+    const apiFixtures = search.fixtures || [];
+    const byApiId = new Map(apiFixtures.map(fixture => [String(fixture.api_fixture_id), fixture]));
+    const byTeams = new Map(apiFixtures.map(fixture => [fixtureMatchKey(fixture), fixture]));
+    const matched = fixtures
+      .map(fixture => {
+        const apiFixture =
+          (fixture.api_fixture_id && byApiId.get(String(fixture.api_fixture_id))) ||
+          byTeams.get(fixtureMatchKey(fixture));
+
+        if (!apiFixture) return null;
+
+        return {
+          id: fixture.id,
+          api_fixture_id: apiFixture.api_fixture_id,
+          kickoff: apiFixture.kickoff || fixture.kickoff || '',
+          home_badge: apiFixture.home_badge || fixture.home_badge || '',
+          away_badge: apiFixture.away_badge || fixture.away_badge || '',
+          status: apiFixture.status || fixture.status || 'NS',
+          home_score: apiFixture.home_score,
+          away_score: apiFixture.away_score,
+          ht_home_score: apiFixture.ht_home_score,
+          ht_away_score: apiFixture.ht_away_score,
+        };
+      })
+      .filter(Boolean);
+
+    if (!matched.length) {
+      setFixtureSearchAllResults(apiFixtures);
+      setFixtureSearchResults(apiFixtures);
+      setMsg(`Found ${apiFixtures.length} API fixture(s), but none matched the current manual fixtures.`);
+      return;
+    }
+
+    const updated = await runAdminAction(
+      'updateFixtureApiData',
+      { fixtures: matched },
+      `Updated API data for ${matched.length} fixture(s).`
+    );
+
+    if (updated) {
+      setFixtureSearchAllResults(apiFixtures);
+      setFixtureSearchResults(apiFixtures);
+    }
+  }
+
   async function runAdminAction(action, payload, successMessage) {
     const r = await fetch('/api/admin', {
       method: 'POST',
@@ -2115,7 +2178,12 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef,
             </div>
           )}
 
-          <button onClick={syncLiveScores}>Sync Live Scores</button>
+          <div className="fixtureApiActions">
+            <button onClick={updateManualFixturesFromApi} disabled={fixtureSearchLoading}>
+              {fixtureSearchLoading ? 'Updating API Data...' : 'Update Fixture API Data'}
+            </button>
+            <button onClick={syncLiveScores}>Sync Live Scores</button>
+          </div>
 
           <div className="scoreHeader">
             <h3>Live Scores / Results</h3>

@@ -1,6 +1,8 @@
 import { supabaseAdmin, isAdmin } from '../../lib/supabase';
 
 const resultOf = (h, a) => (h > a ? 'H' : h < a ? 'A' : 'D');
+const normaliseNullableScore = value =>
+  value === null || value === undefined || value === '' ? null : Number(value);
 
 function points(pred, fix) {
   if (
@@ -188,6 +190,46 @@ export default async function handler(req, res) {
           throw result.error;
         }
       }
+    }
+    if (action === 'updateFixtureApiData') {
+      const rows = Array.isArray(payload?.fixtures) ? payload.fixtures : [];
+
+      if (!rows.length) {
+        return res.status(400).json({ error: 'No matched fixtures supplied' });
+      }
+
+      for (const f of rows) {
+        if (!f.id) continue;
+
+        const update = {
+          api_fixture_id: String(f.api_fixture_id || '').trim() || null,
+          home_badge: String(f.home_badge || '').trim() || null,
+          away_badge: String(f.away_badge || '').trim() || null,
+          kickoff: String(f.kickoff || '').trim(),
+          status: f.status || 'NS',
+          home_score: normaliseNullableScore(f.home_score),
+          away_score: normaliseNullableScore(f.away_score),
+          ht_home_score: normaliseNullableScore(f.ht_home_score),
+          ht_away_score: normaliseNullableScore(f.ht_away_score),
+        };
+        const fallbackUpdate = {
+          api_fixture_id: update.api_fixture_id,
+          kickoff: update.kickoff,
+          status: update.status,
+          home_score: update.home_score,
+          away_score: update.away_score,
+        };
+
+        const result = await db.from('fixtures').update(update).eq('id', f.id);
+        if (result.error && /(api_fixture_id|home_badge|away_badge|ht_(home|away)_score)/i.test(result.error.message || '')) {
+          const fallback = await db.from('fixtures').update(fallbackUpdate).eq('id', f.id);
+          if (fallback.error) throw fallback.error;
+        } else if (result.error) {
+          throw result.error;
+        }
+      }
+
+      return res.status(200).json({ ok: true, updated: rows.length });
     }
     if (action === 'updateEntry') {
       const { id, ...fields } = payload;

@@ -1542,6 +1542,13 @@ th {
   justify-content: space-between;
 }
 
+.fixtureApiActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 12px 0;
+}
+
 .scoreHeader h3 {
   margin-bottom: 8px;
 }
