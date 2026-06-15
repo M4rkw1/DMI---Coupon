@@ -618,7 +618,7 @@ th {
 
 .shareMeta {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
   margin: 22px 0;
 }
@@ -639,7 +639,7 @@ th {
 
 .shareMeta strong {
   display: block;
-  font-size: 24px;
+  font-size: 22px;
   margin-top: 4px;
 }
 

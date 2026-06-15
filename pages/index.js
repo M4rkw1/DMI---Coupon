@@ -1211,6 +1211,7 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef,
   const fixtures = Array.isArray(state.fixtures) ? state.fixtures : [];
   const archives = Array.isArray(state.archives) ? state.archives : [];
   const latestArchive = archives[0];
+  const gamesPlayed = fixtures.filter(isFinishedFixture).length;
 
   const [fixtureText, setFixtureText] = useState(fixturesToTsv(fixtures));
   const [fixturePreview, setFixturePreview] = useState(null);
@@ -1878,6 +1879,19 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef,
       element.style.margin = previousMargin;
       element.style.borderRadius = previousBorderRadius;
     }
+  }
+
+  function leaderboardDownloadName() {
+    const now = new Date();
+    const pad = value => String(value).padStart(2, '0');
+    const stamp = [
+      now.getFullYear(),
+      pad(now.getMonth() + 1),
+      pad(now.getDate()),
+    ].join('-');
+    const time = `${pad(now.getHours())}-${pad(now.getMinutes())}`;
+
+    return `Leaderboard ${stamp} ${time}.jpg`;
   }
 
   async function runLiveScoreSync({ quietMissingIds = false } = {}) {
@@ -2621,7 +2635,7 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef,
 
       <button
         onClick={() =>
-          download(imgRef, 'leaderboard.jpg', {
+          download(imgRef, leaderboardDownloadName(), {
             backgroundColor: '#07172d',
             flushToEdges: true,
             quality: 0.95,
@@ -2654,6 +2668,12 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef,
           <div>
             <small>Players</small>
             <strong>{ranked.length}</strong>
+          </div>
+          <div>
+            <small>Games Played</small>
+            <strong>
+              {gamesPlayed}/{fixtures.length}
+            </strong>
           </div>
         </div>
 
