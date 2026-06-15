@@ -70,6 +70,11 @@ async function loadSnapshotData(db, weekId) {
 
 async function createArchive(db, weekId, saveHistoric) {
   const snapshot = await loadSnapshotData(db, weekId);
+
+  if (!snapshot.fixtures.length && !snapshot.entries.length) {
+    throw new Error('Cannot start a new coupon because there are no fixtures or entries to archive.');
+  }
+
   const ranked = rankedEntries(snapshot.entries, snapshot.fixtures);
   const winner = ranked[0] || {};
 
@@ -187,8 +192,11 @@ export default async function handler(req, res) {
 
       const archive = await createArchive(db, week_id, saveHistoric);
 
-      await db.from('entries').delete().eq('week_id', week_id);
-      await db.from('fixtures').delete().eq('week_id', week_id);
+      const deleteEntries = await db.from('entries').delete().eq('week_id', week_id);
+      if (deleteEntries.error) throw deleteEntries.error;
+
+      const deleteFixtures = await db.from('fixtures').delete().eq('week_id', week_id);
+      if (deleteFixtures.error) throw deleteFixtures.error;
 
       const { error: weekError } = await db
         .from('coupon_weeks')
@@ -221,14 +229,17 @@ export default async function handler(req, res) {
           .from('coupon_archives')
           .select('*')
           .order('created_at', { ascending: false })
-          .limit(20);
+          .limit(100);
 
         archiveError = result.error;
-        archive = (result.data || []).find(archiveHasCouponData) || result.data?.[0];
+        archive = (result.data || []).find(archiveHasCouponData);
       }
 
       if (archiveError) throw archiveError;
       if (!archive?.snapshot?.week?.id) return res.status(400).json({ error: 'Archive snapshot is incomplete' });
+      if (!archiveHasCouponData(archive)) {
+        return res.status(400).json({ error: 'No restorable coupon archive was found.' });
+      }
 
       const snapshot = archive.snapshot;
       const weekId = snapshot.week.id;

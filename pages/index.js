@@ -1103,10 +1103,18 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef,
   }
 
   function prepareNewCoupon() {
+    const entryCount = state.entries?.length || 0;
+
+    if (!fixtures.length && !entryCount) {
+      setConfirmNewCoupon(false);
+      setMsg('Cannot start a new coupon because there are no fixtures or entries to archive.');
+      return;
+    }
+
     if (!confirmNewCoupon) {
       setConfirmNewCoupon(true);
       setMsg(
-        `Confirm new coupon: this will archive then clear ${fixtures.length} fixture(s) and ${state.entries?.length || 0} entry/entries.`
+        `Confirm new coupon: this will archive then clear ${fixtures.length} fixture(s) and ${entryCount} entry/entries.`
       );
       return;
     }
