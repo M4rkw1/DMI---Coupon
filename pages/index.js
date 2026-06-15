@@ -1859,7 +1859,7 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef,
 
         <div>
           <h3>Fixtures</h3>
-          <p>Select a date range, choose available leagues, then select fixtures to import.</p>
+          <p>Select a date range, choose available leagues, then select fixtures to import. League discovery checks each day in the range.</p>
 
           <div className="fixtureSearchPanel">
             <div className="fixtureSearchControls">

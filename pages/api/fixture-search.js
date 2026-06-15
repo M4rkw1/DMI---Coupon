@@ -18,6 +18,35 @@ function formatUkKickoff(value) {
   return `${byType.day}/${byType.month}/${byType.year} ${byType.hour}:${byType.minute}`;
 }
 
+function normaliseApiDate(value) {
+  const raw = String(value || '').trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+
+  const match = raw.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (match) return `${match[3]}-${match[2]}-${match[1]}`;
+
+  return raw;
+}
+
+function dateRange(from, to) {
+  const start = new Date(`${normaliseApiDate(from)}T00:00:00Z`);
+  const end = new Date(`${normaliseApiDate(to)}T00:00:00Z`);
+
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || start > end) {
+    return [];
+  }
+
+  const dates = [];
+  const cursor = new Date(start);
+
+  while (cursor <= end && dates.length < 21) {
+    dates.push(cursor.toISOString().slice(0, 10));
+    cursor.setUTCDate(cursor.getUTCDate() + 1);
+  }
+
+  return dates;
+}
+
 function mapFixture(item) {
   const league = item.league || {};
 
@@ -37,8 +66,14 @@ function mapFixture(item) {
   };
 }
 
-async function fetchFixtures({ apiKey, from, to, league, season }) {
-  const params = new URLSearchParams({ from, to });
+async function fetchFixtures({ apiKey, from, to, date, league, season }) {
+  const params = new URLSearchParams();
+  if (date) {
+    params.set('date', normaliseApiDate(date));
+  } else {
+    params.set('from', normaliseApiDate(from));
+    params.set('to', normaliseApiDate(to));
+  }
   if (league) params.set('league', league);
   if (season) params.set('season', season);
 
@@ -54,6 +89,17 @@ async function fetchFixtures({ apiKey, from, to, league, season }) {
   }
 
   return Array.isArray(json.response) ? json.response : [];
+}
+
+async function fetchFixturesByDateRange({ apiKey, from, to }) {
+  const dates = dateRange(from, to);
+
+  if (!dates.length) {
+    throw new Error('Choose a valid from and to date.');
+  }
+
+  const batches = await Promise.all(dates.map(date => fetchFixtures({ apiKey, date })));
+  return batches.flat();
 }
 
 async function searchLeagues({ apiKey, name, season }) {
@@ -119,7 +165,7 @@ export default async function handler(req, res) {
       ? await Promise.all(
           leagueIds.map(league => fetchFixtures({ apiKey, from, to, league, season }))
         )
-      : [await fetchFixtures({ apiKey, from, to, season })];
+      : [await fetchFixturesByDateRange({ apiKey, from, to })];
 
     const unique = new Map();
     batches.flat().forEach(item => {
