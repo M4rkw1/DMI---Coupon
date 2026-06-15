@@ -2,6 +2,7 @@ import { isAdmin } from '../../lib/supabase';
 import { DMI_APPROVED_COMPETITIONS } from '../../lib/dmiCompetitions';
 
 const API_FOOTBALL_BASE_URL = 'https://v3.football.api-sports.io';
+const FIXTURE_SEARCH_DAYS = 7;
 
 function normaliseText(value) {
   return String(value || '')
@@ -59,16 +60,26 @@ function normaliseApiDate(value) {
 
 function dateRange(from, to) {
   const start = new Date(`${normaliseApiDate(from)}T00:00:00Z`);
-  const end = new Date(`${normaliseApiDate(to)}T00:00:00Z`);
+  const requestedEnd = to
+    ? new Date(`${normaliseApiDate(to)}T00:00:00Z`)
+    : new Date(start);
+  const maxEnd = new Date(start);
+  maxEnd.setUTCDate(maxEnd.getUTCDate() + FIXTURE_SEARCH_DAYS - 1);
+  const end = requestedEnd < maxEnd ? requestedEnd : maxEnd;
 
-  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || start > end) {
+  if (
+    Number.isNaN(start.getTime()) ||
+    Number.isNaN(requestedEnd.getTime()) ||
+    Number.isNaN(end.getTime()) ||
+    start > end
+  ) {
     return [];
   }
 
   const dates = [];
   const cursor = new Date(start);
 
-  while (cursor <= end && dates.length < 21) {
+  while (cursor <= end && dates.length < FIXTURE_SEARCH_DAYS) {
     dates.push(cursor.toISOString().slice(0, 10));
     cursor.setUTCDate(cursor.getUTCDate() + 1);
   }
@@ -295,8 +306,14 @@ export default async function handler(req, res) {
 
   try {
     const { from, to, leagues, season } = req.body || {};
-    if (!from || !to) {
-      return res.status(400).json({ error: 'Choose a from and to date.' });
+    if (!from) {
+      return res.status(400).json({ error: 'Choose a fixture search start date.' });
+    }
+
+    const searchDates = dateRange(from, to);
+
+    if (!searchDates.length) {
+      return res.status(400).json({ error: 'Choose a valid fixture search start date.' });
     }
 
     const leagueResolution = await resolveLeagues({ apiKey, leagues, season });
@@ -316,11 +333,19 @@ export default async function handler(req, res) {
       });
     }
 
-    let checkedDates = [];
+    let checkedDates = searchDates;
+    const searchFrom = searchDates[0];
+    const searchTo = searchDates[searchDates.length - 1];
     const batches = leagueDescriptors.length
       ? await Promise.all(
           leagueDescriptors.map(async league => {
-            const fixtures = await fetchFixtures({ apiKey, from, to, league: league.id, season });
+            const fixtures = await fetchFixtures({
+              apiKey,
+              from: searchFrom,
+              to: searchTo,
+              league: league.id,
+              season,
+            });
             return fixtures.map(fixture => ({
               ...fixture,
               dmi_priority: league.priority,
@@ -328,7 +353,7 @@ export default async function handler(req, res) {
             }));
           })
         )
-      : [await fetchFixturesByDateRange({ apiKey, from, to })];
+      : [await fetchFixturesByDateRange({ apiKey, from, to: searchTo })];
     const rawFixtures = batches.flatMap(batch => {
       if (Array.isArray(batch)) return batch;
       checkedDates = batch.dates || checkedDates;

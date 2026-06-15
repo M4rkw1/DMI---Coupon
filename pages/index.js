@@ -35,6 +35,15 @@ function points(pred, fix) {
 }
 
 const sym = c => ({ GBP: '£', USD: '$', EUR: '€', NAD: 'N$', ZAR: 'R' }[c] || `${c} `);
+const addDaysToIsoDate = (value, days) => {
+  if (!value) return '';
+
+  const date = new Date(`${value}T00:00:00Z`);
+  if (Number.isNaN(date.getTime())) return '';
+
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+};
 
 const TIMEZONE_OPTIONS = [
   { label: 'UK time only', offset: 0 },
@@ -1196,6 +1205,7 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef,
   const [selectedApiLeagues, setSelectedApiLeagues] = useState({});
   const [selectedApiFixtures, setSelectedApiFixtures] = useState({});
   const [fixtureSearchLoading, setFixtureSearchLoading] = useState(false);
+  const fixtureSearchTo = addDaysToIsoDate(fixtureSearch.from, 6);
 
   const [tsv, setTsv] = useState('');
 
@@ -1372,12 +1382,20 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef,
     }
   }
 
+  function weeklyFixtureSearchPayload(overrides = {}) {
+    return {
+      ...fixtureSearch,
+      ...overrides,
+      to: fixtureSearchTo,
+    };
+  }
+
   async function findAvailableLeagues() {
     setSelectedApiFixtures({});
     setSelectedApiLeagues({});
     setFixtureSearchResults([]);
 
-    const search = await fetchApiFixtures({ ...fixtureSearch, leagues: '' });
+    const search = await fetchApiFixtures(weeklyFixtureSearchPayload({ leagues: '' }));
     if (!search) {
       setFixtureSearchAllResults([]);
       return;
@@ -1402,7 +1420,7 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef,
     setFixtureSearchAllResults([]);
     setSelectedApiLeagues({});
 
-    const search = await fetchApiFixtures(fixtureSearch);
+    const search = await fetchApiFixtures(weeklyFixtureSearchPayload());
 
     if (search) {
       const fixturesFound = search.fixtures;
@@ -1890,25 +1908,31 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, entriesImgRef,
 
         <div>
           <h3>Fixtures</h3>
-          <p>Select a date range, choose available leagues, then select fixtures to import. Leaving league search blank uses the DMI approved competition ruleset.</p>
+          <p>Select a start date, choose available leagues, then select fixtures to import. The search covers the next 7 days and uses the DMI approved competition ruleset when the league override is blank.</p>
 
           <div className="fixtureSearchPanel">
             <div className="fixtureSearchControls">
               <label>
-                From
+                Coupon week starts
                 <input
                   type="date"
                   value={fixtureSearch.from}
-                  onChange={e => setFixtureSearch({ ...fixtureSearch, from: e.target.value })}
+                  onChange={e =>
+                    setFixtureSearch({
+                      ...fixtureSearch,
+                      from: e.target.value,
+                      to: addDaysToIsoDate(e.target.value, 6),
+                    })
+                  }
                 />
               </label>
 
               <label>
-                To
+                Coupon week ends
                 <input
                   type="date"
-                  value={fixtureSearch.to}
-                  onChange={e => setFixtureSearch({ ...fixtureSearch, to: e.target.value })}
+                  value={fixtureSearchTo}
+                  readOnly
                 />
               </label>
 
