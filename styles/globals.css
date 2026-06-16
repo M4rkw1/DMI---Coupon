@@ -1294,7 +1294,7 @@ th {
   align-items: center;
   display: grid;
   gap: 8px;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   padding: 10px 12px;
 }
 
@@ -1327,6 +1327,52 @@ th {
 .apiMatchSummary.warning span {
   background: #ffefb5;
   color: #7a5400;
+}
+
+.fixturePreviewTools {
+  align-items: center;
+  border-top: 1px solid #e6edf7;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: space-between;
+  padding: 10px 12px;
+}
+
+.previewFilterButtons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.previewFilterButtons button {
+  background: #eef3fb;
+  border-radius: 999px;
+  color: #173560;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 7px 12px;
+}
+
+.previewFilterButtons button.on {
+  background: #173560;
+  color: white;
+}
+
+.previewProviderStatus {
+  color: #435670;
+  display: grid;
+  font-size: 12px;
+  gap: 2px;
+  justify-items: end;
+}
+
+.previewProviderStatus strong {
+  color: #173560;
+}
+
+.previewProviderStatus small {
+  color: #8a5c00;
 }
 
 .previewTable th,

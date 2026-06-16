@@ -1403,6 +1403,8 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
 
   const [fixtureText, setFixtureText] = useState(fixturesToTsv(fixtures));
   const [fixturePreview, setFixturePreview] = useState(null);
+  const [previewFilter, setPreviewFilter] = useState('all');
+  const [fixtureApiMeta, setFixtureApiMeta] = useState(null);
   const [confirmReplace, setConfirmReplace] = useState(false);
   const [newCoupon, setNewCoupon] = useState({
     title: 'DMI Coupon – New Coupon',
@@ -1534,12 +1536,16 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
   function fixturePreviewApiSummary(preview) {
     const rows = (preview?.rows || []).filter(row => !row.error);
     const matched = rows.filter(row => row.api_fixture_id).length;
+    const rowsWithBadges = rows.filter(row => row.home_badge && row.away_badge).length;
+    const rowsMissingBadges = rows.filter(row => !row.home_badge || !row.away_badge).length;
     const missing = Math.max(rows.length - matched, 0);
 
     return {
       complete: rows.length > 0 && missing === 0,
       matched,
       missing,
+      rowsWithBadges,
+      rowsMissingBadges,
       total: rows.length,
     };
   }
@@ -1548,6 +1554,8 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
     const parsed = parseFixtureRows(fixtureText);
     const summary = fixturePreviewApiSummary(parsed);
     setFixturePreview(parsed);
+    setFixtureApiMeta(null);
+    setPreviewFilter('all');
     setConfirmReplace(false);
 
     if (parsed.errors.length) {
@@ -1928,6 +1936,7 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
 
     const apiFixtures = search.fixtures || [];
     const blockedSummary = formatBlockedDateSummary(search.meta?.blocked_dates);
+    setFixtureApiMeta(search.meta || null);
     const badgeMap = search.meta?.team_badges || {};
     const { enriched, matched, badgeMatched, matchedFixtures } = enrichFixturesWithApi(
       sourceFixtures,
@@ -1938,6 +1947,7 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
     if (!matched && !badgeMatched) {
       setFixtureSearchAllResults(apiFixtures);
       setFixtureSearchResults(apiFixtures);
+      setPreviewFilter('missing-badges');
       setMsg(
         `Found ${apiFixtures.length} API fixture(s), but none matched the ${sourceLabel} fixtures.${
           blockedSummary ? ` ${blockedSummary}` : ''
@@ -1961,6 +1971,7 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
       setFixtureText(fixturesToTsv(enriched));
       setFixtureSearchAllResults(apiFixtures);
       setFixtureSearchResults(apiFixtures);
+      setPreviewFilter('missing-badges');
       setConfirmReplace(false);
       setMsg(
         `Updated ${sourceLabel} API data for ${matched} fixture(s)${
@@ -2341,6 +2352,14 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
       String(a.name || '').localeCompare(String(b.name || ''))
   );
   const fixturePreviewSummary = fixturePreviewApiSummary(fixturePreview);
+  const visiblePreviewRows = (fixturePreview?.rows || []).filter(row => {
+    if (previewFilter === 'missing-badges') return !row.error && (!row.home_badge || !row.away_badge);
+    if (previewFilter === 'missing-api') return !row.error && !row.api_fixture_id;
+    if (previewFilter === 'errors') return !!row.error;
+    return true;
+  });
+  const fixtureBadgeProvider = fixtureApiMeta?.badge_provider || '';
+  const fixtureBadgeProviderError = fixtureApiMeta?.badge_provider_error || '';
 
   return (
     <div>
@@ -2501,7 +2520,7 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
                 {!fixturePreview.errors.length && (
                   <div
                     className={
-                      fixturePreviewSummary.missing
+                      fixturePreviewSummary.missing || fixturePreviewSummary.rowsMissingBadges
                         ? 'apiMatchSummary warning'
                         : 'apiMatchSummary good'
                     }
@@ -2513,8 +2532,46 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
                       <strong>{fixturePreviewSummary.missing}</strong> need API match
                     </span>
                     <span>
+                      <strong>{fixturePreviewSummary.rowsMissingBadges}</strong> missing badges
+                    </span>
+                    <span>
                       <strong>{fixturePreviewSummary.total}</strong> total
                     </span>
+                  </div>
+                )}
+
+                {!fixturePreview.errors.length && (
+                  <div className="fixturePreviewTools">
+                    <div className="previewFilterButtons">
+                      <button
+                        type="button"
+                        className={previewFilter === 'all' ? 'on' : ''}
+                        onClick={() => setPreviewFilter('all')}
+                      >
+                        All Rows
+                      </button>
+                      <button
+                        type="button"
+                        className={previewFilter === 'missing-badges' ? 'on' : ''}
+                        onClick={() => setPreviewFilter('missing-badges')}
+                      >
+                        Missing Badges
+                      </button>
+                      <button
+                        type="button"
+                        className={previewFilter === 'missing-api' ? 'on' : ''}
+                        onClick={() => setPreviewFilter('missing-api')}
+                      >
+                        Missing API
+                      </button>
+                    </div>
+
+                    <div className="previewProviderStatus">
+                      <span>
+                        Badge source: <strong>{fixtureBadgeProvider || 'none yet'}</strong>
+                      </span>
+                      {fixtureBadgeProviderError && <small>{fixtureBadgeProviderError}</small>}
+                    </div>
                   </div>
                 )}
 
@@ -2527,16 +2584,17 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
                         <th>Away</th>
                         <th>Kick-off</th>
                         <th>API ID</th>
+                        <th>Badges</th>
                         <th>Status</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {fixturePreview.rows.map(row => (
+                      {visiblePreviewRows.map(row => (
                         <tr
                           className={
                             row.error
                               ? 'previewError'
-                              : row.api_fixture_id
+                              : row.api_fixture_id && row.home_badge && row.away_badge
                                 ? 'previewApiMatched'
                                 : 'previewApiMissing'
                           }
@@ -2551,9 +2609,31 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
                           </td>
                           <td>{row.kickoff || 'TBC'}</td>
                           <td>{row.api_fixture_id || '-'}</td>
-                          <td>{row.error || (row.api_fixture_id ? 'API matched' : 'Needs API match')}</td>
+                          <td>
+                            {row.error
+                              ? '-'
+                              : row.home_badge && row.away_badge
+                                ? 'Ready'
+                                : 'Missing'}
+                          </td>
+                          <td>
+                            {row.error
+                              ? row.error
+                              : row.api_fixture_id
+                                ? row.home_badge && row.away_badge
+                                  ? 'API + badges ready'
+                                  : 'API matched, badges incomplete'
+                                : row.home_badge || row.away_badge
+                                  ? 'Badge-only fallback used'
+                                  : 'Needs API match'}
+                          </td>
                         </tr>
                       ))}
+                      {!visiblePreviewRows.length && (
+                        <tr>
+                          <td colSpan="7">No rows match this preview filter.</td>
+                        </tr>
+                      )}
                     </tbody>
                   </table>
                 </div>
