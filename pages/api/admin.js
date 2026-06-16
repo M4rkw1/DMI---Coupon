@@ -163,11 +163,41 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: `Fixture row ${badRow + 1} is missing a team` });
       }
 
-      const deleteFixtures = await db.from('fixtures').delete().eq('week_id', week_id);
-      if (deleteFixtures.error) throw deleteFixtures.error;
+      const existingFixtures = await db
+        .from('fixtures')
+        .select('id, sort_order')
+        .eq('week_id', week_id)
+        .order('sort_order');
+      if (existingFixtures.error) throw existingFixtures.error;
 
-      const { error } = await insertFixtures(db, rows);
-      if (error) throw error;
+      const existingRows = existingFixtures.data || [];
+      const rowsToUpdate = rows.slice(0, existingRows.length);
+      const rowsToInsert = rows.slice(existingRows.length);
+      const rowsToDelete = existingRows.slice(rows.length);
+
+      for (let index = 0; index < rowsToUpdate.length; index += 1) {
+        const currentFixture = existingRows[index];
+        const nextFixture = rowsToUpdate[index];
+
+        const result = await db.from('fixtures').update(nextFixture).eq('id', currentFixture.id);
+        if (result.error && /(api_fixture_id|home_badge|away_badge)/i.test(result.error.message || '')) {
+          const { api_fixture_id, home_badge, away_badge, ...fallbackFixture } = nextFixture;
+          const fallback = await db.from('fixtures').update(fallbackFixture).eq('id', currentFixture.id);
+          if (fallback.error) throw fallback.error;
+        } else if (result.error) {
+          throw result.error;
+        }
+      }
+
+      if (rowsToInsert.length) {
+        const { error } = await insertFixtures(db, rowsToInsert);
+        if (error) throw error;
+      }
+
+      for (const staleFixture of rowsToDelete) {
+        const result = await db.from('fixtures').delete().eq('id', staleFixture.id);
+        if (result.error) throw result.error;
+      }
     }
     if (action === 'setResults') {
       for (const f of payload.fixtures) {

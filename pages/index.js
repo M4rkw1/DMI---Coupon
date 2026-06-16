@@ -1446,7 +1446,7 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
     Object.fromEntries(DMI_APPROVED_COMPETITIONS.map(competition => [competition.name, true]))
   );
   const [fixtureSearchLoading, setFixtureSearchLoading] = useState(false);
-  const fixtureSearchTo = nextThursdayIsoDate(fixtureSearch.from);
+  const fixtureSearchTo = fixtureSearch.to || nextThursdayIsoDate(fixtureSearch.from);
 
   const [tsv, setTsv] = useState('');
 
@@ -2672,13 +2672,20 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
                 <input
                   type="date"
                   value={fixtureSearch.from}
-                  onChange={e =>
+                  onChange={e => {
+                    const nextFrom = e.target.value;
+                    const previousAutoEnd = nextThursdayIsoDate(fixtureSearch.from);
+                    const suggestedEnd = nextThursdayIsoDate(nextFrom);
+
                     setFixtureSearch({
                       ...fixtureSearch,
-                      from: e.target.value,
-                      to: nextThursdayIsoDate(e.target.value),
-                    })
-                  }
+                      from: nextFrom,
+                      to:
+                        !fixtureSearch.to || fixtureSearch.to === previousAutoEnd
+                          ? suggestedEnd
+                          : fixtureSearch.to,
+                    });
+                  }}
                 />
               </label>
 
@@ -2687,7 +2694,12 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
                 <input
                   type="date"
                   value={fixtureSearchTo}
-                  readOnly
+                  onChange={e =>
+                    setFixtureSearch({
+                      ...fixtureSearch,
+                      to: e.target.value,
+                    })
+                  }
                 />
               </label>
 
