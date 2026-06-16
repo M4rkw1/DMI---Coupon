@@ -111,6 +111,24 @@ const fixturesToTsv = fixtures =>
       ].join('\t')
     )
     .join('\n');
+const entriesToTsv = (entries, fixtures) =>
+  entries
+    .map(entry =>
+      [
+        entry.name || '',
+        entry.department || '',
+        ...fixtures.map(fixture => {
+          const prediction = entry.predictions?.[fixture.id];
+          const home = prediction?.home ?? '';
+          const away = prediction?.away ?? '';
+          return home === '' && away === '' ? '' : `${home}-${away}`;
+        }),
+        entry.paid ? 'PAID' : 'UNPAID',
+        entry.payment_method || '',
+        entry.pts ?? '',
+      ].join('\t')
+    )
+    .join('\n');
 const fixtureTeamNames = fixtures =>
   [...new Set(
     (fixtures || [])
@@ -686,6 +704,7 @@ function Leaderboard({ ranked, fixtures, settings = {}, maxPts, pot }) {
   ).length;
 
   const unpaidPlayers = ranked.filter(e => !e.paid).length;
+  const unpaidEntries = ranked.filter(e => !e.paid);
   const stake = Number(settings?.entry_fee || 10);
   const fullPot = playersEntered * stake;
 
@@ -740,6 +759,13 @@ function Leaderboard({ ranked, fixtures, settings = {}, maxPts, pot }) {
         >
           All Predictions
         </button>
+
+        <button
+          className={view === 'unpaid' ? 'on' : ''}
+          onClick={() => setView('unpaid')}
+        >
+          Yet To Pay
+        </button>
       </div>
 
       {view === 'leaderboard' && (
@@ -780,7 +806,44 @@ function Leaderboard({ ranked, fixtures, settings = {}, maxPts, pot }) {
         />
       )}
 
-      {!predictionsReleased && (
+      {view === 'unpaid' && (
+        <div className="leagueTableWrap">
+          <table className="leagueTable">
+            <thead>
+              <tr>
+                <th>Pos.</th>
+                <th>Player</th>
+                <th>Department</th>
+                <th>Entry Fee</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {unpaidEntries.length ? (
+                unpaidEntries.map((entry, index) => (
+                  <tr key={entry.id}>
+                    <td>{index + 1}</td>
+                    <td>{entry.name}</td>
+                    <td>{entry.department || '-'}</td>
+                    <td>
+                      {sym(settings?.currency || 'USD')}
+                      {stake}
+                    </td>
+                    <td>Unpaid</td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="5">Everyone is marked as paid.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {view === 'predictions' && !predictionsReleased && (
         <p>All predictions will be shown here once entries are released.</p>
       )}
     </section>
@@ -2204,6 +2267,38 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
     if (imported) setTsv('');
   }
 
+  function exportEntriesTsv() {
+    if (!ranked.length) {
+      setMsg('No submitted entries to export yet.');
+      return;
+    }
+
+    const header = [
+      'Name',
+      'Department',
+      ...fixtures.map((fixture, index) => `${index + 1}. ${fixture.home_team} v ${fixture.away_team}`),
+      'Paid Status',
+      'Payment Method',
+      'Points',
+    ].join('\t');
+    const body = entriesToTsv(ranked, fixtures);
+    const blob = new Blob([`${header}\n${body}`], { type: 'text/tab-separated-values;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    const safeTitle = String(week.title || 'dmi-coupon-entries')
+      .trim()
+      .replace(/[\\/:*?"<>|]+/g, ' ')
+      .replace(/\s+/g, '-');
+
+    link.href = url;
+    link.download = `${safeTitle || 'dmi-coupon-entries'}-entries.tsv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+    setMsg(`Exported ${ranked.length} entr${ranked.length === 1 ? 'y' : 'ies'} to TSV.`);
+  }
+
   const fixtureSearchGroups = fixtureSearchResults.reduce((groups, fixture) => {
     const key = `${fixture.league_name || 'Other Fixtures'}${fixture.country ? ` (${fixture.country})` : ''}`;
     if (!groups[key]) groups[key] = [];
@@ -2306,18 +2401,6 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
           <textarea
             value={settings.rules || ''}
             onChange={e => setSettings({ ...settings, rules: e.target.value })}
-          />
-
-          <input
-            placeholder="WhatsApp QR image URL"
-            value={settings.whatsapp_qr_url || ''}
-            onChange={e => setSettings({ ...settings, whatsapp_qr_url: e.target.value })}
-          />
-
-          <input
-            placeholder="Payment QR image URL"
-            value={settings.payment_qr_url || ''}
-            onChange={e => setSettings({ ...settings, payment_qr_url: e.target.value })}
           />
 
           <label>
@@ -2863,6 +2946,7 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
       <textarea value={tsv} onChange={e => setTsv(e.target.value)} />
 
       <button onClick={importTsv}>Import TSV Entries</button>
+      <button onClick={exportEntriesTsv}>Export All Entries TSV</button>
 
       <h3>Share Images</h3>
 
