@@ -646,8 +646,13 @@ th {
   grid-template-columns: 1fr;
 }
 
-.entrantCopy {
+.officeCopy,
+.couponAdminInfo {
   display: none;
+}
+
+.entrantCopy {
+  display: flex;
 }
 
 .couponBox {
@@ -737,12 +742,10 @@ th {
 }
 
 .couponInfoGrid {
-  border-left: 1px dashed #555;
   display: grid;
   gap: 18px;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: 1fr;
   margin-top: 16px;
-  padding-left: 18px;
 }
 
 .couponAdminInfo,
@@ -2556,8 +2559,13 @@ th {
     grid-template-columns: 1fr 1fr;
   }
 
+  .officeCopy,
   .entrantCopy {
     display: flex;
+  }
+
+  .couponAdminInfo {
+    display: block;
   }
 
   .couponBox {
