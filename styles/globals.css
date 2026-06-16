@@ -633,13 +633,17 @@ th {
 
 .couponSheet {
   border: 0;
-  max-width: 1180px;
+  max-width: 760px;
 }
 
 .couponPrintGrid {
   display: grid;
   gap: 18px;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: 1fr;
+}
+
+.entrantCopy {
+  display: none;
 }
 
 .couponBox {
@@ -692,7 +696,7 @@ th {
   font-size: 15px;
   font-weight: 650;
   gap: 5px;
-  grid-template-columns: minmax(0, 1fr) 22px 54px 18px 22px 54px minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) 22px 54px 18px 54px 22px minmax(0, 1fr);
   line-height: 1.05;
 }
 
@@ -2548,6 +2552,10 @@ th {
     grid-template-columns: 1fr 1fr;
   }
 
+  .entrantCopy {
+    display: flex;
+  }
+
   .couponBox {
     border: 1.5px solid #174a8b;
     display: flex;
@@ -2582,7 +2590,7 @@ th {
   .couponFixtureLine {
     font-size: var(--fixture-print-font);
     gap: 1.2mm;
-    grid-template-columns: minmax(0, 1fr) var(--fixture-badge-size) 15mm 4mm var(--fixture-badge-size) 15mm minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) var(--fixture-badge-size) 15mm 4mm 15mm var(--fixture-badge-size) minmax(0, 1fr);
     line-height: 1;
   }
 

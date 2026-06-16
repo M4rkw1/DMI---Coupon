@@ -991,8 +991,8 @@ function OldSchool({ week, fixtures, settings = {}, maxPts, entryDeadline }) {
         'Winner takes the prize fund unless players are tied on points.',
       ];
 
-  const CouponPanel = ({ label }) => (
-    <div className="couponBox">
+  const CouponPanel = ({ label, copyType = 'office' }) => (
+    <div className={`couponBox ${copyType === 'entrant' ? 'entrantCopy' : 'officeCopy'}`}>
       <div className="couponTitle">
         <span>DMI</span>
         <em>Football Coupon</em>
@@ -1008,10 +1008,10 @@ function OldSchool({ week, fixtures, settings = {}, maxPts, entryDeadline }) {
               </div>
               <div className="scoreCell"></div>
               <div className="versus">v</div>
+              <div className="scoreCell"></div>
               <div className="couponBadgeSlot">
                 {f.away_badge && <img alt="" src={f.away_badge} />}
               </div>
-              <div className="scoreCell"></div>
               <div className="team away">{f.away_team}</div>
             </div>
           </div>
@@ -1037,7 +1037,7 @@ function OldSchool({ week, fixtures, settings = {}, maxPts, entryDeadline }) {
 
       <div className="couponPrintGrid">
         <CouponPanel label="Office Copy" />
-        <CouponPanel label="Entrant Copy" />
+        <CouponPanel label="Entrant Copy" copyType="entrant" />
       </div>
 
       <div className="couponInfoGrid">
