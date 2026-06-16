@@ -1334,7 +1334,7 @@ function parseFixtureRows(text) {
         awayBadge = '',
       ] = parts.map(part => part.trim());
 
-      if (!home || !away) {
+      if (!home || !away || !kickoff) {
         const error = `Row ${index + 1}: use Home TAB Away TAB Kick-off`;
         errors.push(error);
         rows.push({
@@ -1656,7 +1656,7 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
       setConfirmReplace(true);
       setMsg(
         summary.missing
-          ? `Warning: ${summary.missing} fixture(s) are manual-only with no API IDs. That is fine for a manual coupon, but badges/live scores may not work for those rows. Confirm to replace ${fixtures.length} current fixture(s).`
+          ? `Warning: ${summary.missing} fixture(s) are manual-only with no API IDs. That is fine as long as the kick-off is entered correctly, but badges/live scores may not work for those rows. Confirm to replace ${fixtures.length} current fixture(s).`
           : `Confirm replacement: all ${summary.total} fixture(s) have API IDs. This will replace ${fixtures.length} current fixture(s).`
       );
       return;

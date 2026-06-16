@@ -249,9 +249,9 @@ export default async function handler(req, res) {
         away_badge: String(f.away_badge || '').trim() || null,
         status: f.status || 'NS',
       }));
-      const badRow = rows.findIndex(f => !f.home_team || !f.away_team);
+      const badRow = rows.findIndex(f => !f.home_team || !f.away_team || !f.kickoff);
       if (badRow >= 0) {
-        return res.status(400).json({ error: `Fixture row ${badRow + 1} is missing a team` });
+        return res.status(400).json({ error: `Fixture row ${badRow + 1} is missing a team or kick-off` });
       }
 
       const existingFixtures = await db
