@@ -562,7 +562,13 @@ async function adminAction(action, payload) {
               </p>
             )}
 
-            <p style={{ whiteSpace: 'pre-line' }}>{settings?.rules}</p>
+            <div className="homeRulesBlock">
+              <p style={{ whiteSpace: 'pre-line' }}>{settings?.rules}</p>
+
+              <div className="homeQrWrap">
+                <img alt="WhatsApp QR" src="/whatsapp-qr.png" />
+              </div>
+            </div>
           </section>
         )}
 

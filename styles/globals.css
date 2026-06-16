@@ -1931,6 +1931,24 @@ th {
   line-height: 1;
 }
 
+.homeRulesBlock {
+  display: grid;
+  gap: 18px;
+}
+
+.homeQrWrap {
+  display: flex;
+  justify-content: center;
+}
+
+.homeQrWrap img {
+  border-radius: 12px;
+  display: block;
+  height: auto;
+  max-width: 220px;
+  width: min(100%, 220px);
+}
+
 .printButtonWrap {
   display: flex;
   justify-content: flex-end;
