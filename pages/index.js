@@ -1346,8 +1346,22 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
     });
   }
 
+  function fixturePreviewApiSummary(preview) {
+    const rows = (preview?.rows || []).filter(row => !row.error);
+    const matched = rows.filter(row => row.api_fixture_id).length;
+    const missing = Math.max(rows.length - matched, 0);
+
+    return {
+      complete: rows.length > 0 && missing === 0,
+      matched,
+      missing,
+      total: rows.length,
+    };
+  }
+
   function previewFixtures() {
     const parsed = parseFixtureRows(fixtureText);
+    const summary = fixturePreviewApiSummary(parsed);
     setFixturePreview(parsed);
     setConfirmReplace(false);
 
@@ -1361,11 +1375,14 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
       return;
     }
 
-    setMsg(`Preview ready: ${parsed.fixtures.length} fixture(s) parsed.`);
+    setMsg(
+      `Preview ready: ${parsed.fixtures.length} fixture(s) parsed. ${summary.matched} have API IDs, ${summary.missing} need API matching.`
+    );
   }
 
   function replacePreviewedFixtures() {
     const parsed = fixturePreview || parseFixtureRows(fixtureText);
+    const summary = fixturePreviewApiSummary(parsed);
 
     if (parsed.errors.length) {
       setFixturePreview(parsed);
@@ -1382,7 +1399,11 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
 
     if (!confirmReplace) {
       setConfirmReplace(true);
-      setMsg(`Confirm replacement: this will replace ${fixtures.length} current fixture(s).`);
+      setMsg(
+        summary.missing
+          ? `Warning: ${summary.missing} fixture(s) are missing API IDs. Badges/live scores may not work for those rows. Confirm to replace ${fixtures.length} current fixture(s).`
+          : `Confirm replacement: all ${summary.total} fixture(s) have API IDs. This will replace ${fixtures.length} current fixture(s).`
+      );
       return;
     }
 
@@ -2053,6 +2074,7 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
       String(a.country || '').localeCompare(String(b.country || '')) ||
       String(a.name || '').localeCompare(String(b.name || ''))
   );
+  const fixturePreviewSummary = fixturePreviewApiSummary(fixturePreview);
 
   return (
     <div>
@@ -2222,6 +2244,26 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
                     : `${fixturePreview.fixtures.length} fixture(s) ready to import`}
                 </div>
 
+                {!fixturePreview.errors.length && (
+                  <div
+                    className={
+                      fixturePreviewSummary.missing
+                        ? 'apiMatchSummary warning'
+                        : 'apiMatchSummary good'
+                    }
+                  >
+                    <span>
+                      <strong>{fixturePreviewSummary.matched}</strong> API matched
+                    </span>
+                    <span>
+                      <strong>{fixturePreviewSummary.missing}</strong> need API match
+                    </span>
+                    <span>
+                      <strong>{fixturePreviewSummary.total}</strong> total
+                    </span>
+                  </div>
+                )}
+
                 <div className="scroll">
                   <table className="previewTable">
                     <thead>
@@ -2236,7 +2278,16 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
                     </thead>
                     <tbody>
                       {fixturePreview.rows.map(row => (
-                        <tr className={row.error ? 'previewError' : ''} key={`${row.line}-${row.raw}`}>
+                        <tr
+                          className={
+                            row.error
+                              ? 'previewError'
+                              : row.api_fixture_id
+                                ? 'previewApiMatched'
+                                : 'previewApiMissing'
+                          }
+                          key={`${row.line}-${row.raw}`}
+                        >
                           <td>{row.line}</td>
                           <td>
                             <TeamLabel badge={row.home_badge} name={row.home_team || row.home || '-'} />
@@ -2246,7 +2297,7 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
                           </td>
                           <td>{row.kickoff || 'TBC'}</td>
                           <td>{row.api_fixture_id || '-'}</td>
-                          <td>{row.error || 'OK'}</td>
+                          <td>{row.error || (row.api_fixture_id ? 'API matched' : 'Needs API match')}</td>
                         </tr>
                       ))}
                     </tbody>
