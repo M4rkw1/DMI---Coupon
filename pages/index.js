@@ -1475,6 +1475,7 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
   const [entryDraft, setEntryDraft] = useState(null);
   const [scoreDrafts, setScoreDrafts] = useState({});
   const [scoreSaveState, setScoreSaveState] = useState('idle');
+  const [confirmClearResults, setConfirmClearResults] = useState(false);
   const scoreSaveTimer = useRef(null);
   const [fixtureSearch, setFixtureSearch] = useState({
     from: '',
@@ -1561,6 +1562,54 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
     return saved;
   }
 
+  async function clearAllResults() {
+    if (!fixtures.length) {
+      setMsg('No fixtures loaded to clear results from.');
+      return;
+    }
+
+    if (!confirmClearResults) {
+      setConfirmClearResults(true);
+      setMsg(`Confirm clear: remove all entered scores and statuses from ${fixtures.length} fixture(s).`);
+      return;
+    }
+
+    setConfirmClearResults(false);
+
+    if (scoreSaveTimer.current) {
+      clearTimeout(scoreSaveTimer.current);
+      scoreSaveTimer.current = null;
+    }
+
+    const clearedDrafts = Object.fromEntries(
+      fixtures.map(fixture => [
+        fixture.id,
+        {
+          home_score: '',
+          away_score: '',
+          ht_home_score: '',
+          ht_away_score: '',
+          status: 'NS',
+        },
+      ])
+    );
+
+    setScoreDrafts(clearedDrafts);
+    setScoreSaveState('saving');
+
+    const cleared = await runAdminAction(
+      'clearResults',
+      { fixture_ids: fixtures.map(fixture => fixture.id) },
+      'All fixture scores cleared.'
+    );
+
+    setScoreSaveState(cleared ? 'saved' : 'error');
+
+    if (!cleared) {
+      load();
+    }
+  }
+
   function updateScoreDraft(fixtureId, field, value) {
     setScoreDrafts(current => {
       const currentDraft = current[fixtureId] || {};
@@ -1586,6 +1635,7 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
       };
 
       setMsg('');
+      setConfirmClearResults(false);
       setScoreSaveState('pending');
 
       if (scoreSaveTimer.current) clearTimeout(scoreSaveTimer.current);
@@ -2973,6 +3023,12 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
 
           <div className="fixtureApiActions">
             <button onClick={syncLiveScores}>Sync Live Scores</button>
+            <button
+              className={confirmClearResults ? 'dangerButton' : ''}
+              onClick={clearAllResults}
+            >
+              {confirmClearResults ? 'Confirm Clear All Scores' : 'Clear All Scores'}
+            </button>
           </div>
 
           <div className="scoreHeader">
@@ -3067,9 +3123,7 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
             })}
           </div>
 
-          <button
-            onClick={() => saveScoreDrafts(scoreDrafts)}
-          >
+          <button onClick={() => saveScoreDrafts(scoreDrafts)}>
             Save Results Now
           </button>
         </div>

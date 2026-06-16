@@ -312,6 +312,38 @@ export default async function handler(req, res) {
         }
       }
     }
+    if (action === 'clearResults') {
+      const fixtureIds = Array.isArray(payload?.fixture_ids) ? payload.fixture_ids.filter(Boolean) : [];
+
+      if (!fixtureIds.length) {
+        return res.status(400).json({ error: 'No fixtures supplied to clear results' });
+      }
+
+      for (const fixtureId of fixtureIds) {
+        const update = {
+          home_score: null,
+          away_score: null,
+          ht_home_score: null,
+          ht_away_score: null,
+          status: 'NS',
+        };
+        const fallbackUpdate = {
+          home_score: null,
+          away_score: null,
+          status: 'NS',
+        };
+
+        const result = await db.from('fixtures').update(update).eq('id', fixtureId);
+        if (result.error && /ht_(home|away)_score/i.test(result.error.message || '')) {
+          const fallback = await db.from('fixtures').update(fallbackUpdate).eq('id', fixtureId);
+          if (fallback.error) throw fallback.error;
+        } else if (result.error) {
+          throw result.error;
+        }
+      }
+
+      return res.status(200).json({ ok: true, cleared: fixtureIds.length });
+    }
     if (action === 'updateFixtureApiData') {
       const rows = Array.isArray(payload?.fixtures) ? payload.fixtures : [];
 
