@@ -45,7 +45,38 @@ const nextThursdayIsoDate = value => {
   date.setUTCDate(date.getUTCDate() + daysUntilThursday);
   return date.toISOString().slice(0, 10);
 };
+const TEAM_NAME_ALIASES = new Map([
+  ['ir iran', 'iran'],
+  ['iran', 'iran'],
+  ['turkiye', 'turkey'],
+  ['turkey', 'turkey'],
+  ['cabo verde', 'cape verde'],
+  ['cape verde', 'cape verde'],
+  ['ivory coast', 'ivory coast'],
+  ['cote d ivoire', 'ivory coast'],
+  ['cote divoire', 'ivory coast'],
+  ['bosnia herzegovina', 'bosnia herzegovina'],
+  ['bosnia and herzegovina', 'bosnia herzegovina'],
+  ['dr congo', 'dr congo'],
+  ['congo dr', 'dr congo'],
+  ['democratic republic of congo', 'dr congo'],
+  ['korea republic', 'south korea'],
+  ['republic of korea', 'south korea'],
+  ['south korea', 'south korea'],
+  ['usa', 'usa'],
+  ['united states', 'usa'],
+  ['czechia', 'czech republic'],
+  ['czech republic', 'czech republic'],
+]);
 const normaliseMatchText = value =>
+  TEAM_NAME_ALIASES.get(
+    String(value || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, ' ')
+      .trim()
+  ) ||
   String(value || '')
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
@@ -80,6 +111,14 @@ const fixturesToTsv = fixtures =>
       ].join('\t')
     )
     .join('\n');
+const formatBlockedDateSummary = blockedDates => {
+  const entries = Array.isArray(blockedDates) ? blockedDates.filter(entry => entry?.date) : [];
+  if (!entries.length) return '';
+
+  const uniqueDates = [...new Set(entries.map(entry => entry.date))];
+  const sampleError = entries[0]?.error || 'API-Football blocked one or more dates.';
+  return `${sampleError} Blocked date${uniqueDates.length === 1 ? '' : 's'}: ${uniqueDates.join(', ')}.`;
+};
 
 const TIMEZONE_OPTIONS = [
   { label: 'UK time only', offset: 0 },
@@ -1638,8 +1677,12 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
   }
 
   function setMsgForFixtureSearch(fixturesFound, meta = {}) {
+    const blockedSummary = formatBlockedDateSummary(meta.blocked_dates);
+
     if (fixturesFound.length) {
-      setMsg(`Found ${fixturesFound.length} fixture(s).`);
+      setMsg(
+        `Found ${fixturesFound.length} fixture(s).${blockedSummary ? ` ${blockedSummary}` : ''}`
+      );
     } else {
       const checkedDates = meta.checked_dates?.length;
       const resolvedLeagues = meta.resolved_league_ids?.length;
@@ -1649,7 +1692,7 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
           resolvedLeagues ? ` and ${resolvedLeagues} league ID(s)` : ''
         }${
           unresolved ? `. ${unresolved} approved competition(s) did not resolve for this season` : ''
-        }. Try a wider date range, a numeric league ID, or a different season.`
+        }.${blockedSummary ? ` ${blockedSummary}` : ' Try a wider date range, a numeric league ID, or a different season.'}`
       );
     }
   }
@@ -1771,12 +1814,17 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
     if (!search) return 0;
 
     const apiFixtures = search.fixtures || [];
+    const blockedSummary = formatBlockedDateSummary(search.meta?.blocked_dates);
     const { enriched, matched, matchedFixtures } = enrichFixturesWithApi(sourceFixtures, apiFixtures);
 
     if (!matched) {
       setFixtureSearchAllResults(apiFixtures);
       setFixtureSearchResults(apiFixtures);
-      setMsg(`Found ${apiFixtures.length} API fixture(s), but none matched the ${sourceLabel} fixtures.`);
+      setMsg(
+        `Found ${apiFixtures.length} API fixture(s), but none matched the ${sourceLabel} fixtures.${
+          blockedSummary ? ` ${blockedSummary}` : ''
+        }`
+      );
       return 0;
     }
 
@@ -1796,7 +1844,11 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
       setFixtureSearchAllResults(apiFixtures);
       setFixtureSearchResults(apiFixtures);
       setConfirmReplace(false);
-      setMsg(`Updated ${sourceLabel} API data for ${matched} fixture(s). Replace previewed fixtures when ready.`);
+      setMsg(
+        `Updated ${sourceLabel} API data for ${matched} fixture(s).${
+          blockedSummary ? ` ${blockedSummary}` : ''
+        } Replace previewed fixtures when ready.`
+      );
       return matched;
     }
 

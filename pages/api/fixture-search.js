@@ -174,10 +174,11 @@ async function fetchFixturesByDateRange({ apiKey, from, to }) {
     throw new Error('Choose a valid from and to date.');
   }
 
-  const batches = await Promise.all(dates.map(date => fetchFixtures({ apiKey, date })));
+  const batches = await fetchFixtureDateBatches({ apiKey, dates });
   return {
-    dates,
-    fixtures: batches.flat(),
+    dates: batches.checkedDates,
+    fixtures: batches.fixtures,
+    blockedDates: batches.blockedDates,
   };
 }
 
@@ -188,10 +189,96 @@ async function fetchFixturesByDates({ apiKey, dates }) {
     throw new Error('Choose at least one fixture search date.');
   }
 
-  const batches = await Promise.all(normalisedDates.map(date => fetchFixtures({ apiKey, date })));
+  const batches = await fetchFixtureDateBatches({ apiKey, dates: normalisedDates });
   return {
-    dates: normalisedDates,
-    fixtures: batches.flat(),
+    dates: batches.checkedDates,
+    fixtures: batches.fixtures,
+    blockedDates: batches.blockedDates,
+  };
+}
+
+async function fetchFixtureDateBatches({ apiKey, dates }) {
+  const settled = await Promise.all(
+    dates.map(async date => {
+      try {
+        return {
+          date,
+          fixtures: await fetchFixtures({ apiKey, date }),
+          error: '',
+        };
+      } catch (error) {
+        return {
+          date,
+          fixtures: [],
+          error: error.message || 'Fixture provider request failed.',
+        };
+      }
+    })
+  );
+
+  const blockedDates = settled
+    .filter(batch => batch.error)
+    .map(batch => ({
+      date: batch.date,
+      error: batch.error,
+    }));
+
+  return {
+    checkedDates: settled.map(batch => batch.date),
+    fixtures: settled.flatMap(batch => batch.fixtures),
+    blockedDates,
+  };
+}
+
+async function fetchLeagueDateBatches({ apiKey, searchDates, leagueDescriptors, season }) {
+  const settled = await Promise.all(
+    leagueDescriptors.flatMap(league =>
+      searchDates.map(async date => {
+        try {
+          const fixtures = await fetchFixtures({
+            apiKey,
+            date,
+            league: league.id,
+            season,
+          });
+          return {
+            date,
+            league,
+            fixtures: fixtures.map(fixture => ({
+              ...fixture,
+              dmi_priority: league.priority,
+              dmi_group: league.group,
+            })),
+            error: '',
+          };
+        } catch (error) {
+          return {
+            date,
+            league,
+            fixtures: [],
+            error: error.message || 'Fixture provider request failed.',
+          };
+        }
+      })
+    )
+  );
+
+  const blockedDates = new Map();
+  settled
+    .filter(batch => batch.error)
+    .forEach(batch => {
+      if (!blockedDates.has(batch.date)) {
+        blockedDates.set(batch.date, {
+          date: batch.date,
+          error: batch.error,
+        });
+      }
+    });
+
+  return {
+    dates: searchDates,
+    fixtures: settled.flatMap(batch => batch.fixtures),
+    blockedDates: [...blockedDates.values()],
   };
 }
 
@@ -404,32 +491,18 @@ export default async function handler(req, res) {
     }
 
     let checkedDates = searchDates;
+    const blockedDates = [];
     const batches = searchAllFixturesByDate
       ? [await fetchFixturesByDates({ apiKey, dates: searchDates })]
       : leagueDescriptors.length
-      ? await Promise.all(
-          leagueDescriptors.flatMap(league =>
-            searchDates.map(async date => {
-              const fixtures = await fetchFixtures({
-                apiKey,
-                date,
-                league: league.id,
-                season,
-              });
-              return fixtures.map(fixture => ({
-                ...fixture,
-                dmi_priority: league.priority,
-                dmi_group: league.group,
-              }));
-            })
-          )
-        )
+      ? [await fetchLeagueDateBatches({ apiKey, searchDates, leagueDescriptors, season })]
       : exactDates.length
         ? [await fetchFixturesByDates({ apiKey, dates: searchDates })]
         : [await fetchFixturesByDateRange({ apiKey, from, to })];
     const rawFixtures = batches.flatMap(batch => {
       if (Array.isArray(batch)) return batch;
       checkedDates = batch.dates || checkedDates;
+      (batch.blockedDates || []).forEach(entry => blockedDates.push(entry));
       return batch.fixtures || [];
     });
 
@@ -457,6 +530,7 @@ export default async function handler(req, res) {
         resolved_league_ids: leagueDescriptors.map(league => league.id),
         unresolved_competitions: leagueResolution.unresolved,
         raw_fixture_count: rawFixtures.length,
+        blocked_dates: blockedDates,
         search_mode: searchAllFixturesByDate ? 'all_fixtures_by_date' : 'league_filtered',
       },
     });
