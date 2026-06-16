@@ -1,4 +1,4 @@
-import { isAdmin } from '../../lib/supabase';
+import { isAdmin, supabaseAdmin } from '../../lib/supabase';
 import { DMI_APPROVED_COMPETITIONS } from '../../lib/dmiCompetitions';
 
 const API_FOOTBALL_BASE_URL = 'https://v3.football.api-sports.io';
@@ -189,6 +189,75 @@ function teamBadgeMapFromFixtures(fixtures) {
   });
 
   return badgeMap;
+}
+
+async function loadStoredTeamBadges(db, teamNames = []) {
+  if (!db || !teamNames.length) return {};
+
+  const normalizedNames = [...new Set(teamNames.map(normaliseText).filter(Boolean))];
+  if (!normalizedNames.length) return {};
+
+  const { data, error } = await db
+    .from('team_badges')
+    .select('normalized_name, badge_url')
+    .in('normalized_name', normalizedNames);
+
+  if (error) {
+    if (/team_badges/i.test(error.message || '')) return {};
+    throw error;
+  }
+
+  return Object.fromEntries(
+    (data || [])
+      .filter(row => row.normalized_name && row.badge_url)
+      .map(row => [row.normalized_name, row.badge_url])
+  );
+}
+
+async function upsertTeamBadges(db, fixtures = [], source = 'api-football') {
+  if (!db || !fixtures.length) return 0;
+
+  const rows = [];
+
+  fixtures.forEach(fixture => {
+    if (fixture.home_team && fixture.home_badge) {
+      rows.push({
+        normalized_name: normaliseText(fixture.home_team),
+        team_name: fixture.home_team,
+        badge_url: fixture.home_badge,
+        source,
+        competition: fixture.league_name || fixture.competition_group || '',
+        country: fixture.country || '',
+        updated_at: new Date().toISOString(),
+      });
+    }
+
+    if (fixture.away_team && fixture.away_badge) {
+      rows.push({
+        normalized_name: normaliseText(fixture.away_team),
+        team_name: fixture.away_team,
+        badge_url: fixture.away_badge,
+        source,
+        competition: fixture.league_name || fixture.competition_group || '',
+        country: fixture.country || '',
+        updated_at: new Date().toISOString(),
+      });
+    }
+  });
+
+  const deduped = [...new Map(rows.filter(row => row.normalized_name && row.badge_url).map(row => [row.normalized_name, row])).values()];
+  if (!deduped.length) return 0;
+
+  const { error } = await db
+    .from('team_badges')
+    .upsert(deduped, { onConflict: 'normalized_name' });
+
+  if (error) {
+    if (/team_badges/i.test(error.message || '')) return 0;
+    throw error;
+  }
+
+  return deduped.length;
 }
 
 async function fetchFootballDataBadgeMap({ apiKey, from, to, teamNames = [] }) {
@@ -581,6 +650,13 @@ export default async function handler(req, res) {
   }
 
   try {
+    let db = null;
+    try {
+      db = supabaseAdmin();
+    } catch {
+      db = null;
+    }
+
     const {
       from,
       to,
@@ -672,8 +748,15 @@ export default async function handler(req, res) {
     const requestedTeamNames = Array.isArray(team_names)
       ? [...new Set(team_names.map(name => String(name || '').trim()).filter(Boolean))]
       : [];
-    let teamBadges = teamBadgeMapFromFixtures(fixtures);
-    const badgeProviders = new Set(Object.keys(teamBadges).length ? ['api-football'] : []);
+    const storedBadges = await loadStoredTeamBadges(db, requestedTeamNames);
+    let teamBadges = {
+      ...storedBadges,
+      ...teamBadgeMapFromFixtures(fixtures),
+    };
+    const badgeProviders = new Set([
+      ...(Object.keys(storedBadges).length ? ['badge-cache'] : []),
+      ...(Object.keys(teamBadgeMapFromFixtures(fixtures)).length ? ['api-football'] : []),
+    ]);
     const badgeProviderErrors = [];
     let missingTeamNames = requestedTeamNames.filter(name => !teamBadges[normaliseText(name)]);
 
@@ -719,6 +802,19 @@ export default async function handler(req, res) {
       }
     }
 
+    const enrichedFixturesForCache = fixtures.map(fixture => ({
+      ...fixture,
+      home_badge: fixture.home_badge || teamBadges[normaliseText(fixture.home_team)] || '',
+      away_badge: fixture.away_badge || teamBadges[normaliseText(fixture.away_team)] || '',
+    }));
+
+    let cachedBadgeCount = 0;
+    try {
+      cachedBadgeCount = await upsertTeamBadges(db, enrichedFixturesForCache, [...badgeProviders].join(', ') || 'badge-cache');
+    } catch (error) {
+      badgeProviderErrors.push(error.message || 'Failed to cache team badges.');
+    }
+
     res.status(200).json({
       fixtures,
       meta: {
@@ -732,6 +828,7 @@ export default async function handler(req, res) {
         team_badges: teamBadges,
         badge_provider: [...badgeProviders].join(', '),
         badge_provider_error: badgeProviderErrors.join(' '),
+        cached_badges: cachedBadgeCount,
         search_mode: searchAllFixturesByDate ? 'all_fixtures_by_date' : 'league_filtered',
       },
     });

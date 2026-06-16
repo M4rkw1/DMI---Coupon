@@ -47,6 +47,29 @@ alter table fixtures add column if not exists away_badge text;
 alter table fixtures add column if not exists ht_home_score int;
 alter table fixtures add column if not exists ht_away_score int;
 
+create table if not exists team_badges (
+  id uuid primary key default gen_random_uuid(),
+  normalized_name text not null unique,
+  team_name text not null,
+  badge_url text not null,
+  source text default '',
+  competition text default '',
+  country text default '',
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+alter table team_badges add column if not exists normalized_name text;
+alter table team_badges add column if not exists team_name text;
+alter table team_badges add column if not exists badge_url text;
+alter table team_badges add column if not exists source text default '';
+alter table team_badges add column if not exists competition text default '';
+alter table team_badges add column if not exists country text default '';
+alter table team_badges add column if not exists updated_at timestamptz default now();
+
+create unique index if not exists team_badges_normalized_name_idx
+  on team_badges(normalized_name);
+
 create table if not exists entries (
   id uuid primary key default gen_random_uuid(),
   week_id uuid references coupon_weeks(id) on delete cascade,

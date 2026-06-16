@@ -144,6 +144,10 @@ const formatBlockedDateSummary = blockedDates => {
   const sampleError = entries[0]?.error || 'API-Football blocked one or more dates.';
   return `${sampleError} Blocked date${uniqueDates.length === 1 ? '' : 's'}: ${uniqueDates.join(', ')}.`;
 };
+const formatCachedBadgeSummary = meta => {
+  const count = Number(meta?.cached_badges || 0);
+  return count > 0 ? `${count} team badge${count === 1 ? '' : 's'} saved to badge cache.` : '';
+};
 
 const TIMEZONE_OPTIONS = [
   { label: 'UK time only', offset: 0 },
@@ -1799,10 +1803,13 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
 
   function setMsgForFixtureSearch(fixturesFound, meta = {}) {
     const blockedSummary = formatBlockedDateSummary(meta.blocked_dates);
+    const cachedSummary = formatCachedBadgeSummary(meta);
 
     if (fixturesFound.length) {
       setMsg(
-        `Found ${fixturesFound.length} fixture(s).${blockedSummary ? ` ${blockedSummary}` : ''}`
+        `Found ${fixturesFound.length} fixture(s).${blockedSummary ? ` ${blockedSummary}` : ''}${
+          cachedSummary ? ` ${cachedSummary}` : ''
+        }`
       );
     } else {
       const checkedDates = meta.checked_dates?.length;
@@ -1813,7 +1820,9 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
           resolvedLeagues ? ` and ${resolvedLeagues} league ID(s)` : ''
         }${
           unresolved ? `. ${unresolved} approved competition(s) did not resolve for this season` : ''
-        }.${blockedSummary ? ` ${blockedSummary}` : ' Try a wider date range, a numeric league ID, or a different season.'}`
+        }.${blockedSummary ? ` ${blockedSummary}` : ' Try a wider date range, a numeric league ID, or a different season.'}${
+          cachedSummary ? ` ${cachedSummary}` : ''
+        }`
       );
     }
   }
@@ -1936,6 +1945,7 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
 
     const apiFixtures = search.fixtures || [];
     const blockedSummary = formatBlockedDateSummary(search.meta?.blocked_dates);
+    const cachedSummary = formatCachedBadgeSummary(search.meta);
     setFixtureApiMeta(search.meta || null);
     const badgeMap = search.meta?.team_badges || {};
     const { enriched, matched, badgeMatched, matchedFixtures } = enrichFixturesWithApi(
@@ -1951,7 +1961,7 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
       setMsg(
         `Found ${apiFixtures.length} API fixture(s), but none matched the ${sourceLabel} fixtures.${
           blockedSummary ? ` ${blockedSummary}` : ''
-        }`
+        }${cachedSummary ? ` ${cachedSummary}` : ''}`
       );
       return 0;
     }
@@ -1978,7 +1988,7 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
           badgeMatched ? ` and badge-only data for ${badgeMatched} fixture(s)` : ''
         }.${
           blockedSummary ? ` ${blockedSummary}` : ''
-        } Replace previewed fixtures when ready.`
+        }${cachedSummary ? ` ${cachedSummary}` : ''} Replace previewed fixtures when ready.`
       );
       return matched;
     }
@@ -1995,7 +2005,7 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
       setMsg(
         `Updated saved fixture API data for ${matched} fixture(s)${
           badgeMatched ? ` and badge-only data for ${badgeMatched} fixture(s)` : ''
-        }.${blockedSummary ? ` ${blockedSummary}` : ''}`
+        }.${blockedSummary ? ` ${blockedSummary}` : ''}${cachedSummary ? ` ${cachedSummary}` : ''}`
       );
     }
 
