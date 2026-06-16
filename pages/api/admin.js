@@ -125,19 +125,54 @@ export default async function handler(req, res) {
     const db = supabaseAdmin();
     const { action, payload } = req.body;
     if (action === 'saveSettings') {
-      const { id, ...fields } = payload;
-      const { error } = await db.from('coupon_settings').update(fields).eq('id', id);
-      if (error && /timezone_(label|offset_minutes)/i.test(error.message || '')) {
-        const { timezone_label, timezone_offset_minutes, ...fallbackFields } = fields;
-        const fallback = await db.from('coupon_settings').update(fallbackFields).eq('id', id);
-        if (fallback.error) throw fallback.error;
-      } else if (error) {
-        throw error;
+      const { id, week_id, ...fields } = payload;
+      let targetId = id;
+
+      if (!targetId && week_id) {
+        const existing = await db.from('coupon_settings').select('id').eq('week_id', week_id).single();
+        if (existing.error && existing.error.code !== 'PGRST116') throw existing.error;
+        targetId = existing.data?.id || null;
+      }
+
+      if (targetId) {
+        const { error } = await db.from('coupon_settings').update(fields).eq('id', targetId);
+        if (error && /timezone_(label|offset_minutes)/i.test(error.message || '')) {
+          const { timezone_label, timezone_offset_minutes, ...fallbackFields } = fields;
+          const fallback = await db.from('coupon_settings').update(fallbackFields).eq('id', targetId);
+          if (fallback.error) throw fallback.error;
+        } else if (error) {
+          throw error;
+        }
+      } else {
+        const insertPayload = {
+          ...fields,
+          week_id,
+        };
+        const { error } = await db.from('coupon_settings').insert(insertPayload);
+        if (error && /timezone_(label|offset_minutes)/i.test(error.message || '')) {
+          const { timezone_label, timezone_offset_minutes, ...fallbackFields } = insertPayload;
+          const fallback = await db.from('coupon_settings').insert(fallbackFields);
+          if (fallback.error) throw fallback.error;
+        } else if (error) {
+          throw error;
+        }
       }
     }
     if (action === 'saveWeek') {
       const { id, ...fields } = payload;
-      const { error } = await db.from('coupon_weeks').update(fields).eq('id', id);
+      let targetId = id;
+
+      if (!targetId) {
+        const currentWeek = await db.from('coupon_weeks').select('id').eq('is_current', true).single();
+        if (currentWeek.error) throw currentWeek.error;
+        targetId = currentWeek.data?.id || null;
+      }
+
+      if (!targetId) {
+        return res.status(400).json({ error: 'Missing current week id' });
+      }
+
+      const { error } = await db.from('coupon_weeks').update(fields).eq('id', targetId);
       if (error) throw error;
     }
     if (action === 'replaceFixtures') {
