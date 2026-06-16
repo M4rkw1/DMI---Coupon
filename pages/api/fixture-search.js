@@ -2,15 +2,41 @@ import { isAdmin } from '../../lib/supabase';
 import { DMI_APPROVED_COMPETITIONS } from '../../lib/dmiCompetitions';
 
 const API_FOOTBALL_BASE_URL = 'https://v3.football.api-sports.io';
+const FOOTBALL_DATA_BASE_URL = 'https://api.football-data.org/v4';
 const MAX_FIXTURE_SEARCH_DAYS = 7;
+const TEAM_NAME_ALIASES = new Map([
+  ['ir iran', 'iran'],
+  ['iran', 'iran'],
+  ['turkiye', 'turkey'],
+  ['turkey', 'turkey'],
+  ['cabo verde', 'cape verde'],
+  ['cape verde', 'cape verde'],
+  ['ivory coast', 'ivory coast'],
+  ['cote d ivoire', 'ivory coast'],
+  ['cote divoire', 'ivory coast'],
+  ['bosnia herzegovina', 'bosnia herzegovina'],
+  ['bosnia and herzegovina', 'bosnia herzegovina'],
+  ['dr congo', 'dr congo'],
+  ['congo dr', 'dr congo'],
+  ['democratic republic of congo', 'dr congo'],
+  ['korea republic', 'south korea'],
+  ['republic of korea', 'south korea'],
+  ['south korea', 'south korea'],
+  ['usa', 'usa'],
+  ['united states', 'usa'],
+  ['czechia', 'czech republic'],
+  ['czech republic', 'czech republic'],
+]);
 
 function normaliseText(value) {
-  return String(value || '')
+  const cleaned = String(value || '')
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, ' ')
     .trim();
+
+  return TEAM_NAME_ALIASES.get(cleaned) || cleaned;
 }
 
 function competitionTerms(competition) {
@@ -28,6 +54,10 @@ function matchesCompetition(item, competition) {
 
 function apiFootballUrl(path, params) {
   return `${API_FOOTBALL_BASE_URL}${path}?${params}`;
+}
+
+function footballDataUrl(path, params) {
+  return `${FOOTBALL_DATA_BASE_URL}${path}?${params}`;
 }
 
 function formatUkKickoff(value) {
@@ -139,6 +169,66 @@ function mapFixture(item) {
     ht_home_score: normaliseScore(item.score?.halftime?.home),
     ht_away_score: normaliseScore(item.score?.halftime?.away),
   };
+}
+
+function teamBadgeMapFromFixtures(fixtures) {
+  const badgeMap = {};
+
+  fixtures.forEach(fixture => {
+    if (fixture.home_team && fixture.home_badge) {
+      badgeMap[normaliseText(fixture.home_team)] = fixture.home_badge;
+    }
+    if (fixture.away_team && fixture.away_badge) {
+      badgeMap[normaliseText(fixture.away_team)] = fixture.away_badge;
+    }
+  });
+
+  return badgeMap;
+}
+
+async function fetchFootballDataBadgeMap({ apiKey, from, to, teamNames = [] }) {
+  if (!apiKey || !from || !to || !teamNames.length) {
+    return {};
+  }
+
+  const params = new URLSearchParams({
+    dateFrom: normaliseApiDate(from),
+    dateTo: normaliseApiDate(to),
+  });
+
+  const response = await fetch(footballDataUrl('/matches', params), {
+    headers: {
+      'X-Auth-Token': apiKey,
+    },
+  });
+  const json = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(json?.message || 'football-data.org badge lookup failed.');
+  }
+
+  const wanted = new Set(teamNames.map(normaliseText).filter(Boolean));
+  const matches = Array.isArray(json.matches) ? json.matches : [];
+  const badgeMap = {};
+
+  matches.forEach(match => {
+    const homeName = match?.homeTeam?.name || '';
+    const awayName = match?.awayTeam?.name || '';
+    const homeKey = normaliseText(homeName);
+    const awayKey = normaliseText(awayName);
+    const homeBadge = match?.homeTeam?.crest || '';
+    const awayBadge = match?.awayTeam?.crest || '';
+
+    if (homeKey && homeBadge && wanted.has(homeKey) && !badgeMap[homeKey]) {
+      badgeMap[homeKey] = homeBadge;
+    }
+
+    if (awayKey && awayBadge && wanted.has(awayKey) && !badgeMap[awayKey]) {
+      badgeMap[awayKey] = awayBadge;
+    }
+  });
+
+  return badgeMap;
 }
 
 async function fetchFixtures({ apiKey, from, to, date, league, season }) {
@@ -443,6 +533,7 @@ export default async function handler(req, res) {
       season,
       approved_competitions,
       all_fixtures_by_date,
+      team_names,
     } = req.body || {};
     const exactDates = Array.isArray(dates)
       ? [...new Set(dates.map(normaliseApiDate).filter(Boolean))]
@@ -520,6 +611,35 @@ export default async function handler(req, res) {
         Number(a.kickoff_timestamp || 0) - Number(b.kickoff_timestamp || 0) ||
         String(a.home_team || '').localeCompare(String(b.home_team || ''))
     );
+    const footballDataApiKey = process.env.FOOTBALL_DATA_API_KEY;
+    const requestedTeamNames = Array.isArray(team_names)
+      ? [...new Set(team_names.map(name => String(name || '').trim()).filter(Boolean))]
+      : [];
+    let teamBadges = teamBadgeMapFromFixtures(fixtures);
+    let badgeProvider = Object.keys(teamBadges).length ? 'api-football' : '';
+    let badgeProviderError = '';
+    const missingTeamNames = requestedTeamNames.filter(name => !teamBadges[normaliseText(name)]);
+
+    if (missingTeamNames.length && footballDataApiKey && checkedDates.length) {
+      try {
+        const footballDataBadges = await fetchFootballDataBadgeMap({
+          apiKey: footballDataApiKey,
+          from: checkedDates[0],
+          to: checkedDates[checkedDates.length - 1],
+          teamNames: missingTeamNames,
+        });
+
+        if (Object.keys(footballDataBadges).length) {
+          teamBadges = {
+            ...footballDataBadges,
+            ...teamBadges,
+          };
+          badgeProvider = badgeProvider ? `${badgeProvider}, football-data.org` : 'football-data.org';
+        }
+      } catch (error) {
+        badgeProviderError = error.message || 'football-data.org badge lookup failed.';
+      }
+    }
 
     res.status(200).json({
       fixtures,
@@ -531,6 +651,9 @@ export default async function handler(req, res) {
         unresolved_competitions: leagueResolution.unresolved,
         raw_fixture_count: rawFixtures.length,
         blocked_dates: blockedDates,
+        team_badges: teamBadges,
+        badge_provider: badgeProvider,
+        badge_provider_error: badgeProviderError,
         search_mode: searchAllFixturesByDate ? 'all_fixtures_by_date' : 'league_filtered',
       },
     });

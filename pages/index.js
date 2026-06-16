@@ -111,6 +111,13 @@ const fixturesToTsv = fixtures =>
       ].join('\t')
     )
     .join('\n');
+const fixtureTeamNames = fixtures =>
+  [...new Set(
+    (fixtures || [])
+      .flatMap(fixture => [fixture.home_team, fixture.away_team])
+      .map(name => String(name || '').trim())
+      .filter(Boolean)
+  )];
 const formatBlockedDateSummary = blockedDates => {
   const entries = Array.isArray(blockedDates) ? blockedDates.filter(entry => entry?.date) : [];
   if (!entries.length) return '';
@@ -1581,6 +1588,7 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
       from: dates[0] || '',
       to: dates[dates.length - 1] || '',
       dates,
+      team_names: fixtureTeamNames(sourceFixtures),
       leagues: '',
       approved_competitions: [],
       ...overrides,
@@ -1591,25 +1599,47 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
     return fixtureListSearchPayload(fixtures, overrides);
   }
 
-  function enrichFixturesWithApi(sourceFixtures, apiFixtures) {
+  function enrichFixturesWithApi(sourceFixtures, apiFixtures, badgeMap = {}) {
     const byApiId = new Map(apiFixtures.map(fixture => [String(fixture.api_fixture_id), fixture]));
     const byTeams = new Map(apiFixtures.map(fixture => [fixtureMatchKey(fixture), fixture]));
     let matched = 0;
+    let badgeMatched = 0;
     const matchedFixtures = [];
     const enriched = sourceFixtures.map(fixture => {
       const apiFixture =
         (fixture.api_fixture_id && byApiId.get(String(fixture.api_fixture_id))) ||
         byTeams.get(fixtureMatchKey(fixture));
 
-      if (!apiFixture) return fixture;
+      const fallbackHomeBadge =
+        badgeMap[normaliseMatchText(fixture.home_team)] || fixture.home_badge || '';
+      const fallbackAwayBadge =
+        badgeMap[normaliseMatchText(fixture.away_team)] || fixture.away_badge || '';
+
+      if (!apiFixture) {
+        const badgeOnlyFixture = {
+          ...fixture,
+          home_badge: fallbackHomeBadge,
+          away_badge: fallbackAwayBadge,
+        };
+
+        if (
+          badgeOnlyFixture.home_badge !== (fixture.home_badge || '') ||
+          badgeOnlyFixture.away_badge !== (fixture.away_badge || '')
+        ) {
+          badgeMatched += 1;
+          matchedFixtures.push(badgeOnlyFixture);
+        }
+
+        return badgeOnlyFixture;
+      }
 
       matched += 1;
       const enrichedFixture = {
         ...fixture,
         api_fixture_id: apiFixture.api_fixture_id,
         kickoff: apiFixture.kickoff || fixture.kickoff || '',
-        home_badge: apiFixture.home_badge || fixture.home_badge || '',
-        away_badge: apiFixture.away_badge || fixture.away_badge || '',
+        home_badge: apiFixture.home_badge || fallbackHomeBadge,
+        away_badge: apiFixture.away_badge || fallbackAwayBadge,
         status: apiFixture.status || fixture.status || 'NS',
         home_score: apiFixture.home_score,
         away_score: apiFixture.away_score,
@@ -1620,7 +1650,7 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
       return enrichedFixture;
     });
 
-    return { enriched, matched, matchedFixtures };
+    return { enriched, matched, badgeMatched, matchedFixtures };
   }
 
   function toggleApprovedCompetition(name) {
@@ -1835,9 +1865,14 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
 
     const apiFixtures = search.fixtures || [];
     const blockedSummary = formatBlockedDateSummary(search.meta?.blocked_dates);
-    const { enriched, matched, matchedFixtures } = enrichFixturesWithApi(sourceFixtures, apiFixtures);
+    const badgeMap = search.meta?.team_badges || {};
+    const { enriched, matched, badgeMatched, matchedFixtures } = enrichFixturesWithApi(
+      sourceFixtures,
+      apiFixtures,
+      badgeMap
+    );
 
-    if (!matched) {
+    if (!matched && !badgeMatched) {
       setFixtureSearchAllResults(apiFixtures);
       setFixtureSearchResults(apiFixtures);
       setMsg(
@@ -1865,7 +1900,9 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
       setFixtureSearchResults(apiFixtures);
       setConfirmReplace(false);
       setMsg(
-        `Updated ${sourceLabel} API data for ${matched} fixture(s).${
+        `Updated ${sourceLabel} API data for ${matched} fixture(s)${
+          badgeMatched ? ` and badge-only data for ${badgeMatched} fixture(s)` : ''
+        }.${
           blockedSummary ? ` ${blockedSummary}` : ''
         } Replace previewed fixtures when ready.`
       );
@@ -1881,9 +1918,14 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
     if (updated) {
       setFixtureSearchAllResults(apiFixtures);
       setFixtureSearchResults(apiFixtures);
+      setMsg(
+        `Updated saved fixture API data for ${matched} fixture(s)${
+          badgeMatched ? ` and badge-only data for ${badgeMatched} fixture(s)` : ''
+        }.${blockedSummary ? ` ${blockedSummary}` : ''}`
+      );
     }
 
-    return updated ? matched : 0;
+    return updated ? matched + badgeMatched : 0;
   }
 
   async function runAdminAction(action, payload, successMessage) {
