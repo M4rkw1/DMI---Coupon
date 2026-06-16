@@ -2357,8 +2357,8 @@ th {
 /* Print */
 @media print {
   @page {
-    size: A4 portrait;
-    margin: 5mm;
+    size: A4 landscape;
+    margin: 4mm;
   }
 
   header,
@@ -2535,10 +2535,10 @@ th {
   .paper.couponSheet {
     display: block;
     font-family: Arial, Helvetica, sans-serif;
-    height: 287mm;
-    padding: 1.5mm;
+    height: 200mm;
+    padding: 1mm;
     print-color-adjust: exact;
-    width: 200mm;
+    width: 287mm;
     -webkit-print-color-adjust: exact;
   }
 
@@ -2548,7 +2548,7 @@ th {
 
   .couponPrintGrid {
     display: grid;
-    gap: 8mm;
+    gap: 6mm;
     grid-template-columns: 1fr 1fr;
   }
 
@@ -2560,26 +2560,26 @@ th {
     border: 1.5px solid #174a8b;
     display: flex;
     flex-direction: column;
-    min-height: 177mm;
+    min-height: 126mm;
   }
 
   .couponTitle {
     border-bottom: 3px double #174a8b;
-    margin: 0.8mm;
-    padding: 1mm;
+    margin: 0.6mm;
+    padding: 0.8mm;
   }
 
   .couponTitle span,
   .couponTitle em {
-    font-size: 13px;
+    font-size: 12px;
   }
 
   .couponFixtures {
     display: grid;
     flex: 1 1 auto;
-    gap: 0.5mm;
+    gap: 0.25mm;
     grid-template-rows: repeat(var(--fixture-count), minmax(0, 1fr));
-    padding: 2.2mm 4mm;
+    padding: 1.4mm 3.5mm;
   }
 
   .couponFixture {
@@ -2589,8 +2589,8 @@ th {
 
   .couponFixtureLine {
     font-size: var(--fixture-print-font);
-    gap: 1.2mm;
-    grid-template-columns: minmax(0, 1fr) var(--fixture-badge-size) 15mm 4mm 15mm var(--fixture-badge-size) minmax(0, 1fr);
+    gap: 0.9mm;
+    grid-template-columns: minmax(0, 1fr) var(--fixture-badge-size) 13mm 3.5mm 13mm var(--fixture-badge-size) minmax(0, 1fr);
     line-height: 1;
   }
 
@@ -2606,7 +2606,7 @@ th {
 
   .scoreCell {
     border: 1.5px solid #174a8b;
-    height: 4.2mm;
+    height: 3.7mm;
   }
 
   .couponCopyLabel {
@@ -2618,51 +2618,51 @@ th {
 
   .couponInfoGrid {
     border-left: 1px dashed #555;
-    gap: 8mm;
+    gap: 6mm;
     grid-template-columns: 1fr 1fr;
-    margin-top: 4mm;
-    padding-left: 8mm;
+    margin-top: 2.5mm;
+    padding-left: 6mm;
   }
 
   .couponMeta {
-    font-size: 8px;
-    gap: 2mm 3mm;
-    grid-template-columns: 36mm 1fr;
+    font-size: 7px;
+    gap: 1.4mm 2.4mm;
+    grid-template-columns: 30mm 1fr;
   }
 
   .line {
-    min-height: 4mm;
+    min-height: 3mm;
   }
 
   .couponRules h3 {
-    font-size: 8px;
-    margin: 4mm 0 1.5mm;
+    font-size: 7px;
+    margin: 2.5mm 0 1mm;
   }
 
   .rulesBox {
-    gap: 0.8mm;
+    gap: 0.45mm;
   }
 
   .ruleItem {
-    font-size: 5.8px;
-    gap: 1.5mm;
-    grid-template-columns: 5mm 1fr;
-    line-height: 1.15;
+    font-size: 5px;
+    gap: 1mm;
+    grid-template-columns: 4mm 1fr;
+    line-height: 1.08;
   }
 
   .couponEntrantInfo .qrwrap {
-    gap: 10mm;
+    gap: 8mm;
     justify-content: center;
-    margin-top: 5mm;
+    margin-top: 3mm;
   }
 
   .couponEntrantInfo .qrwrap img {
     border: 0;
-    height: 31mm;
-    width: 31mm;
+    height: 24mm;
+    width: 24mm;
   }
 
   .couponEntrantInfo .summaryBox {
-    margin-top: 4mm;
+    margin-top: 2.5mm;
   }
 }
