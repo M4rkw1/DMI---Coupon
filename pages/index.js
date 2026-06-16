@@ -981,6 +981,46 @@ function OldSchool({ week, fixtures, settings = {}, maxPts, entryDeadline }) {
     .filter(Boolean);
   const fixturePrintFont = fixtures.length > 22 ? '8px' : fixtures.length > 18 ? '9px' : '10.5px';
   const fixtureBadgeSize = fixtures.length > 22 ? '12px' : fixtures.length > 18 ? '14px' : '16px';
+  const entryFee = `${sym(settings?.currency || 'GBP')}${settings?.entry_fee || 10}`;
+  const deadlineText = entryDeadline ? entryDeadline.toLocaleString('en-GB') : 'TBC';
+  const sheetRules = rules.length
+    ? rules
+    : [
+        `Entry is ${entryFee} per sheet.`,
+        'Enter predicted score. One point for correct result and three points for correct score.',
+        'Winner takes the prize fund unless players are tied on points.',
+      ];
+
+  const CouponPanel = ({ label }) => (
+    <div className="couponBox">
+      <div className="couponTitle">
+        <span>DMI</span>
+        <em>Football Coupon</em>
+      </div>
+
+      <div className="couponFixtures">
+        {fixtures.map(f => (
+          <div className="couponFixture" key={`${label}-${f.id}`}>
+            <div className="couponFixtureLine">
+              <div className="team home">{f.home_team}</div>
+              <div className="couponBadgeSlot">
+                {f.home_badge && <img alt="" src={f.home_badge} />}
+              </div>
+              <div className="scoreCell"></div>
+              <div className="versus">v</div>
+              <div className="couponBadgeSlot">
+                {f.away_badge && <img alt="" src={f.away_badge} />}
+              </div>
+              <div className="scoreCell"></div>
+              <div className="team away">{f.away_team}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="couponCopyLabel">{label}</div>
+    </div>
+  );
 
   return (
     <section
@@ -995,75 +1035,82 @@ function OldSchool({ week, fixtures, settings = {}, maxPts, entryDeadline }) {
         <button onClick={() => window.print()}>Print / Save PDF</button>
       </div>
 
-      <div className="couponBox">
-        <h1>
-          <span>DMI</span> Football Coupon
-        </h1>
+      <div className="couponPrintGrid">
+        <CouponPanel label="Office Copy" />
+        <CouponPanel label="Entrant Copy" />
+      </div>
 
-        <div className="couponFixtures">
-          {fixtures.map(f => (
-            <div className="couponFixture" key={f.id}>
-              <div className="couponFixtureLine">
-                <div className="team home">
-                  <TeamLabel align="right" badge={f.home_badge} name={f.home_team} />
+      <div className="couponInfoGrid">
+        <div className="couponAdminInfo">
+          <div className="couponMeta">
+            <div>Match Date(s)</div>
+            <div className="blueText">{week.subtitle}</div>
+
+            <div>Entries Submitted By</div>
+            <div className="redText">{deadlineText}</div>
+
+            <div>Name</div>
+            <div className="line"></div>
+
+            <div>Company / Department</div>
+            <div className="line"></div>
+          </div>
+
+          <div className="couponRules">
+            <h3>Rules</h3>
+
+            <div className="rulesBox">
+              {sheetRules.map((rule, index) => (
+                <div key={`${index}-${rule}`} className="ruleItem">
+                  <strong>{index + 1}.</strong>
+                  <span>{rule}</span>
                 </div>
-                <div className="scoreCell"></div>
-                <div className="versus">v</div>
-                <div className="scoreCell"></div>
-                <div className="team away">
-                  <TeamLabel badge={f.away_badge} name={f.away_team} />
-                </div>
-              </div>
-              <small className="couponKickoff">{formatKickoff(f.kickoff, settings, true)}</small>
+              ))}
             </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="couponMeta">
-        <div>Match Date(s)</div>
-        <div className="blueText">{week.subtitle}</div>
-
-        <div>Entries Submitted By</div>
-        <div className="redText">
-          {entryDeadline ? entryDeadline.toLocaleString('en-GB') : 'TBC'}
+          </div>
         </div>
 
-        <div>Name</div>
-        <div className="line"></div>
+        <div className="couponEntrantInfo">
+          <div className="couponMeta">
+            <div>Match Date(s)</div>
+            <div className="blueText">{week.subtitle}</div>
 
-        <div>Company / Department</div>
-        <div className="line"></div>
-      </div>
+            <div>Entries Submitted By</div>
+            <div className="redText">{deadlineText}</div>
 
-      <div className="couponRules">
-        <h3>Coupon Rules</h3>
+            <div>Name</div>
+            <div className="line"></div>
 
-        <div className="rulesBox">
-          {rules.map((rule, index) => (
-            <div key={`${index}-${rule}`} className="ruleItem">
-              <strong>{index + 1}.</strong>
-              <span>{rule}</span>
+            <div>Company / Department</div>
+            <div className="line"></div>
+          </div>
+
+          <div className="qrwrap">
+            {settings.whatsapp_qr_url && (
+              <img alt="WhatsApp QR" src={settings.whatsapp_qr_url} />
+            )}
+            {settings.payment_qr_url && (
+              <img alt="Payment QR" src={settings.payment_qr_url} />
+            )}
+          </div>
+
+          <div className="summaryBox">
+            <div>
+              <strong>Scoring:</strong> 1 result point
             </div>
-          ))}
-        </div>
-      </div>
 
-      <div className="summaryBox">
-        <div>
-          <strong>Scoring:</strong> 1 point for correct result
-        </div>
+            <div>
+              <strong>Exact Score:</strong> 3 points
+            </div>
 
-        <div>
-          <strong>Exact Score:</strong> 3 points
-        </div>
+            <div>
+              <strong>Maximum:</strong> {maxPts}
+            </div>
 
-        <div>
-          <strong>Maximum Points:</strong> {maxPts}
-        </div>
-
-        <div>
-          <strong>Winner:</strong> Highest score wins the prize fund
+            <div>
+              <strong>Entry Fee:</strong> {entryFee}
+            </div>
+          </div>
         </div>
       </div>
     </section>

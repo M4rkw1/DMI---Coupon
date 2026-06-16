@@ -585,6 +585,148 @@ th {
   border: 1px solid #aaa;
 }
 
+.couponSheet {
+  border: 0;
+  max-width: 1180px;
+}
+
+.couponPrintGrid {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.couponBox {
+  border: 2px solid #174a8b;
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  min-width: 0;
+}
+
+.couponTitle {
+  align-items: baseline;
+  border-bottom: 4px double #174a8b;
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  line-height: 1;
+  margin: 4px;
+  padding: 7px 6px 6px;
+}
+
+.couponTitle span {
+  color: #174a8b;
+  font-size: 24px;
+  font-style: italic;
+  font-weight: 900;
+  letter-spacing: 0.03em;
+}
+
+.couponTitle em {
+  color: #111;
+  font-size: 24px;
+  font-style: italic;
+  font-weight: 500;
+}
+
+.couponFixtures {
+  display: grid;
+  gap: 4px;
+  padding: 14px 20px;
+}
+
+.couponFixture {
+  margin: 0;
+}
+
+.couponFixtureLine {
+  align-items: center;
+  display: grid;
+  font-size: 15px;
+  font-weight: 650;
+  gap: 5px;
+  grid-template-columns: minmax(0, 1fr) 22px 54px 18px 22px 54px minmax(0, 1fr);
+  line-height: 1.05;
+}
+
+.couponBadgeSlot {
+  align-items: center;
+  display: flex;
+  height: 20px;
+  justify-content: center;
+  width: 20px;
+}
+
+.couponBadgeSlot img {
+  display: block;
+  height: 18px;
+  object-fit: contain;
+  width: 18px;
+}
+
+.scoreCell {
+  background: #fff;
+  border: 2px solid #174a8b;
+  height: 22px;
+}
+
+.couponCopyLabel {
+  border-top: 1px solid #d7dfeb;
+  color: #46618a;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  padding: 5px;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.couponInfoGrid {
+  border-left: 1px dashed #555;
+  display: grid;
+  gap: 18px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 16px;
+  padding-left: 18px;
+}
+
+.couponAdminInfo,
+.couponEntrantInfo {
+  min-width: 0;
+}
+
+.couponMeta {
+  display: grid;
+  font-size: 14px;
+  gap: 10px 12px;
+  grid-template-columns: 150px 1fr;
+  margin: 0;
+}
+
+.line {
+  border-bottom: 2px solid #111;
+  min-height: 20px;
+}
+
+.couponRules h3 {
+  font-size: 14px;
+  margin: 18px 0 8px;
+}
+
+.rulesBox {
+  display: grid;
+  gap: 6px;
+}
+
+.ruleItem {
+  display: grid;
+  font-size: 11px;
+  gap: 8px;
+  grid-template-columns: 24px 1fr;
+  line-height: 1.3;
+}
+
 .share {
   width: 390px;
   min-height: 680px;
@@ -1922,6 +2064,11 @@ th {
     grid-template-columns: 1fr;
   }
 
+  .couponPrintGrid,
+  .couponInfoGrid {
+    grid-template-columns: 1fr;
+  }
+
   .liveScoreFixture {
     background: #f8fbff;
     border: 1px solid #d7dfeb;
@@ -2329,5 +2476,129 @@ th {
   .qrwrap img {
     width: 85px;
     height: 85px;
+  }
+
+  .paper.couponSheet {
+    display: block;
+    font-family: Arial, Helvetica, sans-serif;
+    height: 287mm;
+    padding: 1.5mm;
+    width: 200mm;
+  }
+
+  .couponPrintGrid {
+    display: grid;
+    gap: 8mm;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .couponBox {
+    border: 1.5px solid #174a8b;
+    display: flex;
+    flex-direction: column;
+    min-height: 177mm;
+  }
+
+  .couponTitle {
+    border-bottom: 3px double #174a8b;
+    margin: 0.8mm;
+    padding: 1mm;
+  }
+
+  .couponTitle span,
+  .couponTitle em {
+    font-size: 13px;
+  }
+
+  .couponFixtures {
+    display: grid;
+    flex: 1 1 auto;
+    gap: 0.5mm;
+    grid-template-rows: repeat(var(--fixture-count), minmax(0, 1fr));
+    padding: 2.2mm 4mm;
+  }
+
+  .couponFixture {
+    align-content: center;
+    display: grid;
+  }
+
+  .couponFixtureLine {
+    font-size: var(--fixture-print-font);
+    gap: 1.2mm;
+    grid-template-columns: minmax(0, 1fr) var(--fixture-badge-size) 15mm 4mm var(--fixture-badge-size) 15mm minmax(0, 1fr);
+    line-height: 1;
+  }
+
+  .couponBadgeSlot {
+    height: var(--fixture-badge-size);
+    width: var(--fixture-badge-size);
+  }
+
+  .couponBadgeSlot img {
+    height: var(--fixture-badge-size);
+    width: var(--fixture-badge-size);
+  }
+
+  .scoreCell {
+    border: 1.5px solid #174a8b;
+    height: 4.2mm;
+  }
+
+  .couponCopyLabel {
+    border-top: 1px solid #d7dfeb;
+    display: block;
+    font-size: 5px;
+    padding: 0.8mm;
+  }
+
+  .couponInfoGrid {
+    border-left: 1px dashed #555;
+    gap: 8mm;
+    grid-template-columns: 1fr 1fr;
+    margin-top: 4mm;
+    padding-left: 8mm;
+  }
+
+  .couponMeta {
+    font-size: 8px;
+    gap: 2mm 3mm;
+    grid-template-columns: 36mm 1fr;
+  }
+
+  .line {
+    min-height: 4mm;
+  }
+
+  .couponRules h3 {
+    font-size: 8px;
+    margin: 4mm 0 1.5mm;
+  }
+
+  .rulesBox {
+    gap: 0.8mm;
+  }
+
+  .ruleItem {
+    font-size: 5.8px;
+    gap: 1.5mm;
+    grid-template-columns: 5mm 1fr;
+    line-height: 1.15;
+  }
+
+  .couponEntrantInfo .qrwrap {
+    gap: 10mm;
+    justify-content: center;
+    margin-top: 5mm;
+  }
+
+  .couponEntrantInfo .qrwrap img {
+    border: 0;
+    height: 31mm;
+    width: 31mm;
+  }
+
+  .couponEntrantInfo .summaryBox {
+    margin-top: 4mm;
   }
 }
