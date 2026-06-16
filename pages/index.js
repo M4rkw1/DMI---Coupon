@@ -261,6 +261,27 @@ const parseRulesText = value => {
     .filter(Boolean);
 };
 
+const mergeWeekDraft = (current = {}, incoming = {}) => ({
+  ...current,
+  ...incoming,
+  id: incoming?.id || current?.id || '',
+  title:
+    incoming && Object.prototype.hasOwnProperty.call(incoming, 'title')
+      ? incoming.title || current?.title || ''
+      : current?.title || '',
+  subtitle:
+    incoming && Object.prototype.hasOwnProperty.call(incoming, 'subtitle')
+      ? incoming.subtitle ?? current?.subtitle ?? ''
+      : current?.subtitle ?? '',
+});
+
+const mergeSettingsDraft = (current = {}, incoming = {}) =>
+  defaultSettings({
+    ...current,
+    ...incoming,
+    week_id: incoming?.week_id || current?.week_id || '',
+  });
+
 function TeamBadge({ src, name, className = '' }) {
   if (!src) return null;
 
@@ -1428,8 +1449,8 @@ function HistoricWinners({ archives = [] }) {
 }
 
 function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, entriesImgRef, admin, load }) {
-  const [settings, setSettings] = useState(defaultSettings(state.settings || {}));
-  const [week, setWeek] = useState(state.week || {});
+  const [settings, setSettings] = useState(mergeSettingsDraft({}, state.settings || {}));
+  const [week, setWeek] = useState(mergeWeekDraft({}, state.week || {}));
   const fixtures = Array.isArray(state.fixtures) ? state.fixtures : [];
   const archives = Array.isArray(state.archives) ? state.archives : [];
   const latestArchive = archives[0];
@@ -1472,8 +1493,8 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
   const [tsv, setTsv] = useState('');
 
   useEffect(() => {
-    setSettings(defaultSettings(state.settings || {}));
-    setWeek(state.week || {});
+    setSettings(current => mergeSettingsDraft(current, state.settings || {}));
+    setWeek(current => mergeWeekDraft(current, state.week || {}));
   }, [state]);
 
   useEffect(() => {
@@ -1610,7 +1631,7 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
     }
 
     setMsg(
-      `Preview ready: ${parsed.fixtures.length} fixture(s) parsed. ${summary.matched} have API IDs, ${summary.missing} need API matching.`
+      `Preview ready: ${parsed.fixtures.length} fixture(s) parsed. ${summary.matched} have API IDs, ${summary.missing} can be kept as manual fixtures or matched via API.`
     );
   }
 
@@ -1635,7 +1656,7 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
       setConfirmReplace(true);
       setMsg(
         summary.missing
-          ? `Warning: ${summary.missing} fixture(s) are missing API IDs. Badges/live scores may not work for those rows. Confirm to replace ${fixtures.length} current fixture(s).`
+          ? `Warning: ${summary.missing} fixture(s) are manual-only with no API IDs. That is fine for a manual coupon, but badges/live scores may not work for those rows. Confirm to replace ${fixtures.length} current fixture(s).`
           : `Confirm replacement: all ${summary.total} fixture(s) have API IDs. This will replace ${fixtures.length} current fixture(s).`
       );
       return;
@@ -2553,8 +2574,8 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
         <div>
           <h3>Fixtures</h3>
           <p>
-            Main workflow: paste fixtures from your FotMob picks, preview them, then update API data to add
-            badges, API fixture IDs, corrected kick-off times, and live-score support before replacing the coupon.
+            Main workflow: paste fixtures from your FotMob picks, preview them, and replace the coupon directly.
+            API data is optional and can be added afterwards for badges, corrected kick-off times, and live-score support.
           </p>
 
           <div className="tsvImportPanel">
