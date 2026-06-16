@@ -191,6 +191,26 @@ function teamBadgeMapFromFixtures(fixtures) {
   return badgeMap;
 }
 
+function isLikelyCountryCompetition(fixture = {}) {
+  const text = normaliseText(
+    [
+      fixture.league_name,
+      fixture.competition_group,
+      fixture.country,
+    ]
+      .filter(Boolean)
+      .join(' ')
+  );
+
+  return (
+    (text.includes('world cup') && !text.includes('club world cup')) ||
+    text.includes('european championship') ||
+    text.includes('africa cup of nations') ||
+    text.includes('qualification') ||
+    text.includes('international competition')
+  );
+}
+
 async function loadStoredTeamBadges(db, teamNames = []) {
   if (!db || !teamNames.length) return {};
 
@@ -204,6 +224,29 @@ async function loadStoredTeamBadges(db, teamNames = []) {
 
   if (error) {
     if (/team_badges/i.test(error.message || '')) return {};
+    throw error;
+  }
+
+  return Object.fromEntries(
+    (data || [])
+      .filter(row => row.normalized_name && row.badge_url)
+      .map(row => [row.normalized_name, row.badge_url])
+  );
+}
+
+async function loadStoredCountryBadges(db, countryNames = []) {
+  if (!db || !countryNames.length) return {};
+
+  const normalizedNames = [...new Set(countryNames.map(normaliseText).filter(Boolean))];
+  if (!normalizedNames.length) return {};
+
+  const { data, error } = await db
+    .from('country_badges')
+    .select('normalized_name, badge_url')
+    .in('normalized_name', normalizedNames);
+
+  if (error) {
+    if (/country_badges/i.test(error.message || '')) return {};
     throw error;
   }
 
@@ -254,6 +297,52 @@ async function upsertTeamBadges(db, fixtures = [], source = 'api-football') {
 
   if (error) {
     if (/team_badges/i.test(error.message || '')) return 0;
+    throw error;
+  }
+
+  return deduped.length;
+}
+
+async function upsertCountryBadges(db, fixtures = [], source = 'api-football') {
+  if (!db || !fixtures.length) return 0;
+
+  const rows = [];
+
+  fixtures
+    .filter(isLikelyCountryCompetition)
+    .forEach(fixture => {
+      if (fixture.home_team && fixture.home_badge) {
+        rows.push({
+          normalized_name: normaliseText(fixture.home_team),
+          country_name: fixture.home_team,
+          badge_url: fixture.home_badge,
+          source,
+          competition: fixture.league_name || fixture.competition_group || '',
+          updated_at: new Date().toISOString(),
+        });
+      }
+
+      if (fixture.away_team && fixture.away_badge) {
+        rows.push({
+          normalized_name: normaliseText(fixture.away_team),
+          country_name: fixture.away_team,
+          badge_url: fixture.away_badge,
+          source,
+          competition: fixture.league_name || fixture.competition_group || '',
+          updated_at: new Date().toISOString(),
+        });
+      }
+    });
+
+  const deduped = [...new Map(rows.filter(row => row.normalized_name && row.badge_url).map(row => [row.normalized_name, row])).values()];
+  if (!deduped.length) return 0;
+
+  const { error } = await db
+    .from('country_badges')
+    .upsert(deduped, { onConflict: 'normalized_name' });
+
+  if (error) {
+    if (/country_badges/i.test(error.message || '')) return 0;
     throw error;
   }
 
@@ -748,12 +837,17 @@ export default async function handler(req, res) {
     const requestedTeamNames = Array.isArray(team_names)
       ? [...new Set(team_names.map(name => String(name || '').trim()).filter(Boolean))]
       : [];
-    const storedBadges = await loadStoredTeamBadges(db, requestedTeamNames);
+    const [storedBadges, storedCountryBadges] = await Promise.all([
+      loadStoredTeamBadges(db, requestedTeamNames),
+      loadStoredCountryBadges(db, requestedTeamNames),
+    ]);
     let teamBadges = {
+      ...storedCountryBadges,
       ...storedBadges,
       ...teamBadgeMapFromFixtures(fixtures),
     };
     const badgeProviders = new Set([
+      ...(Object.keys(storedCountryBadges).length ? ['country-badge-cache'] : []),
       ...(Object.keys(storedBadges).length ? ['badge-cache'] : []),
       ...(Object.keys(teamBadgeMapFromFixtures(fixtures)).length ? ['api-football'] : []),
     ]);
@@ -809,10 +903,21 @@ export default async function handler(req, res) {
     }));
 
     let cachedBadgeCount = 0;
+    let cachedCountryBadgeCount = 0;
     try {
       cachedBadgeCount = await upsertTeamBadges(db, enrichedFixturesForCache, [...badgeProviders].join(', ') || 'badge-cache');
     } catch (error) {
       badgeProviderErrors.push(error.message || 'Failed to cache team badges.');
+    }
+
+    try {
+      cachedCountryBadgeCount = await upsertCountryBadges(
+        db,
+        enrichedFixturesForCache,
+        [...badgeProviders].join(', ') || 'country-badge-cache'
+      );
+    } catch (error) {
+      badgeProviderErrors.push(error.message || 'Failed to cache country badges.');
     }
 
     res.status(200).json({
@@ -829,6 +934,7 @@ export default async function handler(req, res) {
         badge_provider: [...badgeProviders].join(', '),
         badge_provider_error: badgeProviderErrors.join(' '),
         cached_badges: cachedBadgeCount,
+        cached_country_badges: cachedCountryBadgeCount,
         search_mode: searchAllFixturesByDate ? 'all_fixtures_by_date' : 'league_filtered',
       },
     });

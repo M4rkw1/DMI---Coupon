@@ -145,8 +145,19 @@ const formatBlockedDateSummary = blockedDates => {
   return `${sampleError} Blocked date${uniqueDates.length === 1 ? '' : 's'}: ${uniqueDates.join(', ')}.`;
 };
 const formatCachedBadgeSummary = meta => {
-  const count = Number(meta?.cached_badges || 0);
-  return count > 0 ? `${count} team badge${count === 1 ? '' : 's'} saved to badge cache.` : '';
+  const teamCount = Number(meta?.cached_badges || 0);
+  const countryCount = Number(meta?.cached_country_badges || 0);
+  const parts = [];
+
+  if (teamCount > 0) {
+    parts.push(`${teamCount} team badge${teamCount === 1 ? '' : 's'} saved to badge cache.`);
+  }
+
+  if (countryCount > 0) {
+    parts.push(`${countryCount} country badge${countryCount === 1 ? '' : 's'} saved to country cache.`);
+  }
+
+  return parts.join(' ');
 };
 
 const TIMEZONE_OPTIONS = [
