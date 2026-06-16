@@ -1029,6 +1029,26 @@ function OldSchool({ week, fixtures, settings = {}, maxPts, entryDeadline }) {
         'Enter predicted score. One point for correct result and three points for correct score.',
         'Winner takes the prize fund unless players are tied on points.',
       ];
+  const printFileTitle = String(week?.title || 'DMI Football Coupon')
+    .trim()
+    .replace(/[\\/:*?"<>|]+/g, ' ')
+    .replace(/\s+/g, ' ');
+
+  const printOldSchool = () => {
+    if (typeof window === 'undefined' || typeof document === 'undefined') return;
+
+    const originalTitle = document.title;
+    document.title = printFileTitle || originalTitle;
+
+    const restoreTitle = () => {
+      document.title = originalTitle;
+      window.removeEventListener('afterprint', restoreTitle);
+    };
+
+    window.addEventListener('afterprint', restoreTitle);
+    window.print();
+    window.setTimeout(restoreTitle, 1500);
+  };
 
   const CouponPanel = ({ label, copyType = 'office' }) => (
     <div className={`couponBox ${copyType === 'entrant' ? 'entrantCopy' : 'officeCopy'}`}>
@@ -1071,7 +1091,7 @@ function OldSchool({ week, fixtures, settings = {}, maxPts, entryDeadline }) {
       }}
     >
       <div className="printButtonWrap">
-        <button onClick={() => window.print()}>Print / Save PDF</button>
+        <button onClick={printOldSchool}>Print / Save PDF</button>
       </div>
 
       <div className="couponPrintGrid">
