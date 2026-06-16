@@ -60,12 +60,48 @@ async function insertFixtures(db, rows) {
   return result;
 }
 
+async function resolveCurrentWeekId(db) {
+  const current = await db
+    .from('coupon_weeks')
+    .select('id')
+    .eq('is_current', true)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (current.error) throw current.error;
+  if (current.data?.id) return current.data.id;
+
+  const latest = await db
+    .from('coupon_weeks')
+    .select('id')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (latest.error) throw latest.error;
+  if (latest.data?.id) return latest.data.id;
+
+  const created = await db
+    .from('coupon_weeks')
+    .insert({
+      title: 'DMI Coupon',
+      subtitle: '',
+      is_current: true,
+    })
+    .select('id')
+    .single();
+
+  if (created.error) throw created.error;
+  return created.data.id;
+}
+
 async function loadSnapshotData(db, weekId) {
   const [week, fixtures, entries, settings] = await Promise.all([
     db.from('coupon_weeks').select('*').eq('id', weekId).single(),
     db.from('fixtures').select('*').eq('week_id', weekId).order('sort_order'),
     db.from('entries').select('*').eq('week_id', weekId).order('created_at'),
-    db.from('coupon_settings').select('*').eq('week_id', weekId).single(),
+    db.from('coupon_settings').select('*').eq('week_id', weekId).limit(1).maybeSingle(),
   ]);
 
   if (week.error) throw week.error;
@@ -77,7 +113,7 @@ async function loadSnapshotData(db, weekId) {
     week: week.data,
     fixtures: fixtures.data || [],
     entries: entries.data || [],
-    settings: settings.data,
+    settings: settings.data || { week_id: weekId },
   };
 }
 
@@ -126,13 +162,14 @@ export default async function handler(req, res) {
     const { action, payload } = req.body;
     if (action === 'saveSettings') {
       const { id, week_id, ...fields } = payload;
+      const targetWeekId = week_id || (await resolveCurrentWeekId(db));
       let targetId = id;
 
-      if (!targetId && week_id) {
+      if (!targetId && targetWeekId) {
         const existing = await db
           .from('coupon_settings')
           .select('id')
-          .eq('week_id', week_id)
+          .eq('week_id', targetWeekId)
           .order('created_at', { ascending: false })
           .limit(1)
           .maybeSingle();
@@ -152,7 +189,7 @@ export default async function handler(req, res) {
       } else {
         const insertPayload = {
           ...fields,
-          week_id,
+          week_id: targetWeekId,
         };
         const { error } = await db.from('coupon_settings').insert(insertPayload);
         if (error && /timezone_(label|offset_minutes)/i.test(error.message || '')) {
@@ -169,33 +206,40 @@ export default async function handler(req, res) {
       let targetId = id;
 
       if (!targetId) {
-        const currentWeek = await db
-          .from('coupon_weeks')
-          .select('id')
-          .eq('is_current', true)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        if (currentWeek.error) throw currentWeek.error;
-        targetId = currentWeek.data?.id || null;
+        targetId = await resolveCurrentWeekId(db);
       }
 
       if (!targetId) {
         return res.status(400).json({ error: 'Missing current week id' });
       }
 
-      const { error } = await db.from('coupon_weeks').update(fields).eq('id', targetId);
+      const weekFields = { ...fields };
+
+      if ('title' in weekFields) {
+        weekFields.title = String(weekFields.title || '').trim();
+      }
+
+      if (!weekFields.title) {
+        return res.status(400).json({ error: 'Week title is blank. Reload the admin page before saving week settings.' });
+      }
+
+      if ('subtitle' in weekFields) {
+        weekFields.subtitle = String(weekFields.subtitle || '').trim();
+      }
+
+      const { error } = await db.from('coupon_weeks').update(weekFields).eq('id', targetId);
       if (error) throw error;
     }
     if (action === 'replaceFixtures') {
       const { week_id, fixtures } = payload;
-      if (!week_id) return res.status(400).json({ error: 'Missing week id' });
+      const targetWeekId = week_id || (await resolveCurrentWeekId(db));
+      if (!targetWeekId) return res.status(400).json({ error: 'Missing week id' });
       if (!Array.isArray(fixtures) || fixtures.length === 0) {
         return res.status(400).json({ error: 'No fixtures supplied' });
       }
 
       const rows = fixtures.map((f, i) => ({
-        week_id,
+        week_id: targetWeekId,
         sort_order: i + 1,
         home_team: String(f.home_team || '').trim(),
         away_team: String(f.away_team || '').trim(),
@@ -213,7 +257,7 @@ export default async function handler(req, res) {
       const existingFixtures = await db
         .from('fixtures')
         .select('id, sort_order')
-        .eq('week_id', week_id)
+        .eq('week_id', targetWeekId)
         .order('sort_order');
       if (existingFixtures.error) throw existingFixtures.error;
 
@@ -318,7 +362,11 @@ export default async function handler(req, res) {
       if (error) throw error;
     }
     if (action === 'importEntry') {
-      const { error } = await db.from('entries').insert(payload);
+      const entry = {
+        ...payload,
+        week_id: payload?.week_id || (await resolveCurrentWeekId(db)),
+      };
+      const { error } = await db.from('entries').insert(entry);
       if (error) throw error;
     }
     if (action === 'importEntries') {
@@ -328,21 +376,23 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'No entries supplied' });
       }
 
-      const { error } = await db.from('entries').insert(rows);
+      const targetWeekId = rows.find(row => row.week_id)?.week_id || (await resolveCurrentWeekId(db));
+      const { error } = await db.from('entries').insert(rows.map(row => ({ ...row, week_id: targetWeekId })));
       if (error) throw error;
 
       return res.status(200).json({ ok: true, imported: rows.length });
     }
     if (action === 'newCoupon') {
       const { week_id, title, subtitle, saveHistoric } = payload;
-      if (!week_id) return res.status(400).json({ error: 'Missing week id' });
+      const targetWeekId = week_id || (await resolveCurrentWeekId(db));
+      if (!targetWeekId) return res.status(400).json({ error: 'Missing week id' });
 
-      const archive = await createArchive(db, week_id, saveHistoric);
+      const archive = await createArchive(db, targetWeekId, saveHistoric);
 
-      const deleteEntries = await db.from('entries').delete().eq('week_id', week_id);
+      const deleteEntries = await db.from('entries').delete().eq('week_id', targetWeekId);
       if (deleteEntries.error) throw deleteEntries.error;
 
-      const deleteFixtures = await db.from('fixtures').delete().eq('week_id', week_id);
+      const deleteFixtures = await db.from('fixtures').delete().eq('week_id', targetWeekId);
       if (deleteFixtures.error) throw deleteFixtures.error;
 
       const { error: weekError } = await db
@@ -351,13 +401,13 @@ export default async function handler(req, res) {
           title: title || 'DMI Coupon – New Coupon',
           subtitle: subtitle || '',
         })
-        .eq('id', week_id);
+        .eq('id', targetWeekId);
       if (weekError) throw weekError;
 
       const { error: settingsError } = await db
         .from('coupon_settings')
         .update({ entries_released: false })
-        .eq('week_id', week_id);
+        .eq('week_id', targetWeekId);
       if (settingsError) throw settingsError;
 
       return res.status(200).json({ ok: true, archive_id: archive.id });

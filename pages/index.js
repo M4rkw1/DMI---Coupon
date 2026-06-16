@@ -231,22 +231,15 @@ const formatArchiveDate = value => {
   });
 };
 
-const DEFAULT_RULES_TEMPLATE = `1)
-Entry is £10 (ENGLISH POUNDS / 10 EURO / 10 US$ / 200 NAM $ per sheet.
-Payment is preferred by Bank transfer if required
-2)
-Enter predicted score. One point will be awarded for correct result and three points awarded for correct score.
-3)
-In the case where there are multiple winners on the same points, the prize will be equally shared.
-4)
-Abandoned / postponed matches will become void and not count towards your final score.
-5)
-In the event of a match being a cup game the score after normal 90 minutes plus stoppage time played will be used. Extra time will not be considered.
-6)
-Winner(s) takes all. All entry money collected is what will be paid out.
-7)
-Return sheets and entry fee to TECH OFFICE before the submission time as stated above.
-Entries can be submitted via email / WhatsApp if preferred`;
+const DEFAULT_RULES_TEMPLATE = `Entry Fee: £10 / €10 / $10 / N$200 per sheet.
+
+1. Payment is preferred via Bank Transfer or Revolut.
+2. Submit your predicted scores. One point is awarded for a correct result, and three points are awarded for a correct score.
+3. In the event of a tie, the prize pool will be divided equally among the winners.
+4. Abandoned or postponed matches will be voided and will not count toward your final score.
+5. For cup matches, the score at the end of normal time (90 minutes plus stoppage time) will be used. Extra time will not be considered.
+6. The winner takes all. The entire prize pool consists of the total entry fees collected.
+7. If you are submitting an “Old School” entry, please hand in your completed sheet and entry fee to the Tech Office before the stated deadline. Alternatively, you can submit a photo of your sheet via email or WhatsApp.`;
 
 const defaultSettings = overrides => ({
   currency: 'GBP',
@@ -255,6 +248,18 @@ const defaultSettings = overrides => ({
   entries_released: false,
   ...overrides,
 });
+
+const parseRulesText = value => {
+  const text = String(value || DEFAULT_RULES_TEMPLATE).replace(/\r/g, '').trim();
+
+  if (!text) return [];
+
+  return text
+    .replace(/\n(?=\d+[.)]\s*)/g, '\n\n')
+    .split(/\n\s*\n/)
+    .map(rule => rule.replace(/^\s*\d+[.)]\s*/, '').trim())
+    .filter(Boolean);
+};
 
 function TeamBadge({ src, name, className = '' }) {
   if (!src) return null;
@@ -317,7 +322,11 @@ export default function Home() {
 
   const load = () =>
     fetch('/api/state')
-      .then(r => r.json())
+      .then(async r => {
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.error || `State load failed (${r.status})`);
+        return data;
+      })
       .then(data => {
         setState({
           week: data?.week || {},
@@ -329,7 +338,7 @@ export default function Home() {
       })
       .catch(e => {
         setMsg(e.message);
-        setState({
+        setState(current => current || {
           week: { id: null, title: 'DMI Coupon', subtitle: '' },
           fixtures: [],
           entries: [],
@@ -1119,14 +1128,12 @@ function WinnerBanner({ ranked = [], fixtures = [], pot = 0, settings = {} }) {
 }
 
 function OldSchool({ week, fixtures, settings = {}, maxPts, entryDeadline }) {
-  const rules = String(settings?.rules || DEFAULT_RULES_TEMPLATE)
-    .split(/\d+\)/)
-    .map(rule => rule.trim())
-    .filter(Boolean);
+  const rules = parseRulesText(settings?.rules);
   const fixturePrintFont = fixtures.length > 22 ? '8px' : fixtures.length > 18 ? '9px' : '10.5px';
   const fixtureBadgeSize = fixtures.length > 22 ? '12px' : fixtures.length > 18 ? '14px' : '16px';
+  const entryFee = `${sym(settings?.currency || 'GBP')}${settings?.entry_fee || 10}`;
   const deadlineText = entryDeadline ? entryDeadline.toLocaleString('en-GB') : 'TBC';
-  const sheetRules = rules.length ? rules : DEFAULT_RULES_TEMPLATE.split(/\d+\)/).map(rule => rule.trim()).filter(Boolean);
+  const sheetRules = rules.length ? rules : parseRulesText(DEFAULT_RULES_TEMPLATE);
   const printFileTitle = String(week?.title || 'DMI Football Coupon')
     .trim()
     .replace(/[\\/:*?"<>|]+/g, ' ')
@@ -1426,6 +1433,7 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
   const fixtures = Array.isArray(state.fixtures) ? state.fixtures : [];
   const archives = Array.isArray(state.archives) ? state.archives : [];
   const latestArchive = archives[0];
+  const currentWeekId = state.week?.id || settings.week_id || '';
   const gamesPlayed = fixtures.filter(isFinishedFixture).length;
   const unpaidEntries = ranked.filter(entry => !entry.paid);
 
@@ -1635,7 +1643,7 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
 
     setConfirmReplace(false);
     adminAction('replaceFixtures', {
-      week_id: state.week.id,
+      week_id: currentWeekId || undefined,
       fixtures: parsed.fixtures,
     });
   }
@@ -2092,7 +2100,7 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
     runAdminAction(
       'newCoupon',
       {
-        week_id: state.week.id,
+        week_id: currentWeekId || undefined,
         title: newCoupon.title,
         subtitle: newCoupon.subtitle,
         saveHistoric: newCoupon.saveHistoric,
@@ -2217,7 +2225,7 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
         'Content-Type': 'application/json',
         'x-admin-pass': admin,
       },
-      body: JSON.stringify({ week_id: state.week.id }),
+      body: JSON.stringify({ week_id: currentWeekId || undefined }),
     });
     const json = await res.json().catch(() => ({}));
 
@@ -2288,7 +2296,7 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
       return {
         rowNumber,
         entry: {
-          week_id: state.week.id,
+          week_id: currentWeekId || undefined,
           name: parts[0],
           department: parts[1],
           predictions,
@@ -2416,7 +2424,25 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
             onChange={e => setWeek({ ...week, subtitle: e.target.value })}
           />
 
-          <button onClick={() => adminAction('saveWeek', week)}>Save Week</button>
+          <button
+            onClick={() => {
+              const title = String(week.title || '').trim();
+
+              if (!title) {
+                setMsg('Week title is blank. Reload the admin page before saving week settings.');
+                return;
+              }
+
+              adminAction('saveWeek', {
+                ...week,
+                id: currentWeekId || week.id,
+                title,
+                subtitle: String(week.subtitle || '').trim(),
+              });
+            }}
+          >
+            Save Week
+          </button>
 
           <h3>Coupon Settings</h3>
 
@@ -2474,6 +2500,7 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
             onClick={() =>
               adminAction('saveSettings', {
                 ...settings,
+                week_id: currentWeekId || undefined,
                 rules: settings.rules || DEFAULT_RULES_TEMPLATE,
               })
             }

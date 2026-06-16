@@ -1,9 +1,17 @@
-import { supabasePublic } from '../../lib/supabase';
+import { supabaseAdmin, supabasePublic } from '../../lib/supabase';
+
+function stateDb() {
+  try {
+    return supabaseAdmin();
+  } catch {
+    return supabasePublic();
+  }
+}
 
 export default async function handler(req, res) {
   try {
-    const db = supabasePublic();
-    const { data: week, error: wErr } = await db
+    const db = stateDb();
+    let { data: week, error: wErr } = await db
       .from('coupon_weeks')
       .select('*')
       .eq('is_current', true)
@@ -11,6 +19,19 @@ export default async function handler(req, res) {
       .limit(1)
       .maybeSingle();
     if (wErr) throw wErr;
+
+    if (!week?.id) {
+      const latest = await db
+        .from('coupon_weeks')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (latest.error) throw latest.error;
+      week = latest.data;
+    }
+
     if (!week?.id) throw new Error('No current coupon week found');
     const weekId = week.id;
     const [fixtures, entries, settings, archives] = await Promise.all([
