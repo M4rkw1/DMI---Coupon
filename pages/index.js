@@ -1453,6 +1453,7 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
   const [week, setWeek] = useState(mergeWeekDraft({}, state.week || {}));
   const fixtures = Array.isArray(state.fixtures) ? state.fixtures : [];
   const archives = Array.isArray(state.archives) ? state.archives : [];
+  const historicArchives = archives.filter(archive => archive.saved_as_historic);
   const latestArchive = archives[0];
   const currentWeekId = state.week?.id || settings.week_id || '';
   const gamesPlayed = fixtures.filter(isFinishedFixture).length;
@@ -1469,6 +1470,7 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
     saveHistoric: true,
   });
   const [confirmNewCoupon, setConfirmNewCoupon] = useState(false);
+  const [confirmDeleteArchiveId, setConfirmDeleteArchiveId] = useState('');
   const [editingEntryId, setEditingEntryId] = useState(null);
   const [entryDraft, setEntryDraft] = useState(null);
   const [scoreDrafts, setScoreDrafts] = useState({});
@@ -2143,6 +2145,28 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
     );
   }
 
+  function deleteHistoricArchive(archive) {
+    const archiveId = archive?.id || '';
+
+    if (!archiveId) {
+      setMsg('Historic winner record is missing an archive id.');
+      return;
+    }
+
+    if (confirmDeleteArchiveId !== archiveId) {
+      setConfirmDeleteArchiveId(archiveId);
+      setMsg(`Confirm delete: remove ${archive.week_title || 'this historic winner page'} from Historic Winners.`);
+      return;
+    }
+
+    setConfirmDeleteArchiveId('');
+    runAdminAction(
+      'deleteArchive',
+      { archive_id: archiveId },
+      `Removed ${archive.week_title || 'historic winner page'} from Historic Winners.`
+    );
+  }
+
   function startEditEntry(entry) {
     setEditingEntryId(entry.id);
     setEntryDraft({
@@ -2569,6 +2593,39 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
           <button disabled={!latestArchive} onClick={restoreLatestArchive}>
             Revert Last New Coupon
           </button>
+
+          <h3>Historic Winners Admin</h3>
+          <p>View and remove saved winner pages from the Historic Winners section.</p>
+
+          <div className="archiveAdminList">
+            {historicArchives.length ? (
+              historicArchives.map(archive => {
+                const leaderboard = Array.isArray(archive.leaderboard) ? archive.leaderboard : [];
+                const winnerName = archive.winner_name || leaderboard[0]?.name || 'No winner recorded';
+                const winnerPoints = archive.winner_points ?? leaderboard[0]?.pts ?? 0;
+                const isConfirmingDelete = confirmDeleteArchiveId === archive.id;
+
+                return (
+                  <div className="archiveAdminItem" key={archive.id}>
+                    <div className="archiveAdminText">
+                      <strong>{archive.week_title || 'DMI Coupon'}</strong>
+                      <span>{archive.week_subtitle || formatArchiveDate(archive.created_at) || 'Historic winner page'}</span>
+                      <small>{winnerName} • {winnerPoints} pts</small>
+                    </div>
+
+                    <button
+                      className={isConfirmingDelete ? 'dangerButton' : ''}
+                      onClick={() => deleteHistoricArchive(archive)}
+                    >
+                      {isConfirmingDelete ? 'Confirm Remove' : 'Remove'}
+                    </button>
+                  </div>
+                );
+              })
+            ) : (
+              <div className="archiveAdminEmpty">No historic winner pages saved yet.</div>
+            )}
+          </div>
         </div>
 
         <div>

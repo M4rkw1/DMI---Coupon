@@ -477,6 +477,18 @@ export default async function handler(req, res) {
 
       return res.status(200).json({ ok: true, restored_archive_id: archive.id });
     }
+    if (action === 'deleteArchive') {
+      const archiveId = String(payload?.archive_id || '').trim();
+
+      if (!archiveId) {
+        return res.status(400).json({ error: 'Missing archive id' });
+      }
+
+      const { error } = await db.from('coupon_archives').delete().eq('id', archiveId);
+      if (error) throw error;
+
+      return res.status(200).json({ ok: true, deleted_archive_id: archiveId });
+    }
     res.status(200).json({ ok: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
 }

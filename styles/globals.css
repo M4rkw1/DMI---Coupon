@@ -1268,6 +1268,45 @@ th {
   color: white;
 }
 
+.archiveAdminList {
+  display: grid;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.archiveAdminItem {
+  align-items: center;
+  background: #f5f8fd;
+  border: 1px solid #d7e0ef;
+  border-radius: 12px;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  padding: 12px 14px;
+}
+
+.archiveAdminText {
+  display: grid;
+  gap: 4px;
+}
+
+.archiveAdminText strong {
+  color: #172755;
+}
+
+.archiveAdminText span,
+.archiveAdminText small,
+.archiveAdminEmpty {
+  color: #5e6f92;
+}
+
+.archiveAdminEmpty {
+  background: #f5f8fd;
+  border: 1px dashed #c8d3e6;
+  border-radius: 12px;
+  padding: 14px;
+}
+
 .fixturePreview {
   border: 1px solid #bcc8d9;
   border-radius: 12px;

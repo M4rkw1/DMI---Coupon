@@ -42,7 +42,7 @@ export default async function handler(req, res) {
         .from('coupon_archives')
         .select('id, week_title, week_subtitle, saved_as_historic, winner_name, winner_department, winner_points, leaderboard, created_at')
         .order('created_at', { ascending: false })
-        .limit(12)
+        .limit(100)
     ]);
     if (fixtures.error) throw fixtures.error;
     if (entries.error) throw entries.error;
