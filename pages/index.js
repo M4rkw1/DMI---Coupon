@@ -1518,11 +1518,12 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
 
     return {
       ...fixtureSearch,
+      all_fixtures_by_date: true,
       from: dates[0] || '',
       to: dates[dates.length - 1] || '',
       dates,
       leagues: '',
-      approved_competitions: DMI_APPROVED_COMPETITIONS.map(competition => competition.name),
+      approved_competitions: [],
       ...overrides,
     };
   }
@@ -1757,7 +1758,7 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
       return 0;
     }
 
-    const searchPayload = previewReady
+    const searchPayload = shouldUpdatePreview
       ? fixtureListSearchPayload(sourceFixtures)
       : listedFixtureSearchPayload();
 

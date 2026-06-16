@@ -348,7 +348,15 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { from, to, dates, leagues, season, approved_competitions } = req.body || {};
+    const {
+      from,
+      to,
+      dates,
+      leagues,
+      season,
+      approved_competitions,
+      all_fixtures_by_date,
+    } = req.body || {};
     const exactDates = Array.isArray(dates)
       ? [...new Set(dates.map(normaliseApiDate).filter(Boolean))]
       : [];
@@ -366,12 +374,19 @@ export default async function handler(req, res) {
     const approvedCompetitionCount = Array.isArray(approved_competitions)
       ? approved_competitions.length
       : DMI_APPROVED_COMPETITIONS.length;
-    const leagueResolution = await resolveLeagues({
-      apiKey,
-      leagues,
-      season,
-      approvedCompetitions: approved_competitions,
-    });
+    const searchAllFixturesByDate = Boolean(all_fixtures_by_date) && exactDates.length > 0;
+    const leagueResolution = searchAllFixturesByDate
+      ? {
+          leagues: [],
+          unresolved: [],
+          usingApprovedDefaults: false,
+        }
+      : await resolveLeagues({
+          apiKey,
+          leagues,
+          season,
+          approvedCompetitions: approved_competitions,
+        });
     const leagueDescriptors = leagueResolution.leagues;
 
     if (leagueResolution.usingApprovedDefaults && !leagueDescriptors.length) {
@@ -389,7 +404,9 @@ export default async function handler(req, res) {
     }
 
     let checkedDates = searchDates;
-    const batches = leagueDescriptors.length
+    const batches = searchAllFixturesByDate
+      ? [await fetchFixturesByDates({ apiKey, dates: searchDates })]
+      : leagueDescriptors.length
       ? await Promise.all(
           leagueDescriptors.flatMap(league =>
             searchDates.map(async date => {
@@ -440,6 +457,7 @@ export default async function handler(req, res) {
         resolved_league_ids: leagueDescriptors.map(league => league.id),
         unresolved_competitions: leagueResolution.unresolved,
         raw_fixture_count: rawFixtures.length,
+        search_mode: searchAllFixturesByDate ? 'all_fixtures_by_date' : 'league_filtered',
       },
     });
   } catch (e) {
