@@ -33,6 +33,12 @@ body {
   z-index: 1;
 }
 
+.appShell:not(.adminPage) .card,
+.appShell:not(.adminPage) .paper {
+  background: rgba(255, 255, 255, 0.86);
+  backdrop-filter: blur(1px);
+}
+
 header {
   position: sticky;
   top: 0;
