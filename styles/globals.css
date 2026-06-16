@@ -635,6 +635,10 @@ th {
   border: 1px solid #aaa;
 }
 
+.printQrWrap {
+  display: none;
+}
+
 .couponSheet {
   border: 0;
   max-width: 760px;
@@ -2666,16 +2670,19 @@ th {
     line-height: 1.08;
   }
 
-  .couponEntrantInfo .qrwrap {
-    gap: 8mm;
+  .couponEntrantInfo .printQrWrap {
+    display: flex;
+    gap: 26mm;
     justify-content: center;
     margin-top: 3mm;
   }
 
-  .couponEntrantInfo .qrwrap img {
+  .couponEntrantInfo .printQrWrap img {
+    background: #fff;
     border: 0;
-    height: 24mm;
-    width: 24mm;
+    height: 34mm;
+    object-fit: contain;
+    width: 34mm;
   }
 
   .couponEntrantInfo .summaryBox {

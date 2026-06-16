@@ -1085,13 +1085,9 @@ function OldSchool({ week, fixtures, settings = {}, maxPts, entryDeadline }) {
             <div className="line"></div>
           </div>
 
-          <div className="qrwrap">
-            {settings.whatsapp_qr_url && (
-              <img alt="WhatsApp QR" src={settings.whatsapp_qr_url} />
-            )}
-            {settings.payment_qr_url && (
-              <img alt="Payment QR" src={settings.payment_qr_url} />
-            )}
+          <div className="printQrWrap">
+            <img alt="WhatsApp QR" src="/whatsapp-qr.png" />
+            <img alt="Payment QR" src="/payment-qr.png" />
           </div>
 
           <div className="summaryBox">
