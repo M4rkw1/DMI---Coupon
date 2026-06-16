@@ -16,7 +16,7 @@ body {
 
 .appShell::before {
   background:
-    linear-gradient(rgba(238, 242, 247, 0.82), rgba(238, 242, 247, 0.88)),
+    linear-gradient(rgba(238, 242, 247, 0.42), rgba(238, 242, 247, 0.58)),
     url('/dmi-background.jpeg') center / cover fixed;
   content: '';
   inset: 0;
@@ -33,6 +33,15 @@ body {
 .appShell > * {
   position: relative;
   z-index: 1;
+}
+
+.appShell:not(.adminPage) .card {
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(2px);
+}
+
+.appShell:not(.adminPage) .paper {
+  background: rgba(255, 255, 255, 0.92);
 }
 
 header {
