@@ -646,12 +646,12 @@ th {
   grid-template-columns: 1fr;
 }
 
-.officeCopy,
+.couponBox.officeCopy,
 .couponAdminInfo {
   display: none;
 }
 
-.entrantCopy {
+.couponBox.entrantCopy {
   display: flex;
 }
 
@@ -2559,13 +2559,17 @@ th {
     grid-template-columns: 1fr 1fr;
   }
 
-  .officeCopy,
-  .entrantCopy {
+  .couponBox.officeCopy,
+  .couponBox.entrantCopy {
     display: flex;
   }
 
   .couponAdminInfo {
     display: block;
+  }
+
+  .screenCouponRules {
+    display: none;
   }
 
   .couponBox {

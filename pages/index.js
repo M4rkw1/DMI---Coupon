@@ -1111,6 +1111,19 @@ function OldSchool({ week, fixtures, settings = {}, maxPts, entryDeadline }) {
               <strong>Entry Fee:</strong> {entryFee}
             </div>
           </div>
+
+          <div className="couponRules screenCouponRules">
+            <h3>Rules</h3>
+
+            <div className="rulesBox">
+              {sheetRules.map((rule, index) => (
+                <div key={`screen-${index}-${rule}`} className="ruleItem">
+                  <strong>{index + 1}.</strong>
+                  <span>{rule}</span>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     </section>
