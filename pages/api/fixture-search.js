@@ -3,6 +3,7 @@ import { DMI_APPROVED_COMPETITIONS } from '../../lib/dmiCompetitions';
 
 const API_FOOTBALL_BASE_URL = 'https://v3.football.api-sports.io';
 const FOOTBALL_DATA_BASE_URL = 'https://api.football-data.org/v4';
+const THESPORTSDB_BASE_URL = 'https://www.thesportsdb.com/api/v1/json';
 const MAX_FIXTURE_SEARCH_DAYS = 7;
 const TEAM_NAME_ALIASES = new Map([
   ['ir iran', 'iran'],
@@ -58,6 +59,10 @@ function apiFootballUrl(path, params) {
 
 function footballDataUrl(path, params) {
   return `${FOOTBALL_DATA_BASE_URL}${path}?${params}`;
+}
+
+function theSportsDbUrl(apiKey, path, params) {
+  return `${THESPORTSDB_BASE_URL}/${encodeURIComponent(apiKey)}${path}?${params}`;
 }
 
 function formatUkKickoff(value) {
@@ -227,6 +232,57 @@ async function fetchFootballDataBadgeMap({ apiKey, from, to, teamNames = [] }) {
       badgeMap[awayKey] = awayBadge;
     }
   });
+
+  return badgeMap;
+}
+
+async function fetchTheSportsDbTeamsForLeague({ apiKey, leagueName }) {
+  if (!apiKey || !leagueName) return [];
+
+  const params = new URLSearchParams({ l: leagueName });
+  const response = await fetch(theSportsDbUrl(apiKey, '/search_all_teams.php', params));
+  const json = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error('TheSportsDB badge lookup failed.');
+  }
+
+  return Array.isArray(json.teams) ? json.teams : [];
+}
+
+async function fetchTheSportsDbBadgeMap({ apiKey, fixtures = [], teamNames = [] }) {
+  if (!apiKey || !fixtures.length || !teamNames.length) {
+    return {};
+  }
+
+  const wanted = new Set(teamNames.map(normaliseText).filter(Boolean));
+  const uniqueLeagues = [
+    ...new Set(
+      fixtures
+        .map(fixture => String(fixture.league_name || '').trim())
+        .filter(Boolean)
+    ),
+  ];
+
+  const badgeMap = {};
+
+  for (const leagueName of uniqueLeagues) {
+    const teams = await fetchTheSportsDbTeamsForLeague({ apiKey, leagueName });
+
+    teams.forEach(team => {
+      const candidates = [team?.strTeam, team?.strAlternate];
+      const badge = team?.strBadge || team?.strTeamBadge || '';
+
+      if (!badge) return;
+
+      candidates.forEach(name => {
+        const key = normaliseText(name);
+        if (key && wanted.has(key) && !badgeMap[key]) {
+          badgeMap[key] = badge;
+        }
+      });
+    });
+  }
 
   return badgeMap;
 }
@@ -612,13 +668,14 @@ export default async function handler(req, res) {
         String(a.home_team || '').localeCompare(String(b.home_team || ''))
     );
     const footballDataApiKey = process.env.FOOTBALL_DATA_API_KEY;
+    const theSportsDbApiKey = process.env.THESPORTSDB_API_KEY;
     const requestedTeamNames = Array.isArray(team_names)
       ? [...new Set(team_names.map(name => String(name || '').trim()).filter(Boolean))]
       : [];
     let teamBadges = teamBadgeMapFromFixtures(fixtures);
-    let badgeProvider = Object.keys(teamBadges).length ? 'api-football' : '';
-    let badgeProviderError = '';
-    const missingTeamNames = requestedTeamNames.filter(name => !teamBadges[normaliseText(name)]);
+    const badgeProviders = new Set(Object.keys(teamBadges).length ? ['api-football'] : []);
+    const badgeProviderErrors = [];
+    let missingTeamNames = requestedTeamNames.filter(name => !teamBadges[normaliseText(name)]);
 
     if (missingTeamNames.length && footballDataApiKey && checkedDates.length) {
       try {
@@ -634,10 +691,31 @@ export default async function handler(req, res) {
             ...footballDataBadges,
             ...teamBadges,
           };
-          badgeProvider = badgeProvider ? `${badgeProvider}, football-data.org` : 'football-data.org';
+          badgeProviders.add('football-data.org');
+          missingTeamNames = requestedTeamNames.filter(name => !teamBadges[normaliseText(name)]);
         }
       } catch (error) {
-        badgeProviderError = error.message || 'football-data.org badge lookup failed.';
+        badgeProviderErrors.push(error.message || 'football-data.org badge lookup failed.');
+      }
+    }
+
+    if (missingTeamNames.length && theSportsDbApiKey && fixtures.length) {
+      try {
+        const theSportsDbBadges = await fetchTheSportsDbBadgeMap({
+          apiKey: theSportsDbApiKey,
+          fixtures,
+          teamNames: missingTeamNames,
+        });
+
+        if (Object.keys(theSportsDbBadges).length) {
+          teamBadges = {
+            ...theSportsDbBadges,
+            ...teamBadges,
+          };
+          badgeProviders.add('TheSportsDB');
+        }
+      } catch (error) {
+        badgeProviderErrors.push(error.message || 'TheSportsDB badge lookup failed.');
       }
     }
 
@@ -652,8 +730,8 @@ export default async function handler(req, res) {
         raw_fixture_count: rawFixtures.length,
         blocked_dates: blockedDates,
         team_badges: teamBadges,
-        badge_provider: badgeProvider,
-        badge_provider_error: badgeProviderError,
+        badge_provider: [...badgeProviders].join(', '),
+        badge_provider_error: badgeProviderErrors.join(' '),
         search_mode: searchAllFixturesByDate ? 'all_fixtures_by_date' : 'league_filtered',
       },
     });
