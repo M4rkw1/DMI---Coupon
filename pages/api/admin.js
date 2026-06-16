@@ -129,8 +129,14 @@ export default async function handler(req, res) {
       let targetId = id;
 
       if (!targetId && week_id) {
-        const existing = await db.from('coupon_settings').select('id').eq('week_id', week_id).single();
-        if (existing.error && existing.error.code !== 'PGRST116') throw existing.error;
+        const existing = await db
+          .from('coupon_settings')
+          .select('id')
+          .eq('week_id', week_id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (existing.error) throw existing.error;
         targetId = existing.data?.id || null;
       }
 
@@ -163,7 +169,13 @@ export default async function handler(req, res) {
       let targetId = id;
 
       if (!targetId) {
-        const currentWeek = await db.from('coupon_weeks').select('id').eq('is_current', true).single();
+        const currentWeek = await db
+          .from('coupon_weeks')
+          .select('id')
+          .eq('is_current', true)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
         if (currentWeek.error) throw currentWeek.error;
         targetId = currentWeek.data?.id || null;
       }

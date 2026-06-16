@@ -3,13 +3,20 @@ import { supabasePublic } from '../../lib/supabase';
 export default async function handler(req, res) {
   try {
     const db = supabasePublic();
-    const { data: week, error: wErr } = await db.from('coupon_weeks').select('*').eq('is_current', true).single();
+    const { data: week, error: wErr } = await db
+      .from('coupon_weeks')
+      .select('*')
+      .eq('is_current', true)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
     if (wErr) throw wErr;
+    if (!week?.id) throw new Error('No current coupon week found');
     const weekId = week.id;
     const [fixtures, entries, settings, archives] = await Promise.all([
       db.from('fixtures').select('*').eq('week_id', weekId).order('sort_order'),
       db.from('entries').select('*').eq('week_id', weekId).order('created_at'),
-      db.from('coupon_settings').select('*').eq('week_id', weekId).single(),
+      db.from('coupon_settings').select('*').eq('week_id', weekId).limit(1).maybeSingle(),
       db
         .from('coupon_archives')
         .select('id, week_title, week_subtitle, saved_as_historic, winner_name, winner_department, winner_points, leaderboard, created_at')
@@ -26,7 +33,7 @@ export default async function handler(req, res) {
       week,
       fixtures: fixtures.data,
       entries: entries.data,
-      settings: settings.data,
+      settings: settings.data || { week_id: weekId },
       archives: archives.error ? [] : archives.data
     });
   } catch (e) {
