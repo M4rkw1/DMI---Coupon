@@ -387,7 +387,7 @@ async function adminAction(action, payload) {
   const nav = ['home', 'old school', 'enter coupon', 'leaderboard', 'historic winners', 'admin'];
 
   return (
-    <>
+    <div className={`appShell ${tab === 'admin' ? 'adminPage' : ''}`}>
       <header>
         <b>{week.title || 'DMI Coupon'}</b>
         <nav>
@@ -561,7 +561,7 @@ async function adminAction(action, payload) {
           </section>
         )}
       </main>
-    </>
+    </div>
   );
 }
 

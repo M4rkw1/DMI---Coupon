@@ -9,6 +9,32 @@ body {
   color: #14213d;
 }
 
+.appShell {
+  min-height: 100vh;
+  position: relative;
+}
+
+.appShell::before {
+  background:
+    linear-gradient(rgba(238, 242, 247, 0.82), rgba(238, 242, 247, 0.88)),
+    url('/dmi-background.jpeg') center / cover fixed;
+  content: '';
+  inset: 0;
+  opacity: 1;
+  pointer-events: none;
+  position: fixed;
+  z-index: 0;
+}
+
+.adminPage::before {
+  display: none;
+}
+
+.appShell > * {
+  position: relative;
+  z-index: 1;
+}
+
 header {
   position: sticky;
   top: 0;
@@ -194,6 +220,26 @@ th {
   margin: auto;
   border: 2px solid #174a8b;
   border-radius: 8px;
+}
+
+.paper.couponSheet {
+  overflow: hidden;
+  position: relative;
+}
+
+.paper.couponSheet::before {
+  background: url('/dmi-background.jpeg') center / cover no-repeat;
+  content: '';
+  inset: 0;
+  opacity: 0.08;
+  pointer-events: none;
+  position: absolute;
+  z-index: 0;
+}
+
+.paper.couponSheet > * {
+  position: relative;
+  z-index: 1;
 }
 
 .couponSheet {
@@ -2318,6 +2364,10 @@ th {
     display: none;
   }
 
+  .appShell::before {
+    display: none;
+  }
+
   body {
     background: white;
     margin: 0;
@@ -2483,7 +2533,13 @@ th {
     font-family: Arial, Helvetica, sans-serif;
     height: 287mm;
     padding: 1.5mm;
+    print-color-adjust: exact;
     width: 200mm;
+    -webkit-print-color-adjust: exact;
+  }
+
+  .paper.couponSheet::before {
+    opacity: 0.06;
   }
 
   .couponPrintGrid {
