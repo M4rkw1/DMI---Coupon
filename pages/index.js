@@ -231,6 +231,31 @@ const formatArchiveDate = value => {
   });
 };
 
+const DEFAULT_RULES_TEMPLATE = `1)
+Entry is £10 (ENGLISH POUNDS / 10 EURO / 10 US$ / 200 NAM $ per sheet.
+Payment is preferred by Bank transfer if required
+2)
+Enter predicted score. One point will be awarded for correct result and three points awarded for correct score.
+3)
+In the case where there are multiple winners on the same points, the prize will be equally shared.
+4)
+Abandoned / postponed matches will become void and not count towards your final score.
+5)
+In the event of a match being a cup game the score after normal 90 minutes plus stoppage time played will be used. Extra time will not be considered.
+6)
+Winner(s) takes all. All entry money collected is what will be paid out.
+7)
+Return sheets and entry fee to TECH OFFICE before the submission time as stated above.
+Entries can be submitted via email / WhatsApp if preferred`;
+
+const defaultSettings = overrides => ({
+  currency: 'GBP',
+  entry_fee: 10,
+  rules: DEFAULT_RULES_TEMPLATE,
+  entries_released: false,
+  ...overrides,
+});
+
 function TeamBadge({ src, name, className = '' }) {
   if (!src) return null;
 
@@ -298,7 +323,7 @@ export default function Home() {
           week: data?.week || {},
           fixtures: Array.isArray(data?.fixtures) ? data.fixtures : [],
           entries: Array.isArray(data?.entries) ? data.entries : [],
-          settings: data?.settings || {},
+          settings: defaultSettings(data?.settings || {}),
           archives: Array.isArray(data?.archives) ? data.archives : [],
         });
       })
@@ -308,12 +333,7 @@ export default function Home() {
           week: { id: null, title: 'DMI Coupon', subtitle: '' },
           fixtures: [],
           entries: [],
-          settings: {
-            currency: 'GBP',
-            entry_fee: 10,
-            rules: '',
-            entries_released: false,
-          },
+          settings: defaultSettings(),
           archives: [],
         });
       });
@@ -1099,21 +1119,14 @@ function WinnerBanner({ ranked = [], fixtures = [], pot = 0, settings = {} }) {
 }
 
 function OldSchool({ week, fixtures, settings = {}, maxPts, entryDeadline }) {
-  const rules = String(settings?.rules || '')
+  const rules = String(settings?.rules || DEFAULT_RULES_TEMPLATE)
     .split(/\d+\)/)
     .map(rule => rule.trim())
     .filter(Boolean);
   const fixturePrintFont = fixtures.length > 22 ? '8px' : fixtures.length > 18 ? '9px' : '10.5px';
   const fixtureBadgeSize = fixtures.length > 22 ? '12px' : fixtures.length > 18 ? '14px' : '16px';
-  const entryFee = `${sym(settings?.currency || 'GBP')}${settings?.entry_fee || 10}`;
   const deadlineText = entryDeadline ? entryDeadline.toLocaleString('en-GB') : 'TBC';
-  const sheetRules = rules.length
-    ? rules
-    : [
-        `Entry is ${entryFee} per sheet.`,
-        'Enter predicted score. One point for correct result and three points for correct score.',
-        'Winner takes the prize fund unless players are tied on points.',
-      ];
+  const sheetRules = rules.length ? rules : DEFAULT_RULES_TEMPLATE.split(/\d+\)/).map(rule => rule.trim()).filter(Boolean);
   const printFileTitle = String(week?.title || 'DMI Football Coupon')
     .trim()
     .replace(/[\\/:*?"<>|]+/g, ' ')
@@ -1408,7 +1421,7 @@ function HistoricWinners({ archives = [] }) {
 }
 
 function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, entriesImgRef, admin, load }) {
-  const [settings, setSettings] = useState(state.settings || {});
+  const [settings, setSettings] = useState(defaultSettings(state.settings || {}));
   const [week, setWeek] = useState(state.week || {});
   const fixtures = Array.isArray(state.fixtures) ? state.fixtures : [];
   const archives = Array.isArray(state.archives) ? state.archives : [];
@@ -1449,6 +1462,11 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
   const fixtureSearchTo = fixtureSearch.to || nextThursdayIsoDate(fixtureSearch.from);
 
   const [tsv, setTsv] = useState('');
+
+  useEffect(() => {
+    setSettings(defaultSettings(state.settings || {}));
+    setWeek(state.week || {});
+  }, [state]);
 
   useEffect(() => {
     setScoreDrafts(
@@ -2439,7 +2457,7 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
           </label>
 
           <textarea
-            value={settings.rules || ''}
+            value={settings.rules || DEFAULT_RULES_TEMPLATE}
             onChange={e => setSettings({ ...settings, rules: e.target.value })}
           />
 
@@ -2452,7 +2470,16 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
             Release entries on leaderboard
           </label>
 
-          <button onClick={() => adminAction('saveSettings', settings)}>Save Settings</button>
+          <button
+            onClick={() =>
+              adminAction('saveSettings', {
+                ...settings,
+                rules: settings.rules || DEFAULT_RULES_TEMPLATE,
+              })
+            }
+          >
+            Save Settings
+          </button>
 
           <h3>New Coupon</h3>
           <p>
