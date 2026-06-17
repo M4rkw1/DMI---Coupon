@@ -1619,10 +1619,6 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
   }, [selectedWeekKey]);
 
   useEffect(() => {
-    setFixtureText(fixturesToTsv(fixtures));
-  }, [selectedWeekKey, fixtures]);
-
-  useEffect(() => {
     setScoreDrafts(
       Object.fromEntries(
         fixtures.map(fixture => [
