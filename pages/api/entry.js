@@ -1,17 +1,22 @@
-import { supabasePublic } from '../../lib/supabase';
+import { supabaseAdmin } from '../../lib/supabase';
 
 function parseKickoff(kickoff) {
   if (!kickoff) return null;
 
-  const [datePart, timePart] = String(kickoff).trim().split(' ');
-  if (!datePart || !timePart) return null;
+  const value = String(kickoff).trim();
+  const [datePart, timePart] = value.split(' ');
 
-  const [day, month, year] = datePart.split('/').map(Number);
-  const [hour, minute] = timePart.split(':').map(Number);
+  if (datePart?.includes('/') && timePart) {
+    const [day, month, year] = datePart.split('/').map(Number);
+    const [hour, minute] = timePart.split(':').map(Number);
 
-  if (!day || !month || !year) return null;
+    if (day && month && year) {
+      return new Date(year, month - 1, day, hour || 0, minute || 0);
+    }
+  }
 
-  return new Date(year, month - 1, day, hour || 0, minute || 0);
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
 export default async function handler(req, res) {
@@ -24,7 +29,27 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Missing entry details' });
     }
 
-    const db = supabasePublic();
+    const db = supabaseAdmin();
+
+    const weekResult = await db
+      .from('coupon_weeks')
+      .select('id, is_published')
+      .eq('id', week_id)
+      .maybeSingle();
+
+    if (weekResult.error && !/is_published/i.test(weekResult.error.message || '')) {
+      throw weekResult.error;
+    }
+
+    if (!weekResult.error) {
+      if (!weekResult.data?.id) {
+        return res.status(404).json({ error: 'Coupon week not found' });
+      }
+
+      if (weekResult.data.is_published === false) {
+        return res.status(403).json({ error: 'Entries are not open for this coupon yet' });
+      }
+    }
 
     const { data: fixtures, error: fixtureError } = await db
       .from('fixtures')
