@@ -1,6 +1,15 @@
 import { supabaseAdmin, isAdmin } from '../../lib/supabase';
 
 const resultOf = (h, a) => (h > a ? 'H' : h < a ? 'A' : 'D');
+const DEFAULT_RULES_TEXT = `Entry Fee: £10 / €10 / $10 / N$200 per sheet.
+
+1. Payment is preferred via Bank Transfer or Revolut.
+2. Submit your predicted scores. One point is awarded for a correct result, and three points are awarded for a correct score.
+3. In the event of a tie, the prize pool will be divided equally among the winners.
+4. Abandoned or postponed matches will be voided and will not count toward your final score.
+5. For cup matches, the score at the end of normal time (90 minutes plus stoppage time) will be used. Extra time will not be considered.
+6. The winner takes all. The entire prize pool consists of the total entry fees collected.
+7. If you are submitting an “Old School” entry, please hand in your completed sheet and entry fee to the Tech Office before the stated deadline. Alternatively, you can submit a photo of your sheet via email or WhatsApp.`;
 const normaliseNullableScore = value =>
   value === null || value === undefined || value === '' ? null : Number(value);
 
@@ -60,6 +69,28 @@ async function insertFixtures(db, rows) {
   return result;
 }
 
+async function insertCouponWeek(db, fields) {
+  const result = await db.from('coupon_weeks').insert(fields).select().single();
+
+  if (result.error && /(calendar_year|calendar_week|is_published|special_name)/i.test(result.error.message || '')) {
+    const { calendar_year, calendar_week, is_published, special_name, ...fallbackFields } = fields;
+    return db.from('coupon_weeks').insert(fallbackFields).select().single();
+  }
+
+  return result;
+}
+
+async function updateCouponWeek(db, weekId, fields) {
+  const result = await db.from('coupon_weeks').update(fields).eq('id', weekId);
+
+  if (result.error && /(calendar_year|calendar_week|is_published|special_name)/i.test(result.error.message || '')) {
+    const { calendar_year, calendar_week, is_published, special_name, ...fallbackFields } = fields;
+    return db.from('coupon_weeks').update(fallbackFields).eq('id', weekId);
+  }
+
+  return result;
+}
+
 async function resolveCurrentWeekId(db) {
   const current = await db
     .from('coupon_weeks')
@@ -82,15 +113,12 @@ async function resolveCurrentWeekId(db) {
   if (latest.error) throw latest.error;
   if (latest.data?.id) return latest.data.id;
 
-  const created = await db
-    .from('coupon_weeks')
-    .insert({
-      title: 'DMI Coupon',
-      subtitle: '',
-      is_current: true,
-    })
-    .select('id')
-    .single();
+  const created = await insertCouponWeek(db, {
+    title: 'DMI Coupon',
+    subtitle: '',
+    is_current: true,
+    is_published: true,
+  });
 
   if (created.error) throw created.error;
   return created.data.id;
@@ -121,7 +149,7 @@ async function createArchive(db, weekId, saveHistoric) {
   const snapshot = await loadSnapshotData(db, weekId);
 
   if (!snapshot.fixtures.length && !snapshot.entries.length) {
-    throw new Error('Cannot start a new coupon because there are no fixtures or entries to archive.');
+    return null;
   }
 
   const ranked = rankedEntries(snapshot.entries, snapshot.fixtures);
@@ -202,7 +230,7 @@ export default async function handler(req, res) {
       }
     }
     if (action === 'saveWeek') {
-      const { id, ...fields } = payload;
+      const { id, created_at, ...fields } = payload;
       let targetId = id;
 
       if (!targetId) {
@@ -227,8 +255,55 @@ export default async function handler(req, res) {
         weekFields.subtitle = String(weekFields.subtitle || '').trim();
       }
 
-      const { error } = await db.from('coupon_weeks').update(weekFields).eq('id', targetId);
+      const { error } = await updateCouponWeek(db, targetId, weekFields);
       if (error) throw error;
+    }
+    if (action === 'createWeek') {
+      const calendarYear = Number(payload?.calendar_year || new Date().getFullYear());
+      const calendarWeek = Number(payload?.calendar_week || 1);
+      const specialName = String(payload?.special_name || '').trim();
+      const title = String(payload?.title || specialName || `DMI Coupon Week ${calendarWeek}`).trim();
+      const subtitle = String(payload?.subtitle || '').trim();
+      const created = await insertCouponWeek(db, {
+        title,
+        subtitle,
+        calendar_year: calendarYear,
+        calendar_week: calendarWeek,
+        special_name: specialName,
+        is_current: false,
+        is_published: true,
+      });
+
+      if (created.error) throw created.error;
+
+      const settings = await db.from('coupon_settings').insert({
+        week_id: created.data.id,
+        rules: DEFAULT_RULES_TEXT,
+      });
+      if (settings.error) throw settings.error;
+
+      return res.status(200).json({ ok: true, week: created.data });
+    }
+    if (action === 'activateWeek') {
+      const targetWeekId = String(payload?.week_id || '').trim();
+      if (!targetWeekId) return res.status(400).json({ error: 'Missing week id to activate' });
+
+      const currentWeekId = await resolveCurrentWeekId(db);
+
+      if (currentWeekId && currentWeekId !== targetWeekId) {
+        await createArchive(db, currentWeekId, payload?.saveHistoric !== false);
+      }
+
+      const unsetCurrent = await db.from('coupon_weeks').update({ is_current: false }).neq('id', targetWeekId);
+      if (unsetCurrent.error) throw unsetCurrent.error;
+
+      const setCurrent = await updateCouponWeek(db, targetWeekId, {
+        is_current: true,
+        is_published: true,
+      });
+      if (setCurrent.error) throw setCurrent.error;
+
+      return res.status(200).json({ ok: true, active_week_id: targetWeekId });
     }
     if (action === 'replaceFixtures') {
       const { week_id, fixtures } = payload;
@@ -442,7 +517,7 @@ export default async function handler(req, res) {
         .eq('week_id', targetWeekId);
       if (settingsError) throw settingsError;
 
-      return res.status(200).json({ ok: true, archive_id: archive.id });
+      return res.status(200).json({ ok: true, archive_id: archive?.id || null });
     }
     if (action === 'restoreArchive') {
       const archiveId = payload?.archive_id;

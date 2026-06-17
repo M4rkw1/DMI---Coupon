@@ -1047,6 +1047,49 @@ th {
   min-height: 170px;
 }
 
+.couponWeekManager {
+  background: #f8fbff;
+  border: 1px solid #bcc8d9;
+  border-radius: 12px;
+  display: grid;
+  gap: 10px;
+  margin-bottom: 18px;
+  padding: 12px;
+}
+
+.couponWeekManager label {
+  color: #46618a;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.couponWeekStatus {
+  background: #fff;
+  border: 1px solid #e5ebf4;
+  border-radius: 10px;
+  display: grid;
+  gap: 4px;
+  padding: 10px;
+}
+
+.couponWeekStatus span {
+  color: #46618a;
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.couponWeekCreate {
+  border-top: 1px solid #e5ebf4;
+  display: grid;
+  gap: 10px;
+  margin-top: 4px;
+  padding-top: 10px;
+}
+
+.couponWeekCreate h4 {
+  margin: 0;
+}
+
 .fixtureSearchPanel {
   background: #f8fbff;
   border: 1px solid #bcc8d9;

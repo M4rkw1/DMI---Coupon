@@ -5,15 +5,35 @@ create table if not exists coupon_weeks (
   title text not null default 'DMI Coupon',
   subtitle text default '',
   is_current boolean not null default false,
+  is_published boolean not null default true,
+  calendar_year int,
+  calendar_week int,
+  special_name text default '',
   created_at timestamptz default now()
 );
+
+alter table coupon_weeks add column if not exists is_published boolean not null default true;
+alter table coupon_weeks add column if not exists calendar_year int;
+alter table coupon_weeks add column if not exists calendar_week int;
+alter table coupon_weeks add column if not exists special_name text default '';
+
+create index if not exists coupon_weeks_calendar_idx
+  on coupon_weeks(calendar_year, calendar_week);
 
 create table if not exists coupon_settings (
   id uuid primary key default gen_random_uuid(),
   week_id uuid references coupon_weeks(id) on delete cascade,
   currency text default 'GBP',
   entry_fee numeric default 10,
-  rules text default '1 point for correct result. 3 points for correct score. Highest points wins.',
+  rules text default 'Entry Fee: £10 / €10 / $10 / N$200 per sheet.
+
+1. Payment is preferred via Bank Transfer or Revolut.
+2. Submit your predicted scores. One point is awarded for a correct result, and three points are awarded for a correct score.
+3. In the event of a tie, the prize pool will be divided equally among the winners.
+4. Abandoned or postponed matches will be voided and will not count toward your final score.
+5. For cup matches, the score at the end of normal time (90 minutes plus stoppage time) will be used. Extra time will not be considered.
+6. The winner takes all. The entire prize pool consists of the total entry fees collected.
+7. If you are submitting an “Old School” entry, please hand in your completed sheet and entry fee to the Tech Office before the stated deadline. Alternatively, you can submit a photo of your sheet via email or WhatsApp.',
   entries_released boolean default false,
   timezone_label text default 'UK time only',
   timezone_offset_minutes int default 0,

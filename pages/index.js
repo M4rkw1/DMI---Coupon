@@ -45,6 +45,30 @@ const nextThursdayIsoDate = value => {
   date.setUTCDate(date.getUTCDate() + daysUntilThursday);
   return date.toISOString().slice(0, 10);
 };
+const isoWeekInfo = (input = new Date()) => {
+  const date = new Date(Date.UTC(input.getFullYear(), input.getMonth(), input.getDate()));
+  const day = date.getUTCDay() || 7;
+  date.setUTCDate(date.getUTCDate() + 4 - day);
+  const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+  const week = Math.ceil(((date - yearStart) / 86400000 + 1) / 7);
+
+  return { year: date.getUTCFullYear(), week };
+};
+const weekDisplayName = week => {
+  if (!week?.id) return 'No coupon week selected';
+
+  const title = week.title || 'DMI Coupon';
+  const bits = [];
+
+  if (week.calendar_year && week.calendar_week) {
+    bits.push(`${week.calendar_year} Week ${week.calendar_week}`);
+  }
+
+  if (week.is_current) bits.push('Live leaderboard');
+  if (week.is_published === false) bits.push('Draft');
+
+  return bits.length ? `${title} (${bits.join(' • ')})` : title;
+};
 const TEAM_NAME_ALIASES = new Map([
   ['ir iran', 'iran'],
   ['iran', 'iran'],
@@ -354,6 +378,13 @@ export default function Home() {
           fixtures: Array.isArray(data?.fixtures) ? data.fixtures : [],
           entries: Array.isArray(data?.entries) ? data.entries : [],
           settings: defaultSettings(data?.settings || {}),
+          entryWeek: data?.entryWeek || data?.week || {},
+          entryFixtures: Array.isArray(data?.entryFixtures) ? data.entryFixtures : Array.isArray(data?.fixtures) ? data.fixtures : [],
+          entrySettings: defaultSettings(data?.entrySettings || data?.settings || {}),
+          weeks: Array.isArray(data?.weeks) ? data.weeks : [],
+          fixturesByWeek: data?.fixturesByWeek || {},
+          entriesByWeek: data?.entriesByWeek || {},
+          settingsByWeek: data?.settingsByWeek || {},
           archives: Array.isArray(data?.archives) ? data.archives : [],
         });
       })
@@ -364,6 +395,13 @@ export default function Home() {
           fixtures: [],
           entries: [],
           settings: defaultSettings(),
+          entryWeek: { id: null, title: 'DMI Coupon', subtitle: '' },
+          entryFixtures: [],
+          entrySettings: defaultSettings(),
+          weeks: [],
+          fixturesByWeek: {},
+          entriesByWeek: {},
+          settingsByWeek: {},
           archives: [],
         });
       });
@@ -434,15 +472,24 @@ async function validateAdminPassword() {
     );
   }
 
-  const { week = {}, fixtures = [], settings = {}, entries = [], archives = [] } = state || {};
+  const {
+    week = {},
+    fixtures = [],
+    settings = {},
+    entries = [],
+    archives = [],
+    entryWeek = week,
+    entryFixtures = fixtures,
+    entrySettings = settings,
+  } = state || {};
 
   const maxPts = fixtures.length * 3;
   const stake = Number(settings?.entry_fee || 10);
   const pot = entries.length * stake;
 
-  const entryDeadline = entryDeadlineFor(fixtures);
+  const entryDeadline = entryDeadlineFor(entryFixtures);
 
-  const entriesOpen = entryDeadline ? now < entryDeadline : true;
+  const entriesOpen = entryFixtures.length > 0 && (entryDeadline ? now < entryDeadline : true);
 
   const countdownMs = entryDeadline ? entryDeadline.getTime() - now.getTime() : null;
 
@@ -497,7 +544,7 @@ async function adminAction(action, payload) {
     const r = await fetch('/api/entry', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...form, week_id: week.id }),
+      body: JSON.stringify({ ...form, week_id: entryWeek.id }),
     });
 
     const j = await r.json();
@@ -518,7 +565,7 @@ async function adminAction(action, payload) {
   return (
     <div className={`appShell ${tab === 'admin' ? 'adminPage' : ''}`}>
       <header>
-        <b>{week.title || 'DMI Coupon'}</b>
+        <b>{entryWeek?.title || week.title || 'DMI Coupon'}</b>
         <nav>
           {nav.map(n => (
             <button
@@ -539,19 +586,18 @@ async function adminAction(action, payload) {
 
         {tab === 'home' && (
           <section className="card">
-            <h1>{week.title || 'DMI Coupon'}</h1>
-            <p>{week.subtitle}</p>
+            <h1>{entryWeek?.title || 'DMI Coupon'}</h1>
+            <p>{entryWeek?.subtitle}</p>
 
             <div className="stats">
-              <b>{fixtures.length}</b> fixtures
-              <b>{entries.length}</b> entries
-              <b>{entries.filter(e => e.paid).length}</b> paid
-              <b>{maxPts}</b> max points
+              <b>{entryFixtures.length}</b> fixtures
+              <b>{entryFixtures.length * 3}</b> max points
+              <b>{week.title || 'DMI Coupon'}</b> leaderboard week
               <b>
-                {sym(settings?.currency || 'USD')}
-                {pot}
+                {sym(entrySettings?.currency || 'USD')}
+                {entrySettings?.entry_fee || 10}
               </b>{' '}
-              pot
+              entry
             </div>
 
             {entryDeadline && (
@@ -563,7 +609,7 @@ async function adminAction(action, payload) {
             )}
 
             <div className="homeRulesBlock">
-              <p style={{ whiteSpace: 'pre-line' }}>{settings?.rules}</p>
+              <p style={{ whiteSpace: 'pre-line' }}>{entrySettings?.rules}</p>
 
               <div className="homeQrWrap">
                 <img alt="WhatsApp QR" src="/whatsapp-qr.png" />
@@ -574,10 +620,10 @@ async function adminAction(action, payload) {
 
         {tab === 'old school' && (
           <OldSchool
-            week={week}
-            fixtures={fixtures}
-            settings={settings}
-            maxPts={maxPts}
+            week={entryWeek}
+            fixtures={entryFixtures}
+            settings={entrySettings}
+            maxPts={entryFixtures.length * 3}
             entryDeadline={entryDeadline}
           />
         )}
@@ -611,10 +657,10 @@ async function adminAction(action, payload) {
                   </div>
 
                   <FixtureInputs
-                    fixtures={fixtures}
+                    fixtures={entryFixtures}
                     predictions={form.predictions}
                     setPredictions={p => setForm({ ...form, predictions: p })}
-                    settings={settings}
+                    settings={entrySettings}
                   />
 
                   {entryDeadline && <p>Entries close: {entryDeadline.toLocaleString('en-GB')}</p>}
@@ -1455,15 +1501,62 @@ function HistoricWinners({ archives = [] }) {
 }
 
 function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, entriesImgRef, admin, load }) {
-  const [settings, setSettings] = useState(mergeSettingsDraft({}, state.settings || {}));
-  const [week, setWeek] = useState(mergeWeekDraft({}, state.week || {}));
-  const fixtures = Array.isArray(state.fixtures) ? state.fixtures : [];
+  const allWeeks = Array.isArray(state.weeks) && state.weeks.length
+    ? state.weeks
+    : [state.week].filter(Boolean);
+  const defaultAdminWeekId = state.entryWeek?.id || state.week?.id || allWeeks[0]?.id || '';
+  const [selectedWeekId, setSelectedWeekId] = useState(defaultAdminWeekId);
+  const selectedWeek =
+    allWeeks.find(item => item.id === selectedWeekId) ||
+    allWeeks.find(item => item.id === defaultAdminWeekId) ||
+    state.week ||
+    {};
+  const selectedWeekKey = selectedWeek?.id || selectedWeekId || '';
+  const fixturesByWeek = state.fixturesByWeek || {};
+  const settingsByWeek = state.settingsByWeek || {};
+  const selectedWeekFixtures =
+    (selectedWeekKey && Array.isArray(fixturesByWeek[selectedWeekKey])
+      ? fixturesByWeek[selectedWeekKey]
+      : selectedWeekKey === state.week?.id
+        ? state.fixtures
+        : []) || [];
+  const entriesByWeek = state.entriesByWeek || {};
+  const selectedWeekEntries =
+    (selectedWeekKey && Array.isArray(entriesByWeek[selectedWeekKey])
+      ? entriesByWeek[selectedWeekKey]
+      : selectedWeekKey === state.week?.id
+        ? state.entries
+        : []) || [];
+  const selectedWeekSettings =
+    (selectedWeekKey && settingsByWeek[selectedWeekKey]) ||
+    (selectedWeekKey === state.week?.id ? state.settings : {}) ||
+    {};
+  const [settings, setSettings] = useState(mergeSettingsDraft({}, selectedWeekSettings));
+  const [week, setWeek] = useState(mergeWeekDraft({}, selectedWeek));
+  const fixtures = Array.isArray(selectedWeekFixtures) ? selectedWeekFixtures : [];
   const archives = Array.isArray(state.archives) ? state.archives : [];
   const historicArchives = archives.filter(archive => archive.saved_as_historic);
   const latestArchive = archives[0];
-  const currentWeekId = state.week?.id || settings.week_id || '';
+  const activeWeekId = state.week?.id || '';
+  const currentWeekId = selectedWeekKey || settings.week_id || activeWeekId || '';
+  const activeWeekLabel = state.week?.title || 'DMI Coupon';
+  const editingActiveWeek = currentWeekId && currentWeekId === activeWeekId;
+  const calendarDefaults = isoWeekInfo();
   const gamesPlayed = fixtures.filter(isFinishedFixture).length;
-  const unpaidEntries = ranked.filter(entry => !entry.paid);
+  const activeGamesPlayed = (state.fixtures || []).filter(isFinishedFixture).length;
+  const selectedRanked = [...selectedWeekEntries]
+    .map(entry => ({
+      ...entry,
+      pts: fixtures.reduce((sum, fixture) => sum + points(entry.predictions?.[fixture.id], fixture), 0),
+      exact: fixtures.filter(fixture => points(entry.predictions?.[fixture.id], fixture) === 3).length,
+    }))
+    .sort(
+      (a, b) =>
+        b.pts - a.pts ||
+        b.exact - a.exact ||
+        String(a.name || '').localeCompare(String(b.name || ''))
+    );
+  const activeUnpaidEntries = ranked.filter(entry => !entry.paid);
 
   const [fixtureText, setFixtureText] = useState(fixturesToTsv(fixtures));
   const [fixturePreview, setFixturePreview] = useState(null);
@@ -1475,6 +1568,13 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
     subtitle: '',
     saveHistoric: true,
   });
+  const [newWeek, setNewWeek] = useState({
+    calendar_year: calendarDefaults.year,
+    calendar_week: calendarDefaults.week,
+    special_name: '',
+    subtitle: '',
+  });
+  const [confirmActivateWeekId, setConfirmActivateWeekId] = useState('');
   const [confirmNewCoupon, setConfirmNewCoupon] = useState(false);
   const [confirmDeleteArchiveId, setConfirmDeleteArchiveId] = useState('');
   const [editingEntryId, setEditingEntryId] = useState(null);
@@ -1502,9 +1602,25 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
   const [tsv, setTsv] = useState('');
 
   useEffect(() => {
-    setSettings(current => mergeSettingsDraft(current, state.settings || {}));
-    setWeek(current => mergeWeekDraft(current, state.week || {}));
-  }, [state]);
+    if (!selectedWeekId || !allWeeks.some(item => item.id === selectedWeekId)) {
+      setSelectedWeekId(defaultAdminWeekId);
+    }
+  }, [allWeeks, defaultAdminWeekId, selectedWeekId]);
+
+  useEffect(() => {
+    setSettings(mergeSettingsDraft({}, selectedWeekSettings || { week_id: selectedWeekKey }));
+    setWeek(mergeWeekDraft({}, selectedWeek || {}));
+    setFixtureText(fixturesToTsv(fixtures));
+    setFixturePreview(null);
+    setFixtureApiMeta(null);
+    setConfirmReplace(false);
+    setConfirmClearResults(false);
+    setConfirmActivateWeekId('');
+  }, [selectedWeekKey]);
+
+  useEffect(() => {
+    setFixtureText(fixturesToTsv(fixtures));
+  }, [selectedWeekKey, fixtures]);
 
   useEffect(() => {
     setScoreDrafts(
@@ -2158,8 +2274,71 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
     return true;
   }
 
+  async function createCouponWeek() {
+    const calendarWeek = Number(newWeek.calendar_week || 0);
+    const calendarYear = Number(newWeek.calendar_year || 0);
+
+    if (!calendarYear || !calendarWeek) {
+      setMsg('Enter a calendar year and week number before creating a coupon.');
+      return;
+    }
+
+    const specialName = String(newWeek.special_name || '').trim();
+    const title = specialName || `DMI Coupon Week ${calendarWeek}`;
+    const created = await runAdminAction(
+      'createWeek',
+      {
+        calendar_year: calendarYear,
+        calendar_week: calendarWeek,
+        special_name: specialName,
+        title,
+        subtitle: String(newWeek.subtitle || '').trim(),
+      },
+      `Created ${title}.`
+    );
+
+    if (created) {
+      setNewWeek(current => ({
+        ...current,
+        calendar_week: Number(current.calendar_week || 0) + 1,
+        special_name: '',
+        subtitle: '',
+      }));
+    }
+  }
+
+  async function activateSelectedWeek() {
+    if (!currentWeekId) {
+      setMsg('Select a coupon week before making it live.');
+      return;
+    }
+
+    if (editingActiveWeek) {
+      setMsg(`${week.title || 'This coupon'} is already the live leaderboard week.`);
+      return;
+    }
+
+    if (confirmActivateWeekId !== currentWeekId) {
+      setConfirmActivateWeekId(currentWeekId);
+      setMsg(
+        `Confirm go live: this will archive ${activeWeekLabel}, save its historic winners snapshot, and make ${week.title || 'the selected coupon'} the live leaderboard.`
+      );
+      return;
+    }
+
+    setConfirmActivateWeekId('');
+    await runAdminAction(
+      'activateWeek',
+      {
+        week_id: currentWeekId,
+        saveHistoric: true,
+      },
+      `${week.title || 'Selected coupon'} is now the live leaderboard week.`
+    );
+  }
+
   function prepareNewCoupon() {
-    const entryCount = state.entries?.length || 0;
+    const entryCount = selectedWeekEntries.length;
 
     if (!fixtures.length && !entryCount) {
       setConfirmNewCoupon(false);
@@ -2427,7 +2606,7 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
   }
 
   function exportEntriesTsv() {
-    if (!ranked.length) {
+    if (!selectedRanked.length) {
       setMsg('No submitted entries to export yet.');
       return;
     }
@@ -2440,7 +2619,7 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
       'Payment Method',
       'Points',
     ].join('\t');
-    const body = entriesToTsv(ranked, fixtures);
+    const body = entriesToTsv(selectedRanked, fixtures);
     const blob = new Blob([`${header}\n${body}`], { type: 'text/tab-separated-values;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -2455,7 +2634,7 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
     link.click();
     link.remove();
     URL.revokeObjectURL(url);
-    setMsg(`Exported ${ranked.length} entr${ranked.length === 1 ? 'y' : 'ies'} to TSV.`);
+    setMsg(`Exported ${selectedRanked.length} entr${selectedRanked.length === 1 ? 'y' : 'ies'} to TSV.`);
   }
 
   const fixtureSearchGroups = fixtureSearchResults.reduce((groups, fixture) => {
@@ -2513,6 +2692,82 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
     <div>
       <div className="adminGrid">
         <div>
+          <h3>Coupon Weeks</h3>
+
+          <div className="couponWeekManager">
+            <label>
+              Editing coupon week
+              <select
+                value={currentWeekId}
+                onChange={e => {
+                  setSelectedWeekId(e.target.value);
+                  setConfirmNewCoupon(false);
+                }}
+              >
+                {allWeeks.map(item => (
+                  <option key={item.id} value={item.id}>
+                    {weekDisplayName(item)}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <div className="couponWeekStatus">
+              <strong>{editingActiveWeek ? 'Live leaderboard week' : 'Staged / future coupon'}</strong>
+              <span>
+                Public leaderboard is using <b>{activeWeekLabel}</b>. Entries can still be prepared
+                against a staged coupon before it goes live.
+              </span>
+            </div>
+
+            <button
+              className={confirmActivateWeekId === currentWeekId ? 'dangerButton' : ''}
+              disabled={!currentWeekId || editingActiveWeek}
+              onClick={activateSelectedWeek}
+            >
+              {confirmActivateWeekId === currentWeekId ? 'Confirm Make Live' : 'Make Selected Week Live'}
+            </button>
+
+            <div className="couponWeekCreate">
+              <h4>Create Future Coupon</h4>
+              <div className="grid2">
+                <label>
+                  Calendar year
+                  <input
+                    type="number"
+                    value={newWeek.calendar_year}
+                    onChange={e => setNewWeek({ ...newWeek, calendar_year: e.target.value })}
+                  />
+                </label>
+
+                <label>
+                  Calendar week
+                  <input
+                    type="number"
+                    min="1"
+                    max="53"
+                    value={newWeek.calendar_week}
+                    onChange={e => setNewWeek({ ...newWeek, calendar_week: e.target.value })}
+                  />
+                </label>
+              </div>
+
+              <input
+                placeholder={`Special name optional, otherwise DMI Coupon Week ${newWeek.calendar_week || ''}`}
+                value={newWeek.special_name}
+                onChange={e => setNewWeek({ ...newWeek, special_name: e.target.value })}
+              />
+
+              <input
+                placeholder="Subtitle / dates optional"
+                value={newWeek.subtitle}
+                onChange={e => setNewWeek({ ...newWeek, subtitle: e.target.value })}
+              />
+
+              <button onClick={createCouponWeek}>Create Coupon Week</button>
+            </div>
+          </div>
+
           <h3>Week Settings</h3>
 
           <input
@@ -2524,6 +2779,43 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
             value={week.subtitle || ''}
             onChange={e => setWeek({ ...week, subtitle: e.target.value })}
           />
+
+          <div className="grid2">
+            <label>
+              Calendar year
+              <input
+                type="number"
+                value={week.calendar_year || ''}
+                onChange={e => setWeek({ ...week, calendar_year: e.target.value })}
+              />
+            </label>
+
+            <label>
+              Calendar week
+              <input
+                type="number"
+                min="1"
+                max="53"
+                value={week.calendar_week || ''}
+                onChange={e => setWeek({ ...week, calendar_week: e.target.value })}
+              />
+            </label>
+          </div>
+
+          <input
+            placeholder="Special name optional"
+            value={week.special_name || ''}
+            onChange={e => setWeek({ ...week, special_name: e.target.value })}
+          />
+
+          <label>
+            <input
+              type="checkbox"
+              checked={week.is_published !== false}
+              onChange={e => setWeek({ ...week, is_published: e.target.checked })}
+            />{' '}
+            Published for entry
+          </label>
 
           <button
             onClick={() => {
@@ -2539,6 +2831,10 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
                 id: currentWeekId || week.id,
                 title,
                 subtitle: String(week.subtitle || '').trim(),
+                calendar_year: week.calendar_year ? Number(week.calendar_year) : null,
+                calendar_week: week.calendar_week ? Number(week.calendar_week) : null,
+                special_name: String(week.special_name || '').trim(),
+                is_published: week.is_published !== false,
               });
             }}
           >
@@ -3136,6 +3432,10 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
       </div>
 
       <h3>Entries / Payments</h3>
+      <p>
+        Showing entries for <strong>{week.title || 'selected coupon'}</strong>
+        {editingActiveWeek ? ' (live leaderboard).' : ' (staged coupon).'}
+      </p>
 
       <table className="adminEntriesTable">
         <thead>
@@ -3148,7 +3448,7 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
           </tr>
         </thead>
         <tbody>
-          {ranked.map(e => (
+          {selectedRanked.map(e => (
             <Fragment key={e.id}>
               <tr>
                 <td>{e.name}</td>
@@ -3242,6 +3542,11 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
               )}
             </Fragment>
           ))}
+          {!selectedRanked.length && (
+            <tr>
+              <td colSpan="5">No entries submitted for this selected coupon week yet.</td>
+            </tr>
+          )}
         </tbody>
       </table>
 
@@ -3307,7 +3612,7 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
           <div>
             <small>Games Played</small>
             <strong>
-              {gamesPlayed}/{fixtures.length}
+              {activeGamesPlayed}/{state.fixtures?.length || 0}
             </strong>
           </div>
         </div>
@@ -3339,11 +3644,11 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
         <div className="shareMeta paymentMeta">
           <div>
             <small>Outstanding</small>
-            <strong>{unpaidEntries.length}</strong>
+            <strong>{activeUnpaidEntries.length}</strong>
           </div>
           <div>
             <small>Paid</small>
-            <strong>{ranked.length - unpaidEntries.length}</strong>
+            <strong>{ranked.length - activeUnpaidEntries.length}</strong>
           </div>
           <div>
             <small>Entry Fee</small>
@@ -3355,8 +3660,8 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
         </div>
 
         <div className="shareRows">
-          {unpaidEntries.length ? (
-            unpaidEntries.map((entry, index) => (
+          {activeUnpaidEntries.length ? (
+            activeUnpaidEntries.map((entry, index) => (
               <div className="shareRow paymentRow" key={entry.id}>
                 <b>{index + 1}</b>
                 <span>
