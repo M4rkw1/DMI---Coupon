@@ -607,6 +607,43 @@ export default async function handler(req, res) {
 
       return res.status(200).json({ ok: true, deleted_archive_id: archiveId });
     }
+    if (action === 'updateArchivePayment') {
+      const archiveId = String(payload?.archive_id || '').trim();
+      const entryId = String(payload?.entry_id || '').trim();
+      const paid = payload?.paid === true;
+
+      if (!archiveId) return res.status(400).json({ error: 'Missing archive id' });
+      if (!entryId) return res.status(400).json({ error: 'Missing archived entry id' });
+
+      const archiveResult = await db.from('coupon_archives').select('*').eq('id', archiveId).single();
+      if (archiveResult.error) throw archiveResult.error;
+
+      const archive = archiveResult.data || {};
+      const updatePaid = row => (
+        row && String(row.id || '') === entryId
+          ? { ...row, paid }
+          : row
+      );
+      const leaderboard = Array.isArray(archive.leaderboard)
+        ? archive.leaderboard.map(updatePaid)
+        : archive.leaderboard;
+      const snapshot = archive.snapshot && typeof archive.snapshot === 'object'
+        ? {
+            ...archive.snapshot,
+            entries: Array.isArray(archive.snapshot.entries)
+              ? archive.snapshot.entries.map(updatePaid)
+              : archive.snapshot.entries,
+          }
+        : archive.snapshot;
+
+      const { error } = await db
+        .from('coupon_archives')
+        .update({ leaderboard, snapshot })
+        .eq('id', archiveId);
+      if (error) throw error;
+
+      return res.status(200).json({ ok: true, archive_id: archiveId, entry_id: entryId, paid });
+    }
     res.status(200).json({ ok: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
 }

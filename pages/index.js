@@ -2439,6 +2439,31 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
     );
   }
 
+  function updateArchivedEntryPayment(archive, entry, paid) {
+    const archiveId = archive?.id || '';
+    const entryId = entry?.id || '';
+
+    if (!archiveId) {
+      setMsg('Historic winner record is missing an archive id.');
+      return;
+    }
+
+    if (!entryId) {
+      setMsg('Archived entry is missing an entry id.');
+      return;
+    }
+
+    runAdminAction(
+      'updateArchivePayment',
+      {
+        archive_id: archiveId,
+        entry_id: entryId,
+        paid,
+      },
+      `${entry.name || 'Archived entry'} marked ${paid ? 'paid' : 'unpaid'} in archive.`
+    );
+  }
+
   function startEditEntry(entry) {
     setEditingEntryId(entry.id);
     setEntryDraft({
@@ -3012,9 +3037,26 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
                         </b>
                         <span>
                           {unpaidRows.length
-                            ? unpaidRows.map(entry => entry.department ? `${entry.name} (${entry.department})` : entry.name).join(', ')
+                            ? 'Tick entrants off here when they pay after the coupon has been archived.'
                             : 'All entrants were marked paid.'}
                         </span>
+                        {paymentRows.length ? (
+                          <div className="archivePaymentChecks">
+                            {paymentRows.map(entry => (
+                              <label key={entry.id || `${entry.name}-${entry.department}`}>
+                                <input
+                                  type="checkbox"
+                                  checked={entry.paid === true}
+                                  onChange={event => updateArchivedEntryPayment(archive, entry, event.target.checked)}
+                                />
+                                <span>
+                                  {entry.name || 'Unnamed entry'}
+                                  {entry.department ? ` (${entry.department})` : ''}
+                                </span>
+                              </label>
+                            ))}
+                          </div>
+                        ) : null}
                       </div>
                     </div>
 
