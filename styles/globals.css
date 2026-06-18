@@ -2756,7 +2756,7 @@ th {
   .couponFixtureLine {
     font-size: var(--fixture-print-font);
     gap: 0.9mm;
-    grid-template-columns: minmax(0, 1fr) var(--fixture-badge-size) 13mm 3.5mm 13mm var(--fixture-badge-size) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) var(--fixture-badge-size) var(--fixture-score-width) 3.5mm var(--fixture-score-width) var(--fixture-badge-size) minmax(0, 1fr);
     line-height: 1;
   }
 
@@ -2772,7 +2772,7 @@ th {
 
   .scoreCell {
     border: 1.5px solid #174a8b;
-    height: 3.7mm;
+    height: var(--fixture-score-height);
   }
 
   .couponCopyLabel {

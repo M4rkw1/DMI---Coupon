@@ -1222,8 +1222,27 @@ function WinnerBanner({ ranked = [], fixtures = [], pot = 0, settings = {} }) {
 
 function OldSchool({ week, fixtures, settings = {}, maxPts, entryDeadline }) {
   const rules = parseRulesText(settings?.rules);
-  const fixturePrintFont = fixtures.length > 22 ? '8px' : fixtures.length > 18 ? '9px' : '10.5px';
-  const fixtureBadgeSize = fixtures.length > 22 ? '12px' : fixtures.length > 18 ? '14px' : '16px';
+  const fixtureCount = fixtures.length || 1;
+  const fixturePrintFont =
+    fixtureCount > 24 ? '6.6px' :
+    fixtureCount > 22 ? '7.2px' :
+    fixtureCount > 18 ? '8.2px' :
+    fixtureCount > 14 ? '9px' :
+    '10px';
+  const fixtureBadgeSize =
+    fixtureCount > 24 ? '2.5mm' :
+    fixtureCount > 22 ? '2.9mm' :
+    fixtureCount > 18 ? '3.3mm' :
+    fixtureCount > 14 ? '3.7mm' :
+    '4.2mm';
+  const fixtureScoreBoxWidth =
+    fixtureCount > 24 ? '10mm' :
+    fixtureCount > 20 ? '11mm' :
+    '13mm';
+  const fixtureScoreBoxHeight =
+    fixtureCount > 24 ? '3mm' :
+    fixtureCount > 20 ? '3.3mm' :
+    '3.7mm';
   const entryFee = `${sym(settings?.currency || 'GBP')}${settings?.entry_fee || 10}`;
   const deadlineText = entryDeadline ? entryDeadline.toLocaleString('en-GB') : 'TBC';
   const sheetRules = rules.length ? rules : parseRulesText(DEFAULT_RULES_TEMPLATE);
@@ -1283,9 +1302,11 @@ function OldSchool({ week, fixtures, settings = {}, maxPts, entryDeadline }) {
     <section
       className="paper couponSheet"
       style={{
-        '--fixture-count': fixtures.length || 1,
+        '--fixture-count': fixtureCount,
         '--fixture-print-font': fixturePrintFont,
         '--fixture-badge-size': fixtureBadgeSize,
+        '--fixture-score-width': fixtureScoreBoxWidth,
+        '--fixture-score-height': fixtureScoreBoxHeight,
       }}
     >
       <div className="printButtonWrap">
