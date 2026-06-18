@@ -15,7 +15,18 @@ function points(pred, fix) {
     fix.home_score === null ||
     fix.away_score === null ||
     fix.home_score === undefined ||
-   fix.away_score === undefined
+    fix.away_score === undefined
+  ) {
+    return 0;
+  }
+
+  if (
+    pred?.home === null ||
+    pred?.away === null ||
+    pred?.home === undefined ||
+    pred?.away === undefined ||
+    String(pred.home).trim() === '' ||
+    String(pred.away).trim() === ''
   ) {
     return 0;
   }

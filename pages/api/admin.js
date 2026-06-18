@@ -23,6 +23,17 @@ function points(pred, fix) {
     return 0;
   }
 
+  if (
+    pred?.home === null ||
+    pred?.away === null ||
+    pred?.home === undefined ||
+    pred?.away === undefined ||
+    String(pred.home).trim() === '' ||
+    String(pred.away).trim() === ''
+  ) {
+    return 0;
+  }
+
   const ph = Number(pred?.home);
   const pa = Number(pred?.away);
 
