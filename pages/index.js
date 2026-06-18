@@ -852,6 +852,11 @@ function Leaderboard({ ranked, fixtures, settings = {}, maxPts, pot }) {
         </div>
 
         <div className="statCard">
+          <small>Maximum Points</small>
+          <strong>{maxPts}</strong>
+        </div>
+
+        <div className="statCard">
           <small>Games Played / To Play</small>
           <strong>
             {gamesPlayed} / {fixturesThisWeek}
@@ -1096,6 +1101,10 @@ function EntriesMatrix({ entries, fixtures, settings = {}, maxPts, pot }) {
 
         <div className="legendBox blueBox">
           3 Points for correct score
+        </div>
+
+        <div className="legendBox">
+          Maximum Points: {maxPts}
         </div>
 
         <div className="prizeBox">
