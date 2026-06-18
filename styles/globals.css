@@ -1343,6 +1343,37 @@ th {
   color: #5e6f92;
 }
 
+.archiveUnpaidList {
+  background: #fff8df;
+  border: 1px solid #f0ce76;
+  border-radius: 8px;
+  display: grid;
+  gap: 3px;
+  margin-top: 6px;
+  padding: 8px;
+}
+
+.archiveUnpaidList b {
+  color: #8a5b00;
+  font-size: 12px;
+}
+
+.archiveUnpaidList span {
+  color: #4d3b13;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.archiveUnpaidList.allPaid {
+  background: #edf8ee;
+  border-color: #b8ddbd;
+}
+
+.archiveUnpaidList.allPaid b,
+.archiveUnpaidList.allPaid span {
+  color: #2d6a35;
+}
+
 .archiveAdminEmpty {
   background: #f5f8fd;
   border: 1px dashed #c8d3e6;

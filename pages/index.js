@@ -2990,6 +2990,9 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
             {historicArchives.length ? (
               historicArchives.map(archive => {
                 const leaderboard = Array.isArray(archive.leaderboard) ? archive.leaderboard : [];
+                const snapshotEntries = Array.isArray(archive.snapshot?.entries) ? archive.snapshot.entries : [];
+                const paymentRows = leaderboard.length ? leaderboard : snapshotEntries;
+                const unpaidRows = paymentRows.filter(entry => entry && entry.paid !== true);
                 const winnerName = archive.winner_name || leaderboard[0]?.name || 'No winner recorded';
                 const winnerPoints = archive.winner_points ?? leaderboard[0]?.pts ?? 0;
                 const isConfirmingDelete = confirmDeleteArchiveId === archive.id;
@@ -3000,6 +3003,19 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
                       <strong>{archive.week_title || 'DMI Coupon'}</strong>
                       <span>{archive.week_subtitle || formatArchiveDate(archive.created_at) || 'Historic winner page'}</span>
                       <small>{winnerName} • {winnerPoints} pts</small>
+
+                      <div className={unpaidRows.length ? 'archiveUnpaidList' : 'archiveUnpaidList allPaid'}>
+                        <b>
+                          {unpaidRows.length
+                            ? `Unpaid at archive: ${unpaidRows.length}`
+                            : 'Unpaid at archive: 0'}
+                        </b>
+                        <span>
+                          {unpaidRows.length
+                            ? unpaidRows.map(entry => entry.department ? `${entry.name} (${entry.department})` : entry.name).join(', ')
+                            : 'All entrants were marked paid.'}
+                        </span>
+                      </div>
                     </div>
 
                     <button
