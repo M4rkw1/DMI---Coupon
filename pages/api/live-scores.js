@@ -1,19 +1,5 @@
 import { supabaseAdmin, isAdmin } from '../../lib/supabase';
-
-function normaliseScore(value) {
-  return value === null || value === undefined ? null : Number(value);
-}
-
-function mapApiFootballFixture(item) {
-  return {
-    api_fixture_id: String(item.fixture?.id || ''),
-    status: item.fixture?.status?.short || 'NS',
-    home_score: normaliseScore(item.goals?.home),
-    away_score: normaliseScore(item.goals?.away),
-    ht_home_score: normaliseScore(item.score?.halftime?.home),
-    ht_away_score: normaliseScore(item.score?.halftime?.away),
-  };
-}
+import { syncWeekLiveScores } from '../../lib/liveScores';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
@@ -27,58 +13,13 @@ export default async function handler(req, res) {
   const { week_id } = req.body || {};
   if (!week_id) return res.status(400).json({ error: 'Missing week id' });
 
-  const db = supabaseAdmin();
-  const { data: fixtures, error } = await db
-    .from('fixtures')
-    .select('id, api_fixture_id')
-    .eq('week_id', week_id)
-    .not('api_fixture_id', 'is', null);
-
-  if (error) return res.status(500).json({ error: error.message });
-
-  const ids = (fixtures || []).map(f => f.api_fixture_id).filter(Boolean);
-  if (!ids.length) {
-    return res.status(400).json({
-      error: 'Add API fixture IDs to fixtures before syncing live scores.',
-    });
-  }
-
-  const response = await fetch(
-    `https://v3.football.api-sports.io/fixtures?ids=${encodeURIComponent(ids.join('-'))}`,
-    {
-      headers: {
-        'x-apisports-key': apiKey,
-      },
+  try {
+    const result = await syncWeekLiveScores(supabaseAdmin(), week_id, apiKey);
+    if (!result.requested) {
+      return res.status(400).json({ error: 'Add API fixture IDs to fixtures before syncing live scores.' });
     }
-  );
-  const json = await response.json().catch(() => ({}));
-
-  if (!response.ok) {
-    return res.status(response.status).json({
-      error: json?.message || 'Live score provider request failed.',
-    });
+    return res.status(200).json({ ok: true, ...result });
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
   }
-
-  const updates = (json.response || []).map(mapApiFootballFixture);
-  const byApiId = new Map(updates.map(item => [item.api_fixture_id, item]));
-
-  for (const fixture of fixtures) {
-    const update = byApiId.get(String(fixture.api_fixture_id));
-    if (!update) continue;
-
-    const { error: updateError } = await db
-      .from('fixtures')
-      .update({
-        status: update.status,
-        home_score: update.home_score,
-        away_score: update.away_score,
-        ht_home_score: update.ht_home_score,
-        ht_away_score: update.ht_away_score,
-      })
-      .eq('id', fixture.id);
-
-    if (updateError) return res.status(500).json({ error: updateError.message });
-  }
-
-  res.status(200).json({ ok: true, updated: updates.length });
 }

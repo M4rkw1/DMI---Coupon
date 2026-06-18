@@ -35,6 +35,8 @@ create table if not exists coupon_settings (
 6. The winner takes all. The entire prize pool consists of the total entry fees collected.
 7. If you are submitting an “Old School” entry, please hand in your completed sheet and entry fee to the Tech Office before the stated deadline. Alternatively, you can submit a photo of your sheet via email or WhatsApp.',
   entries_released boolean default false,
+  auto_live_scores boolean default false,
+  last_live_sync_at timestamptz,
   timezone_label text default 'UK time only',
   timezone_offset_minutes int default 0,
   whatsapp_qr_url text default '',
@@ -43,6 +45,8 @@ create table if not exists coupon_settings (
 
 alter table coupon_settings add column if not exists timezone_label text default 'UK time only';
 alter table coupon_settings add column if not exists timezone_offset_minutes int default 0;
+alter table coupon_settings add column if not exists auto_live_scores boolean default false;
+alter table coupon_settings add column if not exists last_live_sync_at timestamptz;
 
 create table if not exists fixtures (
   id uuid primary key default gen_random_uuid(),

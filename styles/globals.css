@@ -1311,6 +1311,31 @@ th {
   color: white;
 }
 
+.settingCheckbox {
+  align-items: flex-start;
+  background: #f5f8fd;
+  border: 1px solid #d7e0ef;
+  border-radius: 8px;
+  display: flex;
+  gap: 8px;
+  padding: 10px;
+}
+
+.settingCheckbox input {
+  margin-top: 3px;
+  width: auto;
+}
+
+.settingCheckbox span {
+  display: grid;
+  gap: 2px;
+}
+
+.settingCheckbox small {
+  color: #5e6f92;
+  line-height: 1.35;
+}
+
 .archiveAdminList {
   display: grid;
   gap: 10px;

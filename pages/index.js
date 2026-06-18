@@ -281,6 +281,7 @@ const defaultSettings = overrides => ({
   entry_fee: 10,
   rules: DEFAULT_RULES_TEMPLATE,
   entries_released: false,
+  auto_live_scores: false,
   ...overrides,
 });
 
@@ -428,6 +429,31 @@ export default function Home() {
       clearInterval(dataTimer);
     };
   }, []);
+
+  useEffect(() => {
+    const weekId = state?.week?.id;
+    const automaticScoresEnabled = state?.settings?.auto_live_scores === true;
+    if (!weekId || !automaticScoresEnabled) return undefined;
+
+    let cancelled = false;
+    const syncScores = async () => {
+      try {
+        const response = await fetch('/api/auto-live-scores', { method: 'POST' });
+        const result = await response.json().catch(() => ({}));
+        if (!cancelled && response.ok && Number(result.updated || 0) > 0) load();
+      } catch {
+        // The normal state refresh will retry; live-score failures should not interrupt the page.
+      }
+    };
+
+    syncScores();
+    const timer = setInterval(syncScores, 60 * 1000);
+
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, [state?.week?.id, state?.settings?.auto_live_scores]);
 
 async function validateAdminPassword() {
     try {
@@ -2953,6 +2979,18 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
               onChange={e => setSettings({ ...settings, entries_released: e.target.checked })}
             />{' '}
             Release entries on leaderboard
+          </label>
+
+          <label className="settingCheckbox">
+            <input
+              type="checkbox"
+              checked={!!settings.auto_live_scores}
+              onChange={e => setSettings({ ...settings, auto_live_scores: e.target.checked })}
+            />
+            <span>
+              <b>Automatic live score updates</b>
+              <small>Checks live, half-time and full-time scores every five minutes for fixtures with API IDs.</small>
+            </span>
           </label>
 
           <button
