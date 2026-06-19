@@ -52,6 +52,12 @@ export default async function handler(req, res) {
     const result = await syncWeekLiveScores(db, currentWeek.data.id, apiKey, { automatic: true });
     return res.status(200).json({ ok: true, ...result });
   } catch (error) {
+    if (/auto_live_scores|last_live_sync_at/i.test(error.message || '')) {
+      return res.status(400).json({
+        error: 'Automatic live-score database fields are missing. Run add_automatic_live_scores.sql in Supabase.',
+      });
+    }
+
     return res.status(500).json({ error: error.message });
   }
 }

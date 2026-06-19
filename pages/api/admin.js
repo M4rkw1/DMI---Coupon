@@ -645,5 +645,13 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true, archive_id: archiveId, entry_id: entryId, paid });
     }
     res.status(200).json({ ok: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) {
+    if (/auto_live_scores|last_live_sync_at/i.test(e.message || '')) {
+      return res.status(400).json({
+        error: 'Automatic live-score database fields are missing. Run add_automatic_live_scores.sql in the Supabase SQL Editor.',
+      });
+    }
+
+    return res.status(500).json({ error: e.message });
+  }
 }
