@@ -731,7 +731,24 @@ th {
 .scoreCell {
   background: #fff;
   border: 2px solid #174a8b;
+  border-radius: 0;
+  box-sizing: border-box;
+  color: #0b1f3a;
+  font: inherit;
+  font-weight: 800;
   height: 22px;
+  margin: 0;
+  min-width: 0;
+  padding: 0 2px;
+  text-align: center;
+  width: 100%;
+}
+
+.scoreCell:focus,
+.couponMetaInput:focus {
+  border-color: #ffb703;
+  box-shadow: 0 0 0 3px rgba(255, 183, 3, 0.25);
+  outline: 0;
 }
 
 .couponCopyLabel {
@@ -768,6 +785,17 @@ th {
 .line {
   border-bottom: 2px solid #111;
   min-height: 20px;
+}
+
+.couponMetaInput {
+  background: rgba(255, 255, 255, 0.88);
+  border: 0;
+  border-bottom: 2px solid #111;
+  border-radius: 0;
+  color: #0b1f3a;
+  margin: 0;
+  min-height: 32px;
+  padding: 4px 6px;
 }
 
 .couponRules h3 {
@@ -1833,8 +1861,25 @@ th {
   }
 
   .couponFixtureLine {
-    grid-template-columns: minmax(0, 1fr) 45px 18px 45px minmax(0, 1fr);
-    font-size: 14px;
+    font-size: 12px;
+    gap: 3px;
+    grid-template-columns: minmax(62px, 1fr) 18px 42px 14px 42px 18px minmax(62px, 1fr);
+  }
+
+  .couponFixtures {
+    gap: 6px;
+    padding: 12px 4px;
+  }
+
+  .couponBadgeSlot,
+  .couponBadgeSlot img {
+    height: 17px;
+    width: 17px;
+  }
+
+  .scoreCell {
+    font-size: 18px;
+    height: 36px;
   }
 
   .couponMeta {
@@ -2075,6 +2120,8 @@ th {
 
 .printButtonWrap {
   display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
   justify-content: flex-end;
   margin-bottom: 12px;
 }
@@ -2338,8 +2385,9 @@ th {
   }
 
   .couponFixtureLine {
-    grid-template-columns: minmax(0, 1fr) 45px 18px 45px minmax(0, 1fr);
-    font-size: 14px;
+    font-size: 12px;
+    gap: 3px;
+    grid-template-columns: minmax(62px, 1fr) 18px 42px 14px 42px 18px minmax(62px, 1fr);
   }
 
   .couponMeta {
@@ -2355,6 +2403,14 @@ th {
   .couponPrintGrid,
   .couponInfoGrid {
     grid-template-columns: 1fr;
+  }
+
+  .printButtonWrap {
+    justify-content: stretch;
+  }
+
+  .printButtonWrap button {
+    flex: 1 1 190px;
   }
 
   .liveScoreFixture {
@@ -2852,8 +2908,14 @@ th {
   }
 
   .scoreCell {
+    appearance: none;
     border: 1.5px solid #174a8b;
+    box-shadow: none;
+    font-size: var(--fixture-print-font);
     height: var(--fixture-score-height);
+    margin: 0;
+    padding: 0;
+    -webkit-appearance: none;
   }
 
   .couponCopyLabel {
@@ -2879,6 +2941,21 @@ th {
 
   .line {
     min-height: 3mm;
+  }
+
+  .couponMetaInput {
+    appearance: none;
+    background: transparent;
+    border: 0;
+    border-bottom: 1px solid #111;
+    border-radius: 0;
+    box-shadow: none;
+    font-size: 7px;
+    height: 3mm;
+    margin: 0;
+    min-height: 3mm;
+    padding: 0 1mm;
+    -webkit-appearance: none;
   }
 
   .couponRules h3 {

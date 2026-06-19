@@ -1247,6 +1247,10 @@ function WinnerBanner({ ranked = [], fixtures = [], pot = 0, settings = {} }) {
 }
 
 function OldSchool({ week, fixtures, settings = {}, maxPts, entryDeadline }) {
+  const [scoreDrafts, setScoreDrafts] = useState({});
+  const [entrantName, setEntrantName] = useState('');
+  const [entrantDepartment, setEntrantDepartment] = useState('');
+  const [pdfDownloading, setPdfDownloading] = useState(false);
   const rules = parseRulesText(settings?.rules);
   const fixtureCount = fixtures.length || 1;
   const fixturePrintFont =
@@ -1293,6 +1297,55 @@ function OldSchool({ week, fixtures, settings = {}, maxPts, entryDeadline }) {
     window.setTimeout(restoreTitle, 1500);
   };
 
+  const updateScoreDraft = (fixtureId, side, value) => {
+    const score = String(value || '').replace(/\D/g, '').slice(0, 2);
+    setScoreDrafts(current => ({
+      ...current,
+      [fixtureId]: {
+        ...(current[fixtureId] || {}),
+        [side]: score,
+      },
+    }));
+  };
+
+  const downloadFillablePdf = async () => {
+    setPdfDownloading(true);
+
+    try {
+      const response = await fetch('/api/old-school-pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          week_id: week?.id,
+          scores: scoreDrafts,
+          name: entrantName,
+          department: entrantDepartment,
+          deadline: deadlineText,
+          entry_fee: entryFee,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.error || 'Unable to create fillable PDF');
+      }
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${printFileTitle || 'DMI Football Coupon'} Fillable.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      window.alert(error.message || 'Unable to create fillable PDF');
+    } finally {
+      setPdfDownloading(false);
+    }
+  };
+
   const CouponPanel = ({ label, copyType = 'office' }) => (
     <div className={`couponBox ${copyType === 'entrant' ? 'entrantCopy' : 'officeCopy'}`}>
       <div className="couponTitle">
@@ -1308,9 +1361,27 @@ function OldSchool({ week, fixtures, settings = {}, maxPts, entryDeadline }) {
               <div className="couponBadgeSlot">
                 {f.home_badge && <img alt="" src={f.home_badge} />}
               </div>
-              <div className="scoreCell"></div>
+              <input
+                aria-label={`${f.home_team} score`}
+                className="scoreCell"
+                inputMode="numeric"
+                maxLength="2"
+                pattern="[0-9]*"
+                type="text"
+                value={scoreDrafts[f.id]?.home || ''}
+                onChange={event => updateScoreDraft(f.id, 'home', event.target.value)}
+              />
               <div className="versus">v</div>
-              <div className="scoreCell"></div>
+              <input
+                aria-label={`${f.away_team} score`}
+                className="scoreCell"
+                inputMode="numeric"
+                maxLength="2"
+                pattern="[0-9]*"
+                type="text"
+                value={scoreDrafts[f.id]?.away || ''}
+                onChange={event => updateScoreDraft(f.id, 'away', event.target.value)}
+              />
               <div className="couponBadgeSlot">
                 {f.away_badge && <img alt="" src={f.away_badge} />}
               </div>
@@ -1337,6 +1408,9 @@ function OldSchool({ week, fixtures, settings = {}, maxPts, entryDeadline }) {
     >
       <div className="printButtonWrap">
         <button onClick={printOldSchool}>Print / Save PDF</button>
+        <button disabled={pdfDownloading} onClick={downloadFillablePdf}>
+          {pdfDownloading ? 'Creating Fillable PDF...' : 'Download Fillable PDF'}
+        </button>
       </div>
 
       <div className="couponPrintGrid">
@@ -1354,10 +1428,22 @@ function OldSchool({ week, fixtures, settings = {}, maxPts, entryDeadline }) {
             <div className="redText">{deadlineText}</div>
 
             <div>Name</div>
-            <div className="line"></div>
+            <input
+              aria-label="Entrant name"
+              className="couponMetaInput"
+              type="text"
+              value={entrantName}
+              onChange={event => setEntrantName(event.target.value)}
+            />
 
             <div>Company / Department</div>
-            <div className="line"></div>
+            <input
+              aria-label="Company or department"
+              className="couponMetaInput"
+              type="text"
+              value={entrantDepartment}
+              onChange={event => setEntrantDepartment(event.target.value)}
+            />
           </div>
 
           <div className="couponRules">
@@ -1383,10 +1469,22 @@ function OldSchool({ week, fixtures, settings = {}, maxPts, entryDeadline }) {
             <div className="redText">{deadlineText}</div>
 
             <div>Name</div>
-            <div className="line"></div>
+            <input
+              aria-label="Entrant name copy"
+              className="couponMetaInput"
+              type="text"
+              value={entrantName}
+              onChange={event => setEntrantName(event.target.value)}
+            />
 
             <div>Company / Department</div>
-            <div className="line"></div>
+            <input
+              aria-label="Company or department copy"
+              className="couponMetaInput"
+              type="text"
+              value={entrantDepartment}
+              onChange={event => setEntrantDepartment(event.target.value)}
+            />
           </div>
 
           <div className="printQrWrap">
