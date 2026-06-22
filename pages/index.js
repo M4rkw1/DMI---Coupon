@@ -1308,34 +1308,57 @@ function OldSchool({ week, fixtures, settings = {}, maxPts, entryDeadline }) {
     }));
   };
 
-  const downloadFillablePdf = () => {
+  const downloadFillablePdf = async () => {
+    const pdfWindow = window.open('', '_blank');
+    if (!pdfWindow) {
+      window.alert('Please allow pop-ups so the fillable PDF can open.');
+      return;
+    }
+
     setPdfDownloading(true);
-    const form = document.createElement('form');
-    form.method = 'POST';
-    form.action = '/api/old-school-pdf';
-    form.style.display = 'none';
+    pdfWindow.document.title = 'Creating Fillable PDF';
+    pdfWindow.document.body.innerHTML = '<p style="font-family: sans-serif; padding: 24px;">Creating fillable PDF...</p>';
 
-    const fields = {
-      week_id: week?.id || '',
-      scores: JSON.stringify(scoreDrafts),
-      name: entrantName,
-      department: entrantDepartment,
-      deadline: deadlineText,
-      entry_fee: entryFee,
-    };
-
-    Object.entries(fields).forEach(([name, value]) => {
-      const input = document.createElement('input');
-      input.type = 'hidden';
-      input.name = name;
-      input.value = value;
-      form.appendChild(input);
-    });
-
-    document.body.appendChild(form);
-    form.submit();
-    form.remove();
-    window.setTimeout(() => setPdfDownloading(false), 2000);
+    try {
+      const [{ createOldSchoolPdf }, backgroundResponse, whatsappResponse, paymentResponse] = await Promise.all([
+        import('../lib/oldSchoolPdf'),
+        fetch('/dmi-background.jpeg'),
+        fetch('/whatsapp-qr.png'),
+        fetch('/payment-qr.png'),
+      ]);
+      const [background, whatsappQr, paymentQr] = await Promise.all([
+        backgroundResponse.arrayBuffer(),
+        whatsappResponse.arrayBuffer(),
+        paymentResponse.arrayBuffer(),
+      ]);
+      const pdfBytes = await createOldSchoolPdf({
+        week,
+        fixtures,
+        settings,
+        values: {
+          scores: scoreDrafts,
+          name: entrantName,
+          department: entrantDepartment,
+          deadline: deadlineText,
+          entryFee,
+          rules: sheetRules,
+        },
+        assets: {
+          background: new Uint8Array(background),
+          whatsappQr: new Uint8Array(whatsappQr),
+          paymentQr: new Uint8Array(paymentQr),
+        },
+      });
+      const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      pdfWindow.location.replace(url);
+      window.setTimeout(() => URL.revokeObjectURL(url), 10 * 60 * 1000);
+    } catch (error) {
+      pdfWindow.close();
+      window.alert(error.message || 'Unable to create fillable PDF');
+    } finally {
+      setPdfDownloading(false);
+    }
   };
 
   const CouponPanel = ({ label, copyType = 'office' }) => (
@@ -1401,7 +1424,7 @@ function OldSchool({ week, fixtures, settings = {}, maxPts, entryDeadline }) {
       <div className="printButtonWrap">
         <button onClick={printOldSchool}>Print / Save PDF</button>
         <button disabled={pdfDownloading} onClick={downloadFillablePdf}>
-          {pdfDownloading ? 'Creating Fillable PDF...' : 'Download Fillable PDF'}
+          {pdfDownloading ? 'Creating Fillable PDF...' : 'Open / Download Fillable PDF'}
         </button>
       </div>
 
