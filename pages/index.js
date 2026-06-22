@@ -1309,15 +1309,7 @@ function OldSchool({ week, fixtures, settings = {}, maxPts, entryDeadline }) {
   };
 
   const downloadFillablePdf = async () => {
-    const pdfWindow = window.open('', '_blank');
-    if (!pdfWindow) {
-      window.alert('Please allow pop-ups so the fillable PDF can open.');
-      return;
-    }
-
     setPdfDownloading(true);
-    pdfWindow.document.title = 'Creating Fillable PDF';
-    pdfWindow.document.body.innerHTML = '<p style="font-family: sans-serif; padding: 24px;">Creating fillable PDF...</p>';
 
     try {
       const [{ createOldSchoolPdf }, backgroundResponse, whatsappResponse, paymentResponse] = await Promise.all([
@@ -1351,10 +1343,14 @@ function OldSchool({ week, fixtures, settings = {}, maxPts, entryDeadline }) {
       });
       const blob = new Blob([pdfBytes], { type: 'application/pdf' });
       const url = URL.createObjectURL(blob);
-      pdfWindow.location.replace(url);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${printFileTitle || 'DMI Football Coupon'} Fillable.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
       window.setTimeout(() => URL.revokeObjectURL(url), 10 * 60 * 1000);
     } catch (error) {
-      pdfWindow.close();
       window.alert(error.message || 'Unable to create fillable PDF');
     } finally {
       setPdfDownloading(false);
@@ -1424,7 +1420,7 @@ function OldSchool({ week, fixtures, settings = {}, maxPts, entryDeadline }) {
       <div className="printButtonWrap">
         <button onClick={printOldSchool}>Print / Save PDF</button>
         <button disabled={pdfDownloading} onClick={downloadFillablePdf}>
-          {pdfDownloading ? 'Creating Fillable PDF...' : 'Open / Download Fillable PDF'}
+          {pdfDownloading ? 'Creating Fillable PDF...' : 'Download Fillable PDF'}
         </button>
       </div>
 
