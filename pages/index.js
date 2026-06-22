@@ -1338,7 +1338,7 @@ function OldSchool({ week, fixtures, settings = {}, maxPts, entryDeadline }) {
       document.body.appendChild(link);
       link.click();
       link.remove();
-      URL.revokeObjectURL(url);
+      window.setTimeout(() => URL.revokeObjectURL(url), 60000);
     } catch (error) {
       window.alert(error.message || 'Unable to create fillable PDF');
     } finally {
