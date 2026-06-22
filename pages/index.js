@@ -1308,42 +1308,34 @@ function OldSchool({ week, fixtures, settings = {}, maxPts, entryDeadline }) {
     }));
   };
 
-  const downloadFillablePdf = async () => {
+  const downloadFillablePdf = () => {
     setPdfDownloading(true);
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '/api/old-school-pdf';
+    form.style.display = 'none';
 
-    try {
-      const response = await fetch('/api/old-school-pdf', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          week_id: week?.id,
-          scores: scoreDrafts,
-          name: entrantName,
-          department: entrantDepartment,
-          deadline: deadlineText,
-          entry_fee: entryFee,
-        }),
-      });
+    const fields = {
+      week_id: week?.id || '',
+      scores: JSON.stringify(scoreDrafts),
+      name: entrantName,
+      department: entrantDepartment,
+      deadline: deadlineText,
+      entry_fee: entryFee,
+    };
 
-      if (!response.ok) {
-        const error = await response.json().catch(() => ({}));
-        throw new Error(error.error || 'Unable to create fillable PDF');
-      }
+    Object.entries(fields).forEach(([name, value]) => {
+      const input = document.createElement('input');
+      input.type = 'hidden';
+      input.name = name;
+      input.value = value;
+      form.appendChild(input);
+    });
 
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `${printFileTitle || 'DMI Football Coupon'} Fillable.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.setTimeout(() => URL.revokeObjectURL(url), 60000);
-    } catch (error) {
-      window.alert(error.message || 'Unable to create fillable PDF');
-    } finally {
-      setPdfDownloading(false);
-    }
+    document.body.appendChild(form);
+    form.submit();
+    form.remove();
+    window.setTimeout(() => setPdfDownloading(false), 2000);
   };
 
   const CouponPanel = ({ label, copyType = 'office' }) => (

@@ -31,6 +31,17 @@ function safeFileName(value) {
     .trim();
 }
 
+function parseJsonField(value, fallback) {
+  if (value && typeof value === 'object') return value;
+  if (typeof value !== 'string' || !value.trim()) return fallback;
+
+  try {
+    return JSON.parse(value);
+  } catch {
+    return fallback;
+  }
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
 
@@ -62,7 +73,7 @@ export default async function handler(req, res) {
       fixtures,
       settings,
       values: {
-        scores: req.body?.scores || {},
+        scores: parseJsonField(req.body?.scores, {}),
         name: String(req.body?.name || ''),
         department: String(req.body?.department || ''),
         deadline: String(req.body?.deadline || 'TBC'),
