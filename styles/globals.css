@@ -2992,4 +2992,127 @@ th {
   .couponEntrantInfo .summaryBox {
     margin-top: 2.5mm;
   }
+
+  @page {
+    size: A4 portrait;
+    margin: 5mm;
+  }
+
+  .paper.couponSheet {
+    display: flex;
+    flex-direction: column;
+    gap: 3mm;
+    height: 287mm;
+    margin: 0 auto;
+    padding: 1.5mm;
+    width: 200mm;
+  }
+
+  .paper.couponSheet::before {
+    opacity: 0.055;
+  }
+
+  .couponPrintGrid {
+    display: block;
+  }
+
+  .couponBox.officeCopy {
+    display: none;
+  }
+
+  .couponBox.entrantCopy {
+    display: flex;
+  }
+
+  .couponBox {
+    border: 1.6px solid #174a8b;
+    min-height: 204mm;
+  }
+
+  .couponTitle {
+    border-bottom: 3px double #174a8b;
+    margin: 0.8mm;
+    padding: 1.3mm;
+  }
+
+  .couponTitle span,
+  .couponTitle em {
+    font-size: 15px;
+  }
+
+  .couponFixtures {
+    gap: 0.65mm;
+    padding: 3mm 25mm 3mm;
+  }
+
+  .couponFixtureLine {
+    font-size: var(--fixture-print-font);
+    gap: 1.4mm;
+    grid-template-columns: minmax(0, 1fr) var(--fixture-badge-size) var(--fixture-score-width) 4mm var(--fixture-score-width) var(--fixture-badge-size) minmax(0, 1fr);
+  }
+
+  .scoreCell {
+    border: 1.5px solid #174a8b;
+    height: var(--fixture-score-height);
+  }
+
+  .couponCopyLabel {
+    font-size: 6px;
+    padding: 1mm;
+  }
+
+  .couponInfoGrid {
+    border-left: 0;
+    display: block;
+    margin-top: 0;
+    padding-left: 0;
+  }
+
+  .couponEntrantInfo {
+    display: block;
+  }
+
+  .couponAdminInfo,
+  .couponEntrantInfo .printQrWrap,
+  .couponEntrantInfo .summaryBox {
+    display: none;
+  }
+
+  .couponMeta {
+    font-size: 9px;
+    gap: 1.7mm 4mm;
+    grid-template-columns: 40mm 1fr;
+    margin: 0 8mm;
+  }
+
+  .couponMetaInput {
+    border-bottom: 1px solid #111;
+    font-size: 9px;
+    height: 4.2mm;
+    min-height: 4.2mm;
+  }
+
+  .screenCouponRules {
+    display: block;
+  }
+
+  .couponRules h3 {
+    font-size: 9px;
+    margin: 3mm 8mm 1mm;
+  }
+
+  .rulesBox {
+    border: 1.3px solid #174a8b;
+    border-radius: 4mm;
+    gap: 0.75mm;
+    margin: 0 8mm;
+    padding: 2.3mm 5mm;
+  }
+
+  .ruleItem {
+    font-size: 5.7px;
+    gap: 2mm;
+    grid-template-columns: 5mm 1fr;
+    line-height: 1.18;
+  }
 }

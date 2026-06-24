@@ -1254,25 +1254,27 @@ function OldSchool({ week, fixtures, settings = {}, maxPts, entryDeadline }) {
   const rules = parseRulesText(settings?.rules);
   const fixtureCount = fixtures.length || 1;
   const fixturePrintFont =
-    fixtureCount > 24 ? '6.6px' :
-    fixtureCount > 22 ? '7.2px' :
-    fixtureCount > 18 ? '8.2px' :
-    fixtureCount > 14 ? '9px' :
-    '10px';
+    fixtureCount > 28 ? '7px' :
+    fixtureCount > 24 ? '7.8px' :
+    fixtureCount > 20 ? '8.8px' :
+    fixtureCount > 14 ? '9.6px' :
+    '10.5px';
   const fixtureBadgeSize =
-    fixtureCount > 24 ? '2.5mm' :
-    fixtureCount > 22 ? '2.9mm' :
-    fixtureCount > 18 ? '3.3mm' :
-    fixtureCount > 14 ? '3.7mm' :
-    '4.2mm';
+    fixtureCount > 28 ? '3mm' :
+    fixtureCount > 24 ? '3.3mm' :
+    fixtureCount > 20 ? '3.8mm' :
+    fixtureCount > 14 ? '4.2mm' :
+    '4.8mm';
   const fixtureScoreBoxWidth =
-    fixtureCount > 24 ? '10mm' :
-    fixtureCount > 20 ? '11mm' :
-    '13mm';
+    fixtureCount > 28 ? '12mm' :
+    fixtureCount > 24 ? '13mm' :
+    fixtureCount > 20 ? '15mm' :
+    '16mm';
   const fixtureScoreBoxHeight =
-    fixtureCount > 24 ? '3mm' :
-    fixtureCount > 20 ? '3.3mm' :
-    '3.7mm';
+    fixtureCount > 28 ? '3.6mm' :
+    fixtureCount > 24 ? '4mm' :
+    fixtureCount > 20 ? '4.5mm' :
+    '5mm';
   const entryFee = `${sym(settings?.currency || 'GBP')}${settings?.entry_fee || 10}`;
   const deadlineText = entryDeadline ? entryDeadline.toLocaleString('en-GB') : 'TBC';
   const sheetRules = rules.length ? rules : parseRulesText(DEFAULT_RULES_TEMPLATE);
