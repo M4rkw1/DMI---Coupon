@@ -969,6 +969,131 @@ th {
   text-align: center;
 }
 
+.leaderboardShare.shareCompact {
+  padding: 24px;
+}
+
+.leaderboardShare.shareCompact .shareHeader h1 {
+  font-size: 27px;
+}
+
+.leaderboardShare.shareCompact .shareMeta {
+  margin: 16px 0;
+}
+
+.leaderboardShare.shareCompact .shareRows {
+  gap: 6px;
+}
+
+.leaderboardShare.shareCompact .shareRow {
+  border-radius: 12px;
+  gap: 8px;
+  padding: 8px;
+}
+
+.leaderboardShare.shareVeryCompact {
+  padding: 22px;
+}
+
+.leaderboardShare.shareVeryCompact .shareHeader h1 {
+  font-size: 24px;
+}
+
+.leaderboardShare.shareVeryCompact .shareHeader p,
+.leaderboardShare.shareVeryCompact .shareFooter {
+  font-size: 11px;
+}
+
+.leaderboardShare.shareVeryCompact .shareMeta {
+  gap: 7px;
+  margin: 12px 0;
+}
+
+.leaderboardShare.shareVeryCompact .shareMeta div {
+  border-radius: 11px;
+  padding: 8px;
+}
+
+.leaderboardShare.shareVeryCompact .shareMeta strong {
+  font-size: 18px;
+}
+
+.leaderboardShare.shareVeryCompact .shareRows {
+  gap: 5px;
+}
+
+.leaderboardShare.shareVeryCompact .shareRow {
+  border-radius: 10px;
+  gap: 7px;
+  grid-template-columns: 28px 1fr auto;
+  padding: 6px 8px;
+}
+
+.leaderboardShare.shareVeryCompact .shareRow b {
+  height: 26px;
+  width: 26px;
+}
+
+.leaderboardShare.shareVeryCompact .shareRow span strong,
+.leaderboardShare.shareVeryCompact .shareRow em {
+  font-size: 14px;
+}
+
+.leaderboardShare.shareUltraCompact {
+  padding: 18px;
+}
+
+.leaderboardShare.shareUltraCompact .shareHeader span {
+  font-size: 10px;
+}
+
+.leaderboardShare.shareUltraCompact .shareHeader h1 {
+  font-size: 21px;
+}
+
+.leaderboardShare.shareUltraCompact .shareHeader p,
+.leaderboardShare.shareUltraCompact .shareMeta small,
+.leaderboardShare.shareUltraCompact .shareRow small,
+.leaderboardShare.shareUltraCompact .shareFooter {
+  font-size: 9px;
+}
+
+.leaderboardShare.shareUltraCompact .shareMeta {
+  gap: 6px;
+  margin: 9px 0;
+}
+
+.leaderboardShare.shareUltraCompact .shareMeta div {
+  border-radius: 9px;
+  padding: 6px;
+}
+
+.leaderboardShare.shareUltraCompact .shareMeta strong {
+  font-size: 16px;
+}
+
+.leaderboardShare.shareUltraCompact .shareRows {
+  gap: 4px;
+}
+
+.leaderboardShare.shareUltraCompact .shareRow {
+  border-radius: 9px;
+  gap: 6px;
+  grid-template-columns: 24px 1fr auto;
+  padding: 5px 7px;
+}
+
+.leaderboardShare.shareUltraCompact .shareRow b {
+  font-size: 12px;
+  height: 22px;
+  width: 22px;
+}
+
+.leaderboardShare.shareUltraCompact .shareRow span strong,
+.leaderboardShare.shareUltraCompact .shareRow em {
+  font-size: 12px;
+}
+
 .entriesShare {
   background: white;
   color: #111;

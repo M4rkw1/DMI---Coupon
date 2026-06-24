@@ -1735,6 +1735,11 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
         String(a.name || '').localeCompare(String(b.name || ''))
     );
   const activeUnpaidEntries = ranked.filter(entry => !entry.paid);
+  const leaderboardShareDensity =
+    ranked.length > 28 ? 'shareUltraCompact' :
+    ranked.length > 20 ? 'shareVeryCompact' :
+    ranked.length > 14 ? 'shareCompact' :
+    '';
 
   const [fixtureText, setFixtureText] = useState(fixturesToTsv(fixtures));
   const [fixturePreview, setFixturePreview] = useState(null);
@@ -3921,7 +3926,7 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
         Download Entries Matrix PNG
       </button>
 
-      <div className="share" ref={imgRef}>
+      <div className={`share leaderboardShare ${leaderboardShareDensity}`} ref={imgRef}>
         <div className="shareHeader">
           <span>DMI Football Coupon</span>
           <h1>{state.week.title}</h1>
@@ -3949,7 +3954,7 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
         </div>
 
         <div className="shareRows">
-          {ranked.slice(0, 12).map((e, i) => (
+          {ranked.map((e, i) => (
             <div className={i === 0 ? 'shareRow leader' : 'shareRow'} key={e.id}>
               <b>{i + 1}</b>
               <span>
