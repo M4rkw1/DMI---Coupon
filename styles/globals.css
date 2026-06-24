@@ -1249,29 +1249,64 @@ th {
 }
 
 .leaguePickerItem {
-  align-items: flex-start;
   background: #fff;
   border: 1px solid #e5ebf4;
   border-radius: 10px;
-  cursor: pointer;
-  display: flex;
+  display: grid;
   gap: 8px;
   padding: 10px;
 }
 
-.leaguePickerItem input {
-  margin-top: 3px;
+.leaguePickerItem.expanded {
+  border-color: #9bb6e8;
+  box-shadow: 0 8px 18px rgba(16, 41, 79, 0.08);
 }
 
-.leaguePickerItem strong,
-.leaguePickerItem small {
+.leaguePickerHeader {
+  align-items: flex-start;
+  cursor: pointer;
+  display: flex;
+  gap: 8px;
+  margin: 0;
+}
+
+.leaguePickerHeader input {
+  flex: 0 0 auto;
+  margin-top: 3px;
+  width: auto;
+}
+
+.leaguePickerHeader strong,
+.leaguePickerHeader small {
   display: block;
 }
 
-.leaguePickerItem small {
+.leaguePickerHeader small {
   color: #46618a;
   font-size: 12px;
   margin-top: 3px;
+}
+
+.leagueExpandButton {
+  justify-self: start;
+  padding: 7px 10px;
+}
+
+.leagueFixtureList {
+  border-top: 1px solid #eef2f7;
+  display: grid;
+  gap: 0;
+  padding-top: 6px;
+}
+
+.leagueFixtureRow {
+  border: 0;
+  border-bottom: 1px solid #eef2f7;
+  padding: 8px 0;
+}
+
+.leagueFixtureRow:last-child {
+  border-bottom: 0;
 }
 
 .fixtureSearchResults {

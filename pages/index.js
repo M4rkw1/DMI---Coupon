@@ -1770,6 +1770,7 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
   const [fixtureSearchAllResults, setFixtureSearchAllResults] = useState([]);
   const [fixtureSearchResults, setFixtureSearchResults] = useState([]);
   const [selectedApiLeagues, setSelectedApiLeagues] = useState({});
+  const [expandedApiLeagues, setExpandedApiLeagues] = useState({});
   const [selectedApiFixtures, setSelectedApiFixtures] = useState({});
   const [selectedApprovedCompetitions, setSelectedApprovedCompetitions] = useState(() =>
     Object.fromEntries(DMI_APPROVED_COMPETITIONS.map(competition => [competition.name, true]))
@@ -2135,6 +2136,7 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
   }
 
   function toggleApprovedCompetition(name) {
+    resetFixtureSearchDiscovery();
     setSelectedApprovedCompetitions(current => ({
       ...current,
       [name]: !current[name],
@@ -2142,21 +2144,38 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
   }
 
   function selectAllApprovedCompetitions() {
+    resetFixtureSearchDiscovery();
     setSelectedApprovedCompetitions(
       Object.fromEntries(DMI_APPROVED_COMPETITIONS.map(competition => [competition.name, true]))
     );
   }
 
   function clearApprovedCompetitions() {
+    resetFixtureSearchDiscovery();
     setSelectedApprovedCompetitions(
       Object.fromEntries(DMI_APPROVED_COMPETITIONS.map(competition => [competition.name, false]))
     );
   }
 
+  function resetFixtureSearchDiscovery() {
+    setFixtureSearchAllResults([]);
+    setFixtureSearchResults([]);
+    setSelectedApiLeagues({});
+    setExpandedApiLeagues({});
+    setSelectedApiFixtures({});
+  }
+
   async function findAvailableLeagues() {
     setSelectedApiFixtures({});
     setSelectedApiLeagues({});
+    setExpandedApiLeagues({});
     setFixtureSearchResults([]);
+
+    if (!fixtureSearch.from || !fixtureSearchTo) {
+      setFixtureSearchAllResults([]);
+      setMsg('Choose a fixture search start and end date first.');
+      return;
+    }
 
     if (!DMI_APPROVED_COMPETITIONS.some(competition => selectedApprovedCompetitions[competition.name])) {
       setFixtureSearchAllResults([]);
@@ -2189,6 +2208,7 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
     setSelectedApiFixtures({});
     setFixtureSearchAllResults([]);
     setSelectedApiLeagues({});
+    setExpandedApiLeagues({});
 
     if (
       !fixtureSearch.leagues.trim() &&
@@ -2238,25 +2258,27 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
       ...current,
       [id]: !current[id],
     }));
+
+    const leagueFixtures = leagueFixturesById[id] || [];
+    const nextSelected = !selectedApiLeagues[id];
+    setSelectedApiFixtures(current => {
+      const next = { ...current };
+      leagueFixtures.forEach(fixture => {
+        if (nextSelected) {
+          next[fixture.api_fixture_id] = true;
+        } else {
+          delete next[fixture.api_fixture_id];
+        }
+      });
+      return next;
+    });
   }
 
-  function showSelectedLeagueFixtures() {
-    const selectedLeagueIds = Object.entries(selectedApiLeagues)
-      .filter(([, selected]) => selected)
-      .map(([id]) => id);
-
-    if (!selectedLeagueIds.length) {
-      setMsg('Select at least one league first.');
-      return;
-    }
-
-    const fixturesFound = fixtureSearchAllResults.filter(fixture =>
-      selectedLeagueIds.includes(String(fixture.league_id))
-    );
-
-    setSelectedApiFixtures({});
-    setFixtureSearchResults(fixturesFound);
-    setMsgForFixtureSearch(fixturesFound);
+  function toggleApiLeagueExpansion(id) {
+    setExpandedApiLeagues(current => ({
+      ...current,
+      [id]: !current[id],
+    }));
   }
 
   function toggleApiFixture(id) {
@@ -2267,7 +2289,8 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
   }
 
   function useSelectedApiFixtures() {
-    const selected = fixtureSearchResults.filter(fixture => selectedApiFixtures[fixture.api_fixture_id]);
+    const sourceFixtures = fixtureSearchResults.length ? fixtureSearchResults : fixtureSearchAllResults;
+    const selected = sourceFixtures.filter(fixture => selectedApiFixtures[fixture.api_fixture_id]);
 
     if (!selected.length) {
       setMsg('Select at least one searched fixture first.');
@@ -2877,6 +2900,13 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
       String(a.country || '').localeCompare(String(b.country || '')) ||
       String(a.name || '').localeCompare(String(b.name || ''))
   );
+  const leagueFixturesById = fixtureSearchAllResults.reduce((groups, fixture) => {
+    const id = String(fixture.league_id || fixture.league_name || 'other');
+    if (!groups[id]) groups[id] = [];
+    groups[id].push(fixture);
+    return groups;
+  }, {});
+  const selectedApiFixtureCount = Object.values(selectedApiFixtures).filter(Boolean).length;
   const fixturePreviewSummary = fixturePreviewApiSummary(fixturePreview);
   const visiblePreviewRows = (fixturePreview?.rows || []).filter(row => {
     if (previewFilter === 'missing-badges') return !row.error && (!row.home_badge || !row.away_badge);
@@ -3399,6 +3429,7 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
                   type="date"
                   value={fixtureSearch.from}
                   onChange={e => {
+                    resetFixtureSearchDiscovery();
                     const nextFrom = e.target.value;
                     const previousAutoEnd = nextThursdayIsoDate(fixtureSearch.from);
                     const suggestedEnd = nextThursdayIsoDate(nextFrom);
@@ -3421,10 +3452,13 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
                   type="date"
                   value={fixtureSearchTo}
                   onChange={e =>
-                    setFixtureSearch({
-                      ...fixtureSearch,
-                      to: e.target.value,
-                    })
+                    {
+                      resetFixtureSearchDiscovery();
+                      setFixtureSearch({
+                        ...fixtureSearch,
+                        to: e.target.value,
+                      });
+                    }
                   }
                 />
               </label>
@@ -3434,7 +3468,10 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
                 <input
                   placeholder="Optional override: World Cup, 1, 39"
                   value={fixtureSearch.leagues}
-                  onChange={e => setFixtureSearch({ ...fixtureSearch, leagues: e.target.value })}
+                  onChange={e => {
+                    resetFixtureSearchDiscovery();
+                    setFixtureSearch({ ...fixtureSearch, leagues: e.target.value });
+                  }}
                 />
               </label>
 
@@ -3443,7 +3480,10 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
                 <input
                   placeholder="2026"
                   value={fixtureSearch.season}
-                  onChange={e => setFixtureSearch({ ...fixtureSearch, season: e.target.value })}
+                  onChange={e => {
+                    resetFixtureSearchDiscovery();
+                    setFixtureSearch({ ...fixtureSearch, season: e.target.value });
+                  }}
                 />
               </label>
             </div>
@@ -3500,26 +3540,75 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
               <div className="leaguePicker">
                 <div className="fixtureSearchSummary">
                   <strong>{availableApiLeagues.length} league(s) available</strong>
-                  <button onClick={showSelectedLeagueFixtures}>Show Fixtures For Selected Leagues</button>
+                  <span>{selectedApiFixtureCount} fixture{selectedApiFixtureCount === 1 ? '' : 's'} selected</span>
                 </div>
 
                 <div className="leaguePickerGrid">
-                  {availableApiLeagues.map(league => (
-                    <label className="leaguePickerItem" key={league.id}>
-                      <input
-                        type="checkbox"
-                        checked={!!selectedApiLeagues[league.id]}
-                        onChange={() => toggleApiLeague(league.id)}
-                      />
-                      <span>
-                        <strong>{league.name}</strong>
-                        <small>
-                          {league.country || 'International'}
-                          {league.season ? ` · ${league.season}` : ''} · {league.count} fixture{league.count === 1 ? '' : 's'}
-                        </small>
-                      </span>
-                    </label>
-                  ))}
+                  {availableApiLeagues.map(league => {
+                    const leagueFixtures = leagueFixturesById[league.id] || [];
+                    const isExpanded = !!expandedApiLeagues[league.id];
+
+                    return (
+                      <div className={`leaguePickerItem ${isExpanded ? 'expanded' : ''}`} key={league.id}>
+                        <label className="leaguePickerHeader">
+                          <input
+                            type="checkbox"
+                            checked={!!selectedApiLeagues[league.id]}
+                            onChange={() => toggleApiLeague(league.id)}
+                          />
+                          <span>
+                            <strong>{league.name}</strong>
+                            <small>
+                              {league.country || 'International'}
+                              {league.season ? ` · ${league.season}` : ''} · {league.count} fixture{league.count === 1 ? '' : 's'}
+                            </small>
+                          </span>
+                        </label>
+
+                        <button
+                          aria-expanded={isExpanded}
+                          className="leagueExpandButton"
+                          type="button"
+                          onClick={() => toggleApiLeagueExpansion(league.id)}
+                        >
+                          {isExpanded ? 'Hide Fixtures' : 'Open Fixtures'}
+                        </button>
+
+                        {isExpanded && (
+                          <div className="leagueFixtureList">
+                            {leagueFixtures.map(fixture => (
+                              <label className="apiFixtureRow leagueFixtureRow" key={fixture.api_fixture_id}>
+                                <input
+                                  type="checkbox"
+                                  checked={!!selectedApiFixtures[fixture.api_fixture_id]}
+                                  onChange={() => toggleApiFixture(fixture.api_fixture_id)}
+                                />
+
+                                <TeamLabel
+                                  align="right"
+                                  badge={fixture.home_badge}
+                                  name={fixture.home_team}
+                                />
+
+                                <strong>{fixture.kickoff?.split(' ')[1] || 'TBC'}</strong>
+
+                                <TeamLabel
+                                  badge={fixture.away_badge}
+                                  name={fixture.away_team}
+                                />
+                              </label>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="fixtureSearchActions">
+                  <button onClick={useSelectedApiFixtures} disabled={!selectedApiFixtureCount}>
+                    Use Selected Fixtures
+                  </button>
                 </div>
               </div>
             )}
