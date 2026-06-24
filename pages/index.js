@@ -3179,17 +3179,15 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
                       <small>{winnerName} • {winnerPoints} pts</small>
 
                       <div className={unpaidRows.length ? 'archiveUnpaidList' : 'archiveUnpaidList allPaid'}>
-                        <b>
-                          {unpaidRows.length
-                            ? `Unpaid at archive: ${unpaidRows.length}`
-                            : 'Unpaid at archive: 0'}
-                        </b>
-                        <span>
-                          {unpaidRows.length
-                            ? 'Tick entrants off here when they pay after the coupon has been archived.'
-                            : 'All entrants were marked paid.'}
-                        </span>
-                        {paymentRows.length ? (
+                        {unpaidRows.length ? (
+                          <>
+                            <b>{`Unpaid at archive: ${unpaidRows.length}`}</b>
+                            <span>Tick entrants off here when they pay after the coupon has been archived.</span>
+                          </>
+                        ) : (
+                          <b>ALL PAID!</b>
+                        )}
+                        {unpaidRows.length && paymentRows.length ? (
                           <div className="archivePaymentChecks">
                             {paymentRows.map(entry => (
                               <label key={entry.id || `${entry.name}-${entry.department}`}>

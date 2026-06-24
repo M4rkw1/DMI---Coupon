@@ -1418,13 +1418,20 @@ th {
 }
 
 .archiveUnpaidList.allPaid {
+  align-items: center;
   background: #edf8ee;
   border-color: #b8ddbd;
+  display: inline-flex;
+  justify-content: center;
+  min-height: 34px;
+  padding: 6px 12px;
+  width: fit-content;
 }
 
-.archiveUnpaidList.allPaid b,
-.archiveUnpaidList.allPaid span {
+.archiveUnpaidList.allPaid b {
   color: #2d6a35;
+  font-size: 13px;
+  letter-spacing: 0.08em;
 }
 
 .archivePaymentChecks {
