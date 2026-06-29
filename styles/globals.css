@@ -1288,6 +1288,28 @@ th {
   margin-top: 4px;
 }
 
+.fixtureSearchRangePreview {
+  align-self: end;
+  background: #fff;
+  border: 1px solid #e5ebf4;
+  border-radius: 10px;
+  display: grid;
+  gap: 2px;
+  min-height: 52px;
+  padding: 8px 10px;
+}
+
+.fixtureSearchRangePreview small {
+  color: #6c7b98;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.fixtureSearchRangePreview strong {
+  color: #172755;
+  font-size: 14px;
+}
+
 .fixtureSearchActions {
   display: flex;
   flex-wrap: wrap;
@@ -1314,95 +1336,26 @@ th {
   width: 22px;
 }
 
-.fixtureSearchAdvanced,
-.approvedCompetitionPreview {
+.fixtureSearchAdvanced {
   background: #fff;
   border: 1px solid #e5ebf4;
   border-radius: 10px;
   padding: 10px;
 }
 
-.fixtureSearchAdvanced summary,
-.approvedCompetitionPreview summary {
+.fixtureSearchAdvanced summary {
   color: #174a8b;
   cursor: pointer;
   font-weight: 800;
 }
 
-.fixtureSearchAdvanced[open],
-.approvedCompetitionPreview[open] {
+.fixtureSearchAdvanced[open] {
   border-color: #c6d6f2;
 }
 
 .advancedFixtureControls {
   grid-template-columns: 1fr;
   margin-top: 10px;
-}
-
-.approvedCompetitionPreview {
-  margin-top: 0;
-}
-
-.approvedCompetitionGroups {
-  display: grid;
-  gap: 8px;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  max-height: 420px;
-  overflow: auto;
-  padding-right: 4px;
-}
-
-.approvedCompetitionActions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.approvedCompetitionActions button {
-  padding: 8px 10px;
-}
-
-.approvedCompetitionGroup {
-  background: #f8fbff;
-  border-radius: 8px;
-  min-width: 0;
-  padding: 8px;
-}
-
-.approvedCompetitionGroup span {
-  display: block;
-}
-
-.approvedCompetitionGroup span {
-  color: #154c8f;
-  font-weight: 800;
-  margin-bottom: 6px;
-}
-
-.approvedCompetitionChecks {
-  display: grid;
-  gap: 5px;
-}
-
-.approvedCompetitionChecks label {
-  align-items: flex-start;
-  color: #46618a;
-  cursor: pointer;
-  display: flex;
-  font-size: 13px;
-  font-weight: 700;
-  gap: 7px;
-  line-height: 1.4;
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
-
-.approvedCompetitionChecks input {
-  flex: 0 0 auto;
-  height: 16px;
-  margin: 1px 0 0;
-  padding: 0;
-  width: 16px;
 }
 
 .leaguePicker {

@@ -1,5 +1,4 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
-import { DMI_APPROVED_COMPETITIONS } from '../lib/dmiCompetitions';
 
 const resultOf = (h, a) => (h > a ? 'H' : h < a ? 'A' : 'D');
 const FINAL_STATUSES = new Set(['FT', 'AET', 'PEN']);
@@ -46,15 +45,18 @@ function points(pred, fix) {
 }
 
 const sym = c => ({ GBP: '£', USD: '$', EUR: '€', NAD: 'N$', ZAR: 'R' }[c] || `${c} `);
-const nextThursdayIsoDate = value => {
+const addDaysIsoDate = (value, days) => {
   if (!value) return '';
 
   const date = new Date(`${value}T00:00:00Z`);
   if (Number.isNaN(date.getTime())) return '';
 
-  const daysUntilThursday = (4 - date.getUTCDay() + 7) % 7;
-  date.setUTCDate(date.getUTCDate() + daysUntilThursday);
+  date.setUTCDate(date.getUTCDate() + Number(days || 0));
   return date.toISOString().slice(0, 10);
+};
+const fixtureSearchDateRange = (from, days) => {
+  const count = Math.max(1, Math.min(31, Number(days) || 1));
+  return Array.from({ length: count }, (_, index) => addDaysIsoDate(from, index)).filter(Boolean);
 };
 const isoWeekInfo = (input = new Date()) => {
   const date = new Date(Date.UTC(input.getFullYear(), input.getMonth(), input.getDate()));
@@ -1768,20 +1770,18 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
   const scoreSaveTimer = useRef(null);
   const [fixtureSearch, setFixtureSearch] = useState({
     from: '',
-    to: '',
+    days: '7',
     leagues: '',
     season: String(new Date().getFullYear()),
   });
   const [fixtureSearchAllResults, setFixtureSearchAllResults] = useState([]);
   const [fixtureSearchResults, setFixtureSearchResults] = useState([]);
   const [selectedApiLeagues, setSelectedApiLeagues] = useState({});
-  const [expandedApiLeagues, setExpandedApiLeagues] = useState({});
   const [selectedApiFixtures, setSelectedApiFixtures] = useState({});
-  const [selectedApprovedCompetitions, setSelectedApprovedCompetitions] = useState(() =>
-    Object.fromEntries(DMI_APPROVED_COMPETITIONS.map(competition => [competition.name, true]))
-  );
   const [fixtureSearchLoading, setFixtureSearchLoading] = useState(false);
-  const fixtureSearchTo = fixtureSearch.to || nextThursdayIsoDate(fixtureSearch.from);
+  const fixtureSearchDays = Math.max(1, Math.min(31, Number(fixtureSearch.days) || 1));
+  const fixtureSearchDates = fixtureSearchDateRange(fixtureSearch.from, fixtureSearchDays);
+  const fixtureSearchTo = fixtureSearchDates[fixtureSearchDates.length - 1] || '';
 
   const [tsv, setTsv] = useState('');
 
@@ -2052,15 +2052,24 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
   }
 
   function weeklyFixtureSearchPayload(overrides = {}) {
-    const selectedCompetitions = DMI_APPROVED_COMPETITIONS
-      .filter(competition => selectedApprovedCompetitions[competition.name])
-      .map(competition => competition.name);
-
     return {
       ...fixtureSearch,
-      approved_competitions: selectedCompetitions,
+      approved_competitions: [],
       ...overrides,
       to: fixtureSearchTo,
+    };
+  }
+
+  function fixtureDateDiscoveryPayload(overrides = {}) {
+    return {
+      ...fixtureSearch,
+      all_fixtures_by_date: true,
+      approved_competitions: [],
+      dates: fixtureSearchDates,
+      from: fixtureSearch.from,
+      leagues: '',
+      to: fixtureSearchTo,
+      ...overrides,
     };
   }
 
@@ -2140,55 +2149,25 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
     return { enriched, matched, badgeMatched, matchedFixtures };
   }
 
-  function toggleApprovedCompetition(name) {
-    resetFixtureSearchDiscovery();
-    setSelectedApprovedCompetitions(current => ({
-      ...current,
-      [name]: !current[name],
-    }));
-  }
-
-  function selectAllApprovedCompetitions() {
-    resetFixtureSearchDiscovery();
-    setSelectedApprovedCompetitions(
-      Object.fromEntries(DMI_APPROVED_COMPETITIONS.map(competition => [competition.name, true]))
-    );
-  }
-
-  function clearApprovedCompetitions() {
-    resetFixtureSearchDiscovery();
-    setSelectedApprovedCompetitions(
-      Object.fromEntries(DMI_APPROVED_COMPETITIONS.map(competition => [competition.name, false]))
-    );
-  }
-
   function resetFixtureSearchDiscovery() {
     setFixtureSearchAllResults([]);
     setFixtureSearchResults([]);
     setSelectedApiLeagues({});
-    setExpandedApiLeagues({});
     setSelectedApiFixtures({});
   }
 
   async function findAvailableLeagues() {
     setSelectedApiFixtures({});
     setSelectedApiLeagues({});
-    setExpandedApiLeagues({});
     setFixtureSearchResults([]);
 
-    if (!fixtureSearch.from || !fixtureSearchTo) {
+    if (!fixtureSearch.from || !fixtureSearchTo || !fixtureSearchDates.length) {
       setFixtureSearchAllResults([]);
-      setMsg('Choose a fixture search start and end date first.');
+      setMsg('Choose a fixture search start date and number of days first.');
       return;
     }
 
-    if (!DMI_APPROVED_COMPETITIONS.some(competition => selectedApprovedCompetitions[competition.name])) {
-      setFixtureSearchAllResults([]);
-      setMsg('Select at least one approved competition before searching.');
-      return;
-    }
-
-    const search = await fetchApiFixtures(weeklyFixtureSearchPayload({ leagues: '' }));
+    const search = await fetchApiFixtures(fixtureDateDiscoveryPayload());
     if (!search) {
       setFixtureSearchAllResults([]);
       return;
@@ -2199,13 +2178,10 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
 
     const leagueCount = new Set(fixturesFound.map(fixture => fixture.league_id).filter(Boolean)).size;
     const checkedDates = search.meta?.checked_dates?.length || 0;
-    const resolvedLeagues = search.meta?.resolved_league_ids?.length || 0;
-    const approvedCount = search.meta?.approved_competitions_count || selectedApprovedCompetitionCount;
-    const unresolved = search.meta?.unresolved_competitions?.length || 0;
     setMsg(
-      `Found ${leagueCount} league(s) and ${fixturesFound.length} fixture(s) from ${resolvedLeagues} league ID(s) across ${approvedCount} selected DMI rule(s)${
+      `Found ${leagueCount} league/cup competition(s) with ${fixturesFound.length} fixture(s)${
         checkedDates ? ` across ${checkedDates} date(s)` : ''
-      }${unresolved ? `. ${unresolved} approved competition(s) did not resolve for this season.` : '.'}`
+      }. Select leagues, then press List Fixtures.`
     );
   }
 
@@ -2213,13 +2189,9 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
     setSelectedApiFixtures({});
     setFixtureSearchAllResults([]);
     setSelectedApiLeagues({});
-    setExpandedApiLeagues({});
 
-    if (
-      !fixtureSearch.leagues.trim() &&
-      !DMI_APPROVED_COMPETITIONS.some(competition => selectedApprovedCompetitions[competition.name])
-    ) {
-      setMsg('Select at least one approved competition before searching.');
+    if (!fixtureSearch.leagues.trim()) {
+      setMsg('Enter a direct league ID or name before using Direct Fixture Search.');
       return;
     }
 
@@ -2263,27 +2235,25 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
       ...current,
       [id]: !current[id],
     }));
-
-    const leagueFixtures = leagueFixturesById[id] || [];
-    const nextSelected = !selectedApiLeagues[id];
-    setSelectedApiFixtures(current => {
-      const next = { ...current };
-      leagueFixtures.forEach(fixture => {
-        if (nextSelected) {
-          next[fixture.api_fixture_id] = true;
-        } else {
-          delete next[fixture.api_fixture_id];
-        }
-      });
-      return next;
-    });
   }
 
-  function toggleApiLeagueExpansion(id) {
-    setExpandedApiLeagues(current => ({
-      ...current,
-      [id]: !current[id],
-    }));
+  function listSelectedLeagueFixtures() {
+    const selectedLeagueIds = Object.entries(selectedApiLeagues)
+      .filter(([, selected]) => selected)
+      .map(([id]) => id);
+
+    if (!selectedLeagueIds.length) {
+      setMsg('Select at least one league or cup competition first.');
+      return;
+    }
+
+    const fixturesFound = fixtureSearchAllResults.filter(fixture =>
+      selectedLeagueIds.includes(String(fixture.league_id || fixture.league_name || 'other'))
+    );
+
+    setSelectedApiFixtures({});
+    setFixtureSearchResults(fixturesFound);
+    setMsgForFixtureSearch(fixturesFound);
   }
 
   function toggleApiFixture(id) {
@@ -2871,16 +2841,6 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
     return groups;
   }, {});
 
-  const approvedCompetitionGroups = DMI_APPROVED_COMPETITIONS.reduce((groups, competition) => {
-    const key = competition.group || competition.name;
-    if (!groups[key]) groups[key] = [];
-    groups[key].push(competition);
-    return groups;
-  }, {});
-  const selectedApprovedCompetitionCount = DMI_APPROVED_COMPETITIONS.filter(
-    competition => selectedApprovedCompetitions[competition.name]
-  ).length;
-
   const availableApiLeagues = Object.values(
     fixtureSearchAllResults.reduce((leagues, fixture) => {
       const id = String(fixture.league_id || fixture.league_name || 'other');
@@ -2905,13 +2865,6 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
       String(a.country || '').localeCompare(String(b.country || '')) ||
       String(a.name || '').localeCompare(String(b.name || ''))
   );
-  const leagueFixturesById = fixtureSearchAllResults.reduce((groups, fixture) => {
-    const id = String(fixture.league_id || fixture.league_name || 'other');
-    if (!groups[id]) groups[id] = [];
-    groups[id].push(fixture);
-    return groups;
-  }, {});
-  const selectedApiFixtureCount = Object.values(selectedApiFixtures).filter(Boolean).length;
   const fixturePreviewSummary = fixturePreviewApiSummary(fixturePreview);
   const visiblePreviewRows = (fixturePreview?.rows || []).filter(row => {
     if (previewFilter === 'missing-badges') return !row.error && (!row.home_badge || !row.away_badge);
@@ -3424,12 +3377,12 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
           </div>
 
           <h4>Optional API Fixture Search</h4>
-          <p>Use this when you want to build a coupon from API fixtures instead of pasted TSV. Pick dates, load leagues, open a league, then tick the fixtures you want.</p>
+          <p>Pick a start date and number of days. Search lists every league or cup with fixtures in that period, then choose leagues and list the fixtures.</p>
 
           <div className="fixtureSearchPanel">
             <div className="fixtureSearchStep">
               <b>1</b>
-              <span>Select date range</span>
+              <span>Choose search period</span>
             </div>
 
             <div className="fixtureSearchControls">
@@ -3440,55 +3393,37 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
                   value={fixtureSearch.from}
                   onChange={e => {
                     resetFixtureSearchDiscovery();
-                    const nextFrom = e.target.value;
-                    const previousAutoEnd = nextThursdayIsoDate(fixtureSearch.from);
-                    const suggestedEnd = nextThursdayIsoDate(nextFrom);
-
                     setFixtureSearch({
                       ...fixtureSearch,
-                      from: nextFrom,
-                      to:
-                        !fixtureSearch.to || fixtureSearch.to === previousAutoEnd
-                          ? suggestedEnd
-                          : fixtureSearch.to,
+                      from: e.target.value,
                     });
                   }}
                 />
               </label>
 
               <label>
-                Ends
+                Number of days
                 <input
-                  type="date"
-                  value={fixtureSearchTo}
-                  onChange={e =>
-                    {
-                      resetFixtureSearchDiscovery();
-                      setFixtureSearch({
-                        ...fixtureSearch,
-                        to: e.target.value,
-                      });
-                    }
-                  }
-                />
-              </label>
-
-              <label>
-                Season
-                <input
-                  placeholder="2026"
-                  value={fixtureSearch.season}
+                  min="1"
+                  max="31"
+                  type="number"
+                  value={fixtureSearch.days}
                   onChange={e => {
                     resetFixtureSearchDiscovery();
-                    setFixtureSearch({ ...fixtureSearch, season: e.target.value });
+                    setFixtureSearch({ ...fixtureSearch, days: e.target.value });
                   }}
                 />
               </label>
+
+              <div className="fixtureSearchRangePreview">
+                <small>Searches through</small>
+                <strong>{fixtureSearchTo || 'Select start date'}</strong>
+              </div>
             </div>
 
             <div className="fixtureSearchActions">
               <button onClick={findAvailableLeagues} disabled={fixtureSearchLoading}>
-                {fixtureSearchLoading ? 'Searching...' : 'Load Leagues'}
+                {fixtureSearchLoading ? 'Searching...' : 'Search Leagues'}
               </button>
             </div>
 
@@ -3496,6 +3431,18 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
               <summary>Advanced search options</summary>
 
               <div className="fixtureSearchControls advancedFixtureControls">
+                <label>
+                  Season
+                  <input
+                    placeholder="2026"
+                    value={fixtureSearch.season}
+                    onChange={e => {
+                      resetFixtureSearchDiscovery();
+                      setFixtureSearch({ ...fixtureSearch, season: e.target.value });
+                    }}
+                  />
+                </label>
+
                 <label>
                   Direct league IDs or names
                   <input
@@ -3516,67 +3463,24 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
               </div>
             </details>
 
-            {!fixtureSearch.leagues.trim() && (
-              <details className="approvedCompetitionPreview">
-                <summary>
-                  <strong>
-                    Competition filters: {selectedApprovedCompetitionCount} of {DMI_APPROVED_COMPETITIONS.length} selected
-                  </strong>
-                </summary>
-
-                <div className="fixtureSearchSummary">
-                  <span>DMI approved competitions used when loading leagues.</span>
-                  <span className="approvedCompetitionActions">
-                    <button type="button" onClick={selectAllApprovedCompetitions}>
-                      Select All
-                    </button>
-                    <button type="button" onClick={clearApprovedCompetitions}>
-                      Clear All
-                    </button>
-                  </span>
-                </div>
-
-                <div className="approvedCompetitionGroups">
-                  {Object.entries(approvedCompetitionGroups).map(([group, competitions]) => (
-                    <div className="approvedCompetitionGroup" key={group}>
-                      <span>{group}</span>
-                      <div className="approvedCompetitionChecks">
-                        {competitions.map(competition => (
-                          <label key={competition.name}>
-                            <input
-                              type="checkbox"
-                              checked={!!selectedApprovedCompetitions[competition.name]}
-                              onChange={() => toggleApprovedCompetition(competition.name)}
-                            />
-                            {competition.name}
-                          </label>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </details>
-            )}
-
             {!!availableApiLeagues.length && (
               <div className="leaguePicker">
                 <div className="fixtureSearchStep">
                   <b>2</b>
-                  <span>Open a league and select fixtures</span>
+                  <span>Select leagues or cup competitions</span>
                 </div>
 
                 <div className="fixtureSearchSummary">
                   <strong>{availableApiLeagues.length} league(s) available</strong>
-                  <span>{selectedApiFixtureCount} fixture{selectedApiFixtureCount === 1 ? '' : 's'} selected</span>
+                  <span>
+                    {Object.values(selectedApiLeagues).filter(Boolean).length} selected
+                  </span>
                 </div>
 
                 <div className="leaguePickerGrid">
                   {availableApiLeagues.map(league => {
-                    const leagueFixtures = leagueFixturesById[league.id] || [];
-                    const isExpanded = !!expandedApiLeagues[league.id];
-
                     return (
-                      <div className={`leaguePickerItem ${isExpanded ? 'expanded' : ''}`} key={league.id}>
+                      <div className="leaguePickerItem" key={league.id}>
                         <label className="leaguePickerHeader">
                           <input
                             type="checkbox"
@@ -3591,50 +3495,17 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
                             </small>
                           </span>
                         </label>
-
-                        <button
-                          aria-expanded={isExpanded}
-                          className="leagueExpandButton"
-                          type="button"
-                          onClick={() => toggleApiLeagueExpansion(league.id)}
-                        >
-                          {isExpanded ? 'Hide Fixtures' : 'Open Fixtures'}
-                        </button>
-
-                        {isExpanded && (
-                          <div className="leagueFixtureList">
-                            {leagueFixtures.map(fixture => (
-                              <label className="apiFixtureRow leagueFixtureRow" key={fixture.api_fixture_id}>
-                                <input
-                                  type="checkbox"
-                                  checked={!!selectedApiFixtures[fixture.api_fixture_id]}
-                                  onChange={() => toggleApiFixture(fixture.api_fixture_id)}
-                                />
-
-                                <TeamLabel
-                                  align="right"
-                                  badge={fixture.home_badge}
-                                  name={fixture.home_team}
-                                />
-
-                                <strong>{fixture.kickoff?.split(' ')[1] || 'TBC'}</strong>
-
-                                <TeamLabel
-                                  badge={fixture.away_badge}
-                                  name={fixture.away_team}
-                                />
-                              </label>
-                            ))}
-                          </div>
-                        )}
                       </div>
                     );
                   })}
                 </div>
 
                 <div className="fixtureSearchActions">
-                  <button onClick={useSelectedApiFixtures} disabled={!selectedApiFixtureCount}>
-                    Use Selected Fixtures
+                  <button
+                    onClick={listSelectedLeagueFixtures}
+                    disabled={!Object.values(selectedApiLeagues).some(Boolean)}
+                  >
+                    List Fixtures
                   </button>
                 </div>
               </div>
@@ -3643,7 +3514,7 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
             {!!fixtureSearchResults.length && (
               <div className="fixtureSearchResults">
                 <div className="fixtureSearchStep">
-                  <b>2</b>
+                  <b>3</b>
                   <span>Select fixtures</span>
                 </div>
 
