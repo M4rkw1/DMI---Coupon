@@ -135,6 +135,13 @@ const fixtureKickoffIsoDate = value => {
   const parsed = new Date(raw);
   return Number.isNaN(parsed.getTime()) ? '' : parsed.toISOString().slice(0, 10);
 };
+const apiFixtureSelectionKey = fixture =>
+  String(
+    fixture.api_fixture_id ||
+      `${fixture.league_id || fixture.league_name || 'other'}:${fixtureMatchKey(fixture)}:${
+        fixtureKickoffIsoDate(fixture.kickoff) || fixture.kickoff || ''
+      }`
+  );
 const fixturesToTsv = fixtures =>
   fixtures
     .map(fixture =>
@@ -2250,7 +2257,13 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
     const fixturesFound = fixtureSearchAllResults.filter(fixture =>
       selectedLeagueIds.includes(String(fixture.league_id || fixture.league_name || 'other'))
     );
+    const selectedLeagueMap = selectedLeagueIds.reduce((selected, id) => {
+      selected[id] = true;
+      return selected;
+    }, {});
 
+    setFixtureSearchAllResults(fixturesFound);
+    setSelectedApiLeagues(selectedLeagueMap);
     setSelectedApiFixtures({});
     setFixtureSearchResults(fixturesFound);
     setMsgForFixtureSearch(fixturesFound);
@@ -2263,30 +2276,28 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
     }));
   }
 
-  function useSelectedApiFixtures() {
+  function useSelectedApiFixtures({ append = false } = {}) {
     const sourceFixtures = fixtureSearchResults.length ? fixtureSearchResults : fixtureSearchAllResults;
-    const selected = sourceFixtures.filter(fixture => selectedApiFixtures[fixture.api_fixture_id]);
+    const selected = sourceFixtures.filter(fixture => selectedApiFixtures[apiFixtureSelectionKey(fixture)]);
 
     if (!selected.length) {
       setMsg('Select at least one searched fixture first.');
       return;
     }
 
-    const text = selected
-      .map(fixture =>
-        [
-          fixture.home_team,
-          fixture.away_team,
-          fixture.kickoff,
-          fixture.api_fixture_id,
-          fixture.home_badge || '',
-          fixture.away_badge || '',
-        ].join('\t')
-      )
-      .join('\n');
+    const existing = append ? parseFixtureRows(fixtureText).fixtures : [];
+    const previewFixtures = append && fixturePreview?.fixtures?.length ? fixturePreview.fixtures : existing;
+    const fixtureKey = fixture =>
+      fixture.api_fixture_id
+        ? `api:${fixture.api_fixture_id}`
+        : `teams:${fixtureMatchKey(fixture)}:${fixtureKickoffIsoDate(fixture.kickoff) || fixture.kickoff || ''}`;
+    const existingKeys = new Set(previewFixtures.map(fixtureKey));
+    const newFixtures = selected.filter(fixture => !existingKeys.has(fixtureKey(fixture)));
+    const combinedFixtures = append ? [...previewFixtures, ...newFixtures] : selected;
+    const text = fixturesToTsv(combinedFixtures);
 
     const preview = {
-      fixtures: selected.map(fixture => ({
+      fixtures: combinedFixtures.map(fixture => ({
         home_team: fixture.home_team,
         away_team: fixture.away_team,
         kickoff: fixture.kickoff,
@@ -2296,7 +2307,7 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
         status: 'NS',
       })),
       errors: [],
-      rows: selected.map((fixture, index) => ({
+      rows: combinedFixtures.map((fixture, index) => ({
         line: index + 1,
         raw: '',
         ...fixture,
@@ -2307,7 +2318,11 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
     setFixtureText(text);
     setFixturePreview(preview);
     setConfirmReplace(false);
-    setMsg(`${selected.length} searched fixture(s) loaded into the preview.`);
+    setMsg(
+      append
+        ? `Added ${newFixtures.length} fixture(s). Preview now has ${combinedFixtures.length} fixture(s).`
+        : `${selected.length} searched fixture(s) loaded into the preview.`
+    );
   }
 
   async function updateManualFixturesFromApi({ preferSavedFixtures = false } = {}) {
@@ -3520,7 +3535,21 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
 
                 <div className="fixtureSearchSummary">
                   <strong>{fixtureSearchResults.length} fixture(s) found</strong>
-                  <button onClick={useSelectedApiFixtures}>Use Selected Fixtures</button>
+                  <span>{Object.values(selectedApiFixtures).filter(Boolean).length} selected</span>
+                  <div className="fixtureSearchSummaryActions">
+                    <button
+                      onClick={() => useSelectedApiFixtures()}
+                      disabled={!Object.values(selectedApiFixtures).some(Boolean)}
+                    >
+                      Use Selected Fixtures
+                    </button>
+                    <button
+                      onClick={() => useSelectedApiFixtures({ append: true })}
+                      disabled={!Object.values(selectedApiFixtures).some(Boolean)}
+                    >
+                      Add Fixtures
+                    </button>
+                  </div>
                 </div>
 
                 <div className="apiFixtureGroups">
@@ -3528,12 +3557,15 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
                     <section className="apiFixtureGroup" key={group}>
                       <h4>{group}</h4>
 
-                      {groupFixtures.map(fixture => (
-                        <label className="apiFixtureRow" key={fixture.api_fixture_id}>
+                      {groupFixtures.map(fixture => {
+                        const selectionKey = apiFixtureSelectionKey(fixture);
+
+                        return (
+                        <label className="apiFixtureRow" key={selectionKey}>
                           <input
                             type="checkbox"
-                            checked={!!selectedApiFixtures[fixture.api_fixture_id]}
-                            onChange={() => toggleApiFixture(fixture.api_fixture_id)}
+                            checked={!!selectedApiFixtures[selectionKey]}
+                            onChange={() => toggleApiFixture(selectionKey)}
                           />
 
                           <TeamLabel
@@ -3549,7 +3581,8 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
                             name={fixture.away_team}
                           />
                         </label>
-                      ))}
+                        );
+                      })}
                     </section>
                   ))}
                 </div>

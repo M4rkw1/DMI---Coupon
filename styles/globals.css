@@ -1446,10 +1446,16 @@ th {
   margin-bottom: 8px;
 }
 
+.fixtureSearchSummaryActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .apiFixtureGroups {
   display: grid;
   gap: 12px;
-  max-height: 520px;
+  max-height: 760px;
   overflow: auto;
   padding-right: 2px;
 }
