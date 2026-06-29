@@ -1247,8 +1247,10 @@ th {
   background: #f8fbff;
   border: 1px solid #bcc8d9;
   border-radius: 12px;
+  display: grid;
+  gap: 12px;
   margin-bottom: 14px;
-  padding: 12px;
+  padding: 14px;
 }
 
 .tsvImportPanel {
@@ -1273,7 +1275,7 @@ th {
 .fixtureSearchControls {
   display: grid;
   gap: 10px;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .fixtureSearchControls label {
@@ -1290,15 +1292,55 @@ th {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
-  margin-top: 10px;
+  margin-top: 0;
 }
 
+.fixtureSearchStep {
+  align-items: center;
+  color: #172755;
+  display: flex;
+  gap: 8px;
+  font-weight: 800;
+}
+
+.fixtureSearchStep b {
+  background: #174a8b;
+  border-radius: 999px;
+  color: #fff;
+  display: grid;
+  font-size: 12px;
+  height: 22px;
+  place-items: center;
+  width: 22px;
+}
+
+.fixtureSearchAdvanced,
 .approvedCompetitionPreview {
   background: #fff;
   border: 1px solid #e5ebf4;
   border-radius: 10px;
-  margin-top: 12px;
   padding: 10px;
+}
+
+.fixtureSearchAdvanced summary,
+.approvedCompetitionPreview summary {
+  color: #174a8b;
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.fixtureSearchAdvanced[open],
+.approvedCompetitionPreview[open] {
+  border-color: #c6d6f2;
+}
+
+.advancedFixtureControls {
+  grid-template-columns: 1fr;
+  margin-top: 10px;
+}
+
+.approvedCompetitionPreview {
+  margin-top: 0;
 }
 
 .approvedCompetitionGroups {
@@ -1364,13 +1406,15 @@ th {
 }
 
 .leaguePicker {
-  margin-top: 12px;
+  display: grid;
+  gap: 10px;
+  margin-top: 0;
 }
 
 .leaguePickerGrid {
   display: grid;
   gap: 8px;
-  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  grid-template-columns: 1fr;
 }
 
 .leaguePickerItem {
@@ -1435,7 +1479,9 @@ th {
 }
 
 .fixtureSearchResults {
-  margin-top: 12px;
+  display: grid;
+  gap: 10px;
+  margin-top: 0;
 }
 
 .fixtureSearchSummary {

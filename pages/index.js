@@ -3424,12 +3424,17 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
           </div>
 
           <h4>Optional API Fixture Search</h4>
-          <p>Select a start date, choose available leagues, then select fixtures to import. The search runs through Thursday and uses the DMI approved competition ruleset when the league override is blank.</p>
+          <p>Use this when you want to build a coupon from API fixtures instead of pasted TSV. Pick dates, load leagues, open a league, then tick the fixtures you want.</p>
 
           <div className="fixtureSearchPanel">
+            <div className="fixtureSearchStep">
+              <b>1</b>
+              <span>Select date range</span>
+            </div>
+
             <div className="fixtureSearchControls">
               <label>
-                Coupon week starts
+                Starts
                 <input
                   type="date"
                   value={fixtureSearch.from}
@@ -3452,7 +3457,7 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
               </label>
 
               <label>
-                Coupon week ends
+                Ends
                 <input
                   type="date"
                   value={fixtureSearchTo}
@@ -3465,18 +3470,6 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
                       });
                     }
                   }
-                />
-              </label>
-
-              <label>
-                Direct league IDs or names
-                <input
-                  placeholder="Optional override: World Cup, 1, 39"
-                  value={fixtureSearch.leagues}
-                  onChange={e => {
-                    resetFixtureSearchDiscovery();
-                    setFixtureSearch({ ...fixtureSearch, leagues: e.target.value });
-                  }}
                 />
               </label>
 
@@ -3495,20 +3488,44 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
 
             <div className="fixtureSearchActions">
               <button onClick={findAvailableLeagues} disabled={fixtureSearchLoading}>
-                {fixtureSearchLoading ? 'Searching...' : 'Find Available Leagues'}
-              </button>
-
-              <button onClick={searchApiFixtures} disabled={fixtureSearchLoading}>
-                Direct Fixture Search
+                {fixtureSearchLoading ? 'Searching...' : 'Load Leagues'}
               </button>
             </div>
 
+            <details className="fixtureSearchAdvanced">
+              <summary>Advanced search options</summary>
+
+              <div className="fixtureSearchControls advancedFixtureControls">
+                <label>
+                  Direct league IDs or names
+                  <input
+                    placeholder="Optional override: World Cup, 1, 39"
+                    value={fixtureSearch.leagues}
+                    onChange={e => {
+                      resetFixtureSearchDiscovery();
+                      setFixtureSearch({ ...fixtureSearch, leagues: e.target.value });
+                    }}
+                  />
+                </label>
+              </div>
+
+              <div className="fixtureSearchActions">
+                <button onClick={searchApiFixtures} disabled={fixtureSearchLoading}>
+                  Direct Fixture Search
+                </button>
+              </div>
+            </details>
+
             {!fixtureSearch.leagues.trim() && (
-              <div className="approvedCompetitionPreview">
-                <div className="fixtureSearchSummary">
+              <details className="approvedCompetitionPreview">
+                <summary>
                   <strong>
-                    Searching {selectedApprovedCompetitionCount} of {DMI_APPROVED_COMPETITIONS.length} DMI approved competition rules
+                    Competition filters: {selectedApprovedCompetitionCount} of {DMI_APPROVED_COMPETITIONS.length} selected
                   </strong>
+                </summary>
+
+                <div className="fixtureSearchSummary">
+                  <span>DMI approved competitions used when loading leagues.</span>
                   <span className="approvedCompetitionActions">
                     <button type="button" onClick={selectAllApprovedCompetitions}>
                       Select All
@@ -3538,11 +3555,16 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
                     </div>
                   ))}
                 </div>
-              </div>
+              </details>
             )}
 
             {!!availableApiLeagues.length && (
               <div className="leaguePicker">
+                <div className="fixtureSearchStep">
+                  <b>2</b>
+                  <span>Open a league and select fixtures</span>
+                </div>
+
                 <div className="fixtureSearchSummary">
                   <strong>{availableApiLeagues.length} league(s) available</strong>
                   <span>{selectedApiFixtureCount} fixture{selectedApiFixtureCount === 1 ? '' : 's'} selected</span>
@@ -3620,6 +3642,11 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
 
             {!!fixtureSearchResults.length && (
               <div className="fixtureSearchResults">
+                <div className="fixtureSearchStep">
+                  <b>2</b>
+                  <span>Select fixtures</span>
+                </div>
+
                 <div className="fixtureSearchSummary">
                   <strong>{fixtureSearchResults.length} fixture(s) found</strong>
                   <button onClick={useSelectedApiFixtures}>Use Selected Fixtures</button>
