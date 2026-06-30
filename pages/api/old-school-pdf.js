@@ -50,13 +50,11 @@ export default async function handler(req, res) {
     if (!weekId) return res.status(400).json({ error: 'Missing coupon week id' });
 
     const db = supabaseAdmin();
-    const [weekResult, fixturesResult, settingsResult, background, whatsappQr, paymentQr] = await Promise.all([
+    const [weekResult, fixturesResult, settingsResult, background] = await Promise.all([
       db.from('coupon_weeks').select('*').eq('id', weekId).single(),
       db.from('fixtures').select('*').eq('week_id', weekId).order('sort_order'),
       db.from('coupon_settings').select('*').eq('week_id', weekId).limit(1).maybeSingle(),
       readPublicAsset('dmi-background.jpeg'),
-      readPublicAsset('whatsapp-qr.png'),
-      readPublicAsset('payment-qr.png'),
     ]);
 
     if (weekResult.error) throw weekResult.error;
@@ -80,7 +78,7 @@ export default async function handler(req, res) {
         entryFee: String(req.body?.entry_fee || ''),
         rules: parseRules(settings.rules),
       },
-      assets: { background, whatsappQr, paymentQr },
+      assets: { background },
     });
     const fileName = `${safeFileName(week.title)} Fillable.pdf`;
 

@@ -1292,22 +1292,6 @@ function OldSchool({ week, fixtures, settings = {}, maxPts, entryDeadline }) {
     .replace(/[\\/:*?"<>|]+/g, ' ')
     .replace(/\s+/g, ' ');
 
-  const printOldSchool = () => {
-    if (typeof window === 'undefined' || typeof document === 'undefined') return;
-
-    const originalTitle = document.title;
-    document.title = printFileTitle || originalTitle;
-
-    const restoreTitle = () => {
-      document.title = originalTitle;
-      window.removeEventListener('afterprint', restoreTitle);
-    };
-
-    window.addEventListener('afterprint', restoreTitle);
-    window.print();
-    window.setTimeout(restoreTitle, 1500);
-  };
-
   const updateScoreDraft = (fixtureId, side, value) => {
     const score = String(value || '').replace(/\D/g, '').slice(0, 2);
     setScoreDrafts(current => ({
@@ -1323,17 +1307,11 @@ function OldSchool({ week, fixtures, settings = {}, maxPts, entryDeadline }) {
     setPdfDownloading(true);
 
     try {
-      const [{ createOldSchoolPdf }, backgroundResponse, whatsappResponse, paymentResponse] = await Promise.all([
+      const [{ createOldSchoolPdf }, backgroundResponse] = await Promise.all([
         import('../lib/oldSchoolPdf'),
         fetch('/dmi-background.jpeg'),
-        fetch('/whatsapp-qr.png'),
-        fetch('/payment-qr.png'),
       ]);
-      const [background, whatsappQr, paymentQr] = await Promise.all([
-        backgroundResponse.arrayBuffer(),
-        whatsappResponse.arrayBuffer(),
-        paymentResponse.arrayBuffer(),
-      ]);
+      const background = await backgroundResponse.arrayBuffer();
       const pdfBytes = await createOldSchoolPdf({
         week,
         fixtures,
@@ -1348,8 +1326,6 @@ function OldSchool({ week, fixtures, settings = {}, maxPts, entryDeadline }) {
         },
         assets: {
           background: new Uint8Array(background),
-          whatsappQr: new Uint8Array(whatsappQr),
-          paymentQr: new Uint8Array(paymentQr),
         },
       });
       const blob = new Blob([pdfBytes], { type: 'application/pdf' });
@@ -1429,9 +1405,8 @@ function OldSchool({ week, fixtures, settings = {}, maxPts, entryDeadline }) {
       }}
     >
       <div className="printButtonWrap">
-        <button onClick={printOldSchool}>Print / Save PDF</button>
         <button disabled={pdfDownloading} onClick={downloadFillablePdf}>
-          {pdfDownloading ? 'Creating Fillable PDF...' : 'Download Fillable PDF'}
+          {pdfDownloading ? 'Creating Old School PDF...' : 'Print Old School Coupon'}
         </button>
       </div>
 
