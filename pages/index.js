@@ -1307,28 +1307,34 @@ function OldSchool({ week, fixtures, settings = {}, maxPts, entryDeadline }) {
     setPdfDownloading(true);
 
     try {
-      const [{ createOldSchoolPdf }, backgroundResponse] = await Promise.all([
-        import('../lib/oldSchoolPdf'),
-        fetch('/dmi-background.jpeg'),
-      ]);
-      const background = await backgroundResponse.arrayBuffer();
-      const pdfBytes = await createOldSchoolPdf({
-        week,
-        fixtures,
-        settings,
-        values: {
+      const response = await fetch('/api/old-school-pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          week_id: week.id,
           scores: scoreDrafts,
           name: entrantName,
           department: entrantDepartment,
           deadline: deadlineText,
-          entryFee,
+          entry_fee: entryFee,
           rules: sheetRules,
-        },
-        assets: {
-          background: new Uint8Array(background),
-        },
+        }),
       });
-      const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+
+      if (!response.ok) {
+        let errorMessage = 'Unable to create fillable PDF';
+
+        try {
+          const error = await response.json();
+          errorMessage = error.error || errorMessage;
+        } catch {
+          errorMessage = await response.text();
+        }
+
+        throw new Error(errorMessage);
+      }
+
+      const blob = await response.blob();
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
