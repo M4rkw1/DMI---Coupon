@@ -316,6 +316,30 @@ export default async function handler(req, res) {
 
       return res.status(200).json({ ok: true, active_week_id: targetWeekId });
     }
+    if (action === 'deleteDraftWeek') {
+      const targetWeekId = String(payload?.week_id || '').trim();
+      if (!targetWeekId) return res.status(400).json({ error: 'Missing week id to delete' });
+
+      const currentWeekId = await resolveCurrentWeekId(db);
+      if (targetWeekId === currentWeekId) {
+        return res.status(400).json({ error: 'Cannot delete the live leaderboard coupon.' });
+      }
+
+      const weekResult = await db
+        .from('coupon_weeks')
+        .select('id,title,is_current')
+        .eq('id', targetWeekId)
+        .single();
+      if (weekResult.error) throw weekResult.error;
+      if (weekResult.data?.is_current) {
+        return res.status(400).json({ error: 'Cannot delete the live leaderboard coupon.' });
+      }
+
+      const deleted = await db.from('coupon_weeks').delete().eq('id', targetWeekId);
+      if (deleted.error) throw deleted.error;
+
+      return res.status(200).json({ ok: true, deleted_week_id: targetWeekId });
+    }
     if (action === 'replaceFixtures') {
       const { week_id, fixtures } = payload;
       const targetWeekId = week_id || (await resolveCurrentWeekId(db));

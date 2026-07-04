@@ -1743,6 +1743,7 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
   });
   const [confirmActivateWeekId, setConfirmActivateWeekId] = useState('');
   const [confirmNewCoupon, setConfirmNewCoupon] = useState(false);
+  const [confirmDeleteWeekId, setConfirmDeleteWeekId] = useState('');
   const [confirmDeleteArchiveId, setConfirmDeleteArchiveId] = useState('');
   const [editingEntryId, setEditingEntryId] = useState(null);
   const [entryDraft, setEntryDraft] = useState(null);
@@ -1782,6 +1783,7 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
     setConfirmReplace(false);
     setConfirmClearResults(false);
     setConfirmActivateWeekId('');
+    setConfirmDeleteWeekId('');
   }, [selectedWeekKey]);
 
   useEffect(() => {
@@ -2499,6 +2501,37 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
     );
   }
 
+  async function deleteSelectedDraftWeek() {
+    if (!currentWeekId) {
+      setMsg('Select a draft coupon before deleting.');
+      return;
+    }
+
+    if (editingActiveWeek) {
+      setMsg('The live leaderboard coupon cannot be deleted.');
+      return;
+    }
+
+    const label = week.title || 'the selected draft coupon';
+
+    if (confirmDeleteWeekId !== currentWeekId) {
+      setConfirmDeleteWeekId(currentWeekId);
+      setMsg(`Confirm delete: this will permanently remove ${label}, including any staged fixtures and entries.`);
+      return;
+    }
+
+    setConfirmDeleteWeekId('');
+    const deleted = await runAdminAction(
+      'deleteDraftWeek',
+      { week_id: currentWeekId },
+      `${label} deleted.`
+    );
+
+    if (deleted) {
+      setSelectedWeekId(activeWeekId || allWeeks.find(item => item.id !== currentWeekId)?.id || '');
+    }
+  }
+
   function prepareNewCoupon() {
     const entryCount = selectedWeekEntries.length;
 
@@ -2897,13 +2930,23 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
               </span>
             </div>
 
-            <button
-              className={confirmActivateWeekId === currentWeekId ? 'dangerButton' : ''}
-              disabled={!currentWeekId || editingActiveWeek}
-              onClick={activateSelectedWeek}
-            >
-              {confirmActivateWeekId === currentWeekId ? 'Confirm Make Live' : 'Make Selected Week Live'}
-            </button>
+            <div className="couponWeekActions">
+              <button
+                className={confirmActivateWeekId === currentWeekId ? 'dangerButton' : ''}
+                disabled={!currentWeekId || editingActiveWeek}
+                onClick={activateSelectedWeek}
+              >
+                {confirmActivateWeekId === currentWeekId ? 'Confirm Make Live' : 'Make Selected Week Live'}
+              </button>
+
+              <button
+                className={confirmDeleteWeekId === currentWeekId ? 'dangerButton' : ''}
+                disabled={!currentWeekId || editingActiveWeek}
+                onClick={deleteSelectedDraftWeek}
+              >
+                {confirmDeleteWeekId === currentWeekId ? 'Confirm Delete Draft' : 'Delete Draft Coupon'}
+              </button>
+            </div>
 
             <div className="couponWeekCreate">
               <h4>Create Future Coupon</h4>

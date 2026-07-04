@@ -1231,6 +1231,16 @@ th {
   line-height: 1.35;
 }
 
+.couponWeekActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.couponWeekActions button {
+  flex: 1 1 220px;
+}
+
 .couponWeekCreate {
   border-top: 1px solid #e5ebf4;
   display: grid;
