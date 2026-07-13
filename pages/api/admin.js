@@ -475,12 +475,16 @@ export default async function handler(req, res) {
           ht_home_score: normaliseNullableScore(f.ht_home_score),
           ht_away_score: normaliseNullableScore(f.ht_away_score),
         };
+        if (Number.isFinite(Number(f.sort_order))) {
+          update.sort_order = Number(f.sort_order);
+        }
         const fallbackUpdate = {
           api_fixture_id: update.api_fixture_id,
           kickoff: update.kickoff,
           status: update.status,
           home_score: update.home_score,
           away_score: update.away_score,
+          sort_order: update.sort_order,
         };
 
         const result = await db.from('fixtures').update(update).eq('id', f.id);

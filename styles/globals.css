@@ -1465,16 +1465,17 @@ th {
 .apiFixtureGroups {
   display: grid;
   gap: 12px;
-  max-height: 760px;
+  max-height: min(1100px, 82vh);
   overflow: auto;
-  padding-right: 2px;
+  padding: 2px 6px 2px 2px;
 }
 
 .apiFixtureGroup {
   background: #fff;
   border: 1px solid #e5ebf4;
   border-radius: 12px;
-  overflow: hidden;
+  max-height: 520px;
+  overflow: auto;
 }
 
 .apiFixtureGroup h4 {
@@ -1482,6 +1483,9 @@ th {
   color: #11284b;
   margin: 0;
   padding: 10px 12px;
+  position: sticky;
+  top: 0;
+  z-index: 1;
 }
 
 .apiFixtureRow {

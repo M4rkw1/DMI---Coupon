@@ -135,6 +135,41 @@ const fixtureKickoffIsoDate = value => {
   const parsed = new Date(raw);
   return Number.isNaN(parsed.getTime()) ? '' : parsed.toISOString().slice(0, 10);
 };
+const fixtureKickoffSortValue = value => {
+  const raw = String(value || '').trim();
+  if (!raw) return Number.POSITIVE_INFINITY;
+
+  const iso = raw.match(/^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{1,2}):(\d{2}))?/);
+  if (iso) {
+    return Date.UTC(
+      Number(iso[1]),
+      Number(iso[2]) - 1,
+      Number(iso[3]),
+      Number(iso[4] || 0),
+      Number(iso[5] || 0)
+    );
+  }
+
+  const uk = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:[,\s]+(\d{1,2}):(\d{2}))?/);
+  if (uk) {
+    return Date.UTC(
+      Number(uk[3]),
+      Number(uk[2]) - 1,
+      Number(uk[1]),
+      Number(uk[4] || 0),
+      Number(uk[5] || 0)
+    );
+  }
+
+  const parsed = new Date(raw);
+  return Number.isNaN(parsed.getTime()) ? Number.POSITIVE_INFINITY : parsed.getTime();
+};
+const sortFixturesChronologically = fixtures =>
+  [...(fixtures || [])].sort((a, b) => {
+    const timeDiff = fixtureKickoffSortValue(a.kickoff) - fixtureKickoffSortValue(b.kickoff);
+    if (timeDiff) return timeDiff;
+    return Number(a.sort_order || 0) - Number(b.sort_order || 0);
+  });
 const apiFixtureSelectionKey = fixture =>
   String(
     fixture.api_fixture_id ||
@@ -2368,19 +2403,22 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
       return 0;
     }
 
+    const sortedEnriched = sortFixturesChronologically(enriched);
+
     if (shouldUpdatePreview) {
-      const rows = sourceRows.map((row, index) => ({
-        ...row,
-        ...enriched[index],
-        raw: fixturesToTsv([enriched[index]]),
+      const rows = sortedEnriched.map((fixture, index) => ({
+        ...(sourceRows.find(row => fixtureMatchKey(row) === fixtureMatchKey(fixture)) || {}),
+        ...fixture,
+        line: index + 1,
+        raw: fixturesToTsv([fixture]),
       }));
 
       setFixturePreview({
-        fixtures: enriched,
+        fixtures: sortedEnriched,
         errors: [],
         rows,
       });
-      setFixtureText(fixturesToTsv(enriched));
+      setFixtureText(fixturesToTsv(sortedEnriched));
       setFixtureSearchAllResults(apiFixtures);
       setFixtureSearchResults(apiFixtures);
       setPreviewFilter('missing-badges');
@@ -2397,7 +2435,13 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
 
     const updated = await runAdminAction(
       'updateFixtureApiData',
-      { fixtures: matchedFixtures.map(fixture => ({ ...fixture, id: fixture.id })) },
+      {
+        fixtures: sortedEnriched.map((fixture, index) => ({
+          ...fixture,
+          id: fixture.id,
+          sort_order: index + 1,
+        })),
+      },
       `Updated API data for ${matched} fixture(s).`
     );
 
