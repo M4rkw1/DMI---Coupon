@@ -2291,6 +2291,43 @@ th {
   gap: 18px;
 }
 
+.homeCouponDates {
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid #d7e0ef;
+  border-radius: 12px;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  margin: 14px 0;
+  padding: 12px;
+}
+
+.homeCouponDates div {
+  display: grid;
+  gap: 2px;
+}
+
+.homeCouponDates span {
+  color: #46618a;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.homeCouponDates strong {
+  color: #11284b;
+  font-size: 15px;
+}
+
+.homeTicker {
+  color: #174a8b;
+  font-size: 18px;
+  font-weight: 900;
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
 .homeQrWrap {
   display: flex;
   justify-content: center;

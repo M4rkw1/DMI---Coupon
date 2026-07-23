@@ -284,6 +284,12 @@ const firstKickoffFor = fixtures =>
     .filter(Boolean)
     .sort((a, b) => a - b)[0] || null;
 
+const finalKickoffFor = fixtures =>
+  fixtures
+    .map(f => parseKickoff(f.kickoff))
+    .filter(Boolean)
+    .sort((a, b) => b - a)[0] || null;
+
 const entryDeadlineFor = fixtures => {
   const firstKickoff = firstKickoffFor(fixtures);
   return firstKickoff ? new Date(firstKickoff.getTime() - 60 * 1000) : null;
@@ -294,6 +300,7 @@ const formatDateTime = date =>
     weekday: 'short',
     day: '2-digit',
     month: 'short',
+    year: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
   });
@@ -569,6 +576,7 @@ async function validateAdminPassword() {
   const pot = entries.length * stake;
 
   const entryDeadline = entryDeadlineFor(entryFixtures);
+  const entryFinalFixture = finalKickoffFor(entryFixtures);
 
   const entriesOpen = entryFixtures.length > 0 && (entryDeadline ? now < entryDeadline : true);
 
@@ -682,11 +690,25 @@ async function adminAction(action, payload) {
             </div>
 
             {entryDeadline && (
-              <p>
-                {entriesOpen
-                  ? `⏰ Entries close in: ${countdownText}`
-                  : `🔒 Entries closed at ${entryDeadline.toLocaleString('en-GB')}`}
-              </p>
+              <div className="homeCouponDates">
+                <p className="homeTicker">
+                  {entriesOpen
+                    ? `Entries close in: ${countdownText}`
+                    : `Entries closed at ${formatDateTime(entryDeadline)}`}
+                </p>
+
+                <div>
+                  <span>Entry deadline</span>
+                  <strong>{formatDateTime(entryDeadline)}</strong>
+                </div>
+
+                {entryFinalFixture && (
+                  <div>
+                    <span>Final fixture</span>
+                    <strong>{formatDateTime(entryFinalFixture)}</strong>
+                  </div>
+                )}
+              </div>
             )}
 
             <div className="homeRulesBlock">
