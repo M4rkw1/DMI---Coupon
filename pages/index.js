@@ -142,10 +142,23 @@ const USUAL_LEAGUE_PRESETS = [
   key: normaliseMatchText(preset.name),
   countryKeys: (preset.countries || []).map(normaliseMatchText),
 }));
+const NON_MENS_LEAGUE_TERMS = [
+  'women',
+  'womens',
+  'female',
+  'feminine',
+  'feminina',
+  'femenina',
+  'femenil',
+  'frauen',
+  'ladies',
+  'girls',
+].map(normaliseMatchText);
 const isUsualLeaguePreset = league => {
   const leagueName = normaliseMatchText(league?.name);
   const countryName = normaliseMatchText(league?.country);
   if (!leagueName) return false;
+  if (NON_MENS_LEAGUE_TERMS.some(term => leagueName.includes(term))) return false;
 
   return USUAL_LEAGUE_PRESETS.some(preset => {
     const nameMatches =
