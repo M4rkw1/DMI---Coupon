@@ -1,5 +1,4 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
-import { DMI_APPROVED_COMPETITIONS } from '../lib/dmiCompetitions';
 
 const resultOf = (h, a) => (h > a ? 'H' : h < a ? 'A' : 'D');
 const FINAL_STATUSES = new Set(['FT', 'AET', 'PEN']);
@@ -121,19 +120,43 @@ const normaliseMatchText = value =>
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, ' ')
     .trim();
-const DMI_APPROVED_LEAGUE_NAMES = new Set(
-  DMI_APPROVED_COMPETITIONS.flatMap(competition => [
-    competition.name,
-    ...(competition.aliases || []),
-  ]).map(normaliseMatchText)
-);
-const isDmiApprovedLeagueName = value => {
-  const leagueName = normaliseMatchText(value);
+const USUAL_LEAGUE_PRESETS = [
+  { name: 'Premiership', countries: ['Scotland'] },
+  { name: 'Scottish Premiership', countries: ['Scotland'] },
+  { name: 'Premier League', countries: ['England'] },
+  { name: 'Champions League' },
+  { name: 'UEFA Champions League' },
+  { name: 'Europa League' },
+  { name: 'UEFA Europa League' },
+  { name: 'Bundesliga', countries: ['Germany'] },
+  { name: 'LaLiga', countries: ['Spain'] },
+  { name: 'La Liga', countries: ['Spain'] },
+  { name: 'Serie A', countries: ['Italy'] },
+  { name: 'Championship', countries: ['England', 'Scotland'] },
+  { name: 'EFL Championship', countries: ['England'] },
+  { name: 'Scottish Championship', countries: ['Scotland'] },
+  { name: 'Scottish Cup', countries: ['Scotland'] },
+  { name: 'FA Cup', countries: ['England'] },
+].map(preset => ({
+  ...preset,
+  key: normaliseMatchText(preset.name),
+  countryKeys: (preset.countries || []).map(normaliseMatchText),
+}));
+const isUsualLeaguePreset = league => {
+  const leagueName = normaliseMatchText(league?.name);
+  const countryName = normaliseMatchText(league?.country);
   if (!leagueName) return false;
-  if (DMI_APPROVED_LEAGUE_NAMES.has(leagueName)) return true;
-  return [...DMI_APPROVED_LEAGUE_NAMES].some(
-    approvedName => approvedName && (leagueName.includes(approvedName) || approvedName.includes(leagueName))
-  );
+
+  return USUAL_LEAGUE_PRESETS.some(preset => {
+    const nameMatches =
+      leagueName === preset.key ||
+      leagueName.includes(preset.key) ||
+      preset.key.includes(leagueName);
+    const countryMatches =
+      !preset.countryKeys.length || preset.countryKeys.includes(countryName);
+
+    return nameMatches && countryMatches;
+  });
 };
 const fixtureMatchKey = fixture =>
   `${normaliseMatchText(fixture.home_team)}__${normaliseMatchText(fixture.away_team)}`;
@@ -2299,20 +2322,20 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
     }));
   }
 
-  function selectDmiApprovedLeagues() {
-    const approvedSelections = availableApiLeagues.reduce((selected, league) => {
-      if (isDmiApprovedLeagueName(league.name)) {
+  function selectUsualLeagues() {
+    const usualSelections = availableApiLeagues.reduce((selected, league) => {
+      if (isUsualLeaguePreset(league)) {
         selected[league.id] = true;
       }
       return selected;
     }, {});
-    const selectedCount = Object.values(approvedSelections).filter(Boolean).length;
+    const selectedCount = Object.values(usualSelections).filter(Boolean).length;
 
-    setSelectedApiLeagues(approvedSelections);
+    setSelectedApiLeagues(usualSelections);
     setMsg(
       selectedCount
-        ? `Selected ${selectedCount} DMI approved league(s) from the current search.`
-        : 'No DMI approved leagues were found in the current search results.'
+        ? `Selected ${selectedCount} usual league(s) from the current search.`
+        : 'None of the usual leagues were found in the current search results.'
     );
   }
 
@@ -3612,8 +3635,8 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
                   <span>
                     {Object.values(selectedApiLeagues).filter(Boolean).length} selected
                   </span>
-                  <button type="button" onClick={selectDmiApprovedLeagues}>
-                    Select DMI Leagues
+                  <button type="button" onClick={selectUsualLeagues}>
+                    Select Usual Leagues
                   </button>
                 </div>
 
