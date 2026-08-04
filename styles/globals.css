@@ -1762,14 +1762,28 @@ th {
   background: #fff9e8;
 }
 
-.previewApiMissing td:last-child {
+.previewApiMissing td:nth-last-child(2) {
   color: #8a5c00;
   font-weight: 800;
 }
 
-.previewApiMatched td:last-child {
+.previewApiMatched td:nth-last-child(2) {
   color: #126225;
   font-weight: 800;
+}
+
+.removePreviewFixtureButton {
+  background: #fff1f1;
+  border: 1px solid #f0b9b9;
+  border-radius: 8px;
+  color: #9f1d1d;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 6px 9px;
+}
+
+.removePreviewFixtureButton:hover {
+  background: #ffe2e2;
 }
 
 .previewError td {

@@ -2074,6 +2074,21 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
     );
   }
 
+  function removePreviewFixture(row) {
+    const lines = String(fixtureText || '').split('\n');
+    const nextText = lines.filter((_, index) => index !== row.line - 1).join('\n');
+    const nextPreview = parseFixtureRows(nextText);
+
+    setFixtureText(nextText);
+    setFixturePreview(nextPreview);
+    setConfirmReplace(false);
+    setMsg(
+      nextPreview.fixtures.length
+        ? `Removed row ${row.line}. ${nextPreview.fixtures.length} fixture(s) remain in preview.`
+        : 'Removed row. Add at least one fixture before replacing fixtures.'
+    );
+  }
+
   function replacePreviewedFixtures() {
     const parsed = fixturePreview || parseFixtureRows(fixtureText);
     const summary = fixturePreviewApiSummary(parsed);
@@ -3481,6 +3496,7 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
                         <th>API ID</th>
                         <th>Badges</th>
                         <th>Status</th>
+                        <th>Action</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -3522,11 +3538,20 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
                                   ? 'Badge-only fallback used'
                                   : 'Needs API match'}
                           </td>
+                          <td>
+                            <button
+                              type="button"
+                              className="removePreviewFixtureButton"
+                              onClick={() => removePreviewFixture(row)}
+                            >
+                              Remove
+                            </button>
+                          </td>
                         </tr>
                       ))}
                       {!visiblePreviewRows.length && (
                         <tr>
-                          <td colSpan="7">No rows match this preview filter.</td>
+                          <td colSpan="8">No rows match this preview filter.</td>
                         </tr>
                       )}
                     </tbody>
