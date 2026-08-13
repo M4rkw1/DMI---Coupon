@@ -1690,6 +1690,127 @@ function parseFixtureRows(text) {
   return { fixtures, errors, rows };
 }
 
+const fixtureResultLabel = fixture =>
+  hasScore(fixture) ? `${fixture.home_score}-${fixture.away_score}` : fixture.status || 'TBC';
+
+const predictionLabel = prediction => {
+  if (
+    !prediction ||
+    prediction.home === null ||
+    prediction.home === undefined ||
+    prediction.away === null ||
+    prediction.away === undefined ||
+    String(prediction.home).trim() === '' ||
+    String(prediction.away).trim() === ''
+  ) {
+    return '-';
+  }
+
+  return `${prediction.home}-${prediction.away}`;
+};
+
+function rankArchivedEntries(entries = [], fixtures = [], leaderboard = []) {
+  const leaderboardById = new Map(leaderboard.map(entry => [entry.id, entry]));
+
+  return [...entries]
+    .map(entry => {
+      const leaderboardEntry = leaderboardById.get(entry.id);
+      const pts = fixtures.reduce((sum, fixture) => sum + points(entry.predictions?.[fixture.id], fixture), 0);
+      const exact = fixtures.filter(fixture => points(entry.predictions?.[fixture.id], fixture) === 3).length;
+
+      return {
+        ...entry,
+        pts: leaderboardEntry?.pts ?? pts,
+        exact: leaderboardEntry?.exact ?? exact,
+      };
+    })
+    .sort(
+      (a, b) =>
+        b.pts - a.pts ||
+        b.exact - a.exact ||
+        String(a.name || '').localeCompare(String(b.name || ''))
+    );
+}
+
+function HistoricWinnerDetail({ archive, leaderboard = [] }) {
+  const fixtures = Array.isArray(archive.snapshot?.fixtures) ? archive.snapshot.fixtures : [];
+  const entries = Array.isArray(archive.snapshot?.entries) ? archive.snapshot.entries : [];
+  const ranked = rankArchivedEntries(entries, fixtures, leaderboard);
+
+  if (!fixtures.length || !ranked.length) {
+    return (
+      <div className="historicDetailEmpty">
+        Full entry details are not available for this archived coupon.
+      </div>
+    );
+  }
+
+  return (
+    <div className="historicDetailPanel">
+      <div className="historicDetailStats">
+        <span>
+          <strong>{ranked.length}</strong>
+          entrants
+        </span>
+        <span>
+          <strong>{fixtures.length}</strong>
+          fixtures
+        </span>
+      </div>
+
+      <div className="scroll">
+        <table className="historicDetailTable">
+          <thead>
+            <tr>
+              <th>Entrant</th>
+              <th>Total</th>
+              {fixtures.map((fixture, index) => (
+                <th key={fixture.id || `${fixture.home_team}-${fixture.away_team}-${index}`}>
+                  <span>{fixture.home_team}</span>
+                  <b>{fixtureResultLabel(fixture)}</b>
+                  <span>{fixture.away_team}</span>
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {ranked.map((entry, index) => (
+              <tr key={entry.id || `${entry.name}-${index}`}>
+                <td>
+                  <strong>{index + 1}. {entry.name || 'Unnamed entry'}</strong>
+                  {entry.department && <small>{entry.department}</small>}
+                </td>
+                <td>
+                  <b>{entry.pts} pts</b>
+                  <small>{entry.exact} exact</small>
+                </td>
+                {fixtures.map((fixture, fixtureIndex) => {
+                  const prediction = entry.predictions?.[fixture.id];
+                  const earned = points(prediction, fixture);
+                  const className =
+                    earned === 3 ? 'exactScore' :
+                    earned === 1 ? 'correctResult' :
+                    '';
+
+                  return (
+                    <td
+                      className={className}
+                      key={fixture.id || `${fixture.home_team}-${fixture.away_team}-${fixtureIndex}`}
+                    >
+                      <strong>{predictionLabel(prediction)}</strong>
+                      <small>{earned} pt{earned === 1 ? '' : 's'}</small>
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 function HistoricWinners({ archives = [] }) {
   if (!archives.length) {
     return (
@@ -1782,6 +1903,11 @@ function HistoricWinners({ archives = [] }) {
                   </ol>
                 </div>
               )}
+
+              <details className="historicEntryDetails">
+                <summary>View all entries and predictions</summary>
+                <HistoricWinnerDetail archive={archive} leaderboard={leaderboard} />
+              </details>
             </article>
           );
         })}
