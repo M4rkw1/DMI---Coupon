@@ -121,22 +121,16 @@ const normaliseMatchText = value =>
     .replace(/[^a-z0-9]+/g, ' ')
     .trim();
 const USUAL_LEAGUE_PRESETS = [
+  { name: 'Premier League', countries: ['England'] },
+  { name: 'Ligue 1', countries: ['France'] },
+  { name: 'Bundesliga', countries: ['Germany'] },
+  { name: 'Serie A', countries: ['Italy'] },
+  { name: 'Eredivisie', countries: ['Netherlands'] },
+  { name: 'Eliteserien', countries: ['Norway'] },
   { name: 'Premiership', countries: ['Scotland'] },
   { name: 'Scottish Premiership', countries: ['Scotland'] },
-  { name: 'Premier League', countries: ['England'] },
-  { name: 'Champions League' },
-  { name: 'UEFA Champions League' },
-  { name: 'Europa League' },
-  { name: 'UEFA Europa League' },
-  { name: 'Bundesliga', countries: ['Germany'] },
   { name: 'LaLiga', countries: ['Spain'] },
   { name: 'La Liga', countries: ['Spain'] },
-  { name: 'Serie A', countries: ['Italy'] },
-  { name: 'Championship', countries: ['England', 'Scotland'] },
-  { name: 'EFL Championship', countries: ['England'] },
-  { name: 'Scottish Championship', countries: ['Scotland'] },
-  { name: 'Scottish Cup', countries: ['Scotland'] },
-  { name: 'FA Cup', countries: ['England'] },
 ].map(preset => ({
   ...preset,
   key: normaliseMatchText(preset.name),
