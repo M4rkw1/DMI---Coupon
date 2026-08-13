@@ -1912,6 +1912,12 @@ th {
   margin-top: 4px;
 }
 
+.splitWinnerList {
+  display: grid;
+  gap: 4px;
+  margin-top: 8px;
+}
+
 .winnerPanel b {
   color: #ffd465;
   display: inline-block;

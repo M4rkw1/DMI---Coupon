@@ -165,6 +165,9 @@ async function createArchive(db, weekId, saveHistoric) {
 
   const ranked = rankedEntries(snapshot.entries, snapshot.fixtures);
   const winner = ranked[0] || {};
+  const winners = winner.id
+    ? ranked.filter(entry => entry.pts === winner.pts && entry.exact === winner.exact)
+    : [];
 
   const { data, error } = await db
     .from('coupon_archives')
@@ -184,7 +187,17 @@ async function createArchive(db, weekId, saveHistoric) {
         pts: entry.pts,
         exact: entry.exact,
       })),
-      snapshot,
+      snapshot: {
+        ...snapshot,
+        winners: winners.map(entry => ({
+          id: entry.id,
+          name: entry.name,
+          department: entry.department,
+          paid: entry.paid,
+          pts: entry.pts,
+          exact: entry.exact,
+        })),
+      },
     })
     .select()
     .single();
@@ -315,6 +328,33 @@ export default async function handler(req, res) {
       if (setCurrent.error) throw setCurrent.error;
 
       return res.status(200).json({ ok: true, active_week_id: targetWeekId });
+    }
+    if (action === 'closeLiveCoupon') {
+      const currentWeek = await db
+        .from('coupon_weeks')
+        .select('id')
+        .eq('is_current', true)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (currentWeek.error) throw currentWeek.error;
+      const currentWeekId = currentWeek.data?.id;
+      if (!currentWeekId) return res.status(400).json({ error: 'No live coupon is currently active.' });
+
+      const snapshot = await loadSnapshotData(db, currentWeekId);
+      if (!snapshot.fixtures.length || !snapshot.entries.length) {
+        return res.status(400).json({ error: 'Cannot close coupon without fixtures and entries.' });
+      }
+
+      const archive = await createArchive(db, currentWeekId, true);
+
+      const closed = await updateCouponWeek(db, currentWeekId, {
+        is_current: false,
+        is_published: false,
+      });
+      if (closed.error) throw closed.error;
+
+      return res.status(200).json({ ok: true, archive_id: archive?.id || null, closed_week_id: currentWeekId });
     }
     if (action === 'deleteDraftWeek') {
       const targetWeekId = String(payload?.week_id || '').trim();

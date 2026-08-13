@@ -30,7 +30,7 @@ export default async function handler(req, res) {
       db.from('coupon_settings').select('*').in('week_id', weekIds.length ? weekIds : [weekId]),
       db
         .from('coupon_archives')
-        .select('id, week_title, week_subtitle, saved_as_historic, winner_name, winner_department, winner_points, leaderboard, created_at')
+        .select('id, week_title, week_subtitle, saved_as_historic, winner_name, winner_department, winner_points, leaderboard, snapshot, created_at')
         .order('created_at', { ascending: false })
         .limit(100)
     ]);

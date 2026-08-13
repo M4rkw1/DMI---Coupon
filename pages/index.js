@@ -1724,9 +1724,15 @@ function HistoricWinners({ archives = [] }) {
         {archives.map(archive => {
           const leaderboard = Array.isArray(archive.leaderboard) ? archive.leaderboard : [];
           const archiveDate = formatArchiveDate(archive.created_at);
-          const winnerName = archive.winner_name || leaderboard[0]?.name || 'No winner recorded';
-          const winnerDepartment = archive.winner_department || leaderboard[0]?.department || '';
-          const winnerPoints = archive.winner_points ?? leaderboard[0]?.pts ?? 0;
+          const leader = leaderboard[0] || {};
+          const archiveWinners = Array.isArray(archive.snapshot?.winners) ? archive.snapshot.winners : [];
+          const tiedWinners = archiveWinners.length
+            ? archiveWinners
+            : leaderboard.filter(entry => entry.pts === leader.pts && entry.exact === leader.exact);
+          const winners = tiedWinners.length
+            ? tiedWinners
+            : [{ name: archive.winner_name || leader.name || 'No winner recorded', department: archive.winner_department || leader.department || '', pts: archive.winner_points ?? leader.pts ?? 0 }];
+          const winnerPoints = archive.winner_points ?? leader.pts ?? winners[0]?.pts ?? 0;
 
           return (
             <article className="historicWinner" key={archive.id}>
@@ -1740,9 +1746,23 @@ function HistoricWinners({ archives = [] }) {
               </div>
 
               <div className="winnerPanel">
-                <p>Winner</p>
-                <strong>{winnerName}</strong>
-                {winnerDepartment && <span>{winnerDepartment}</span>}
+                <p>{winners.length === 1 ? 'Winner' : 'Split Winners'}</p>
+                <strong>
+                  {winners.length === 1
+                    ? winners[0]?.name
+                    : `${winners.length} winners`}
+                </strong>
+                {winners.length === 1 && winners[0]?.department && <span>{winners[0].department}</span>}
+                {winners.length > 1 && (
+                  <div className="splitWinnerList">
+                    {winners.map((winner, index) => (
+                      <span key={winner.id || `${winner.name}-${index}`}>
+                        {winner.name}
+                        {winner.department ? ` (${winner.department})` : ''}
+                      </span>
+                    ))}
+                  </div>
+                )}
                 <b>{winnerPoints} pts</b>
               </div>
 
@@ -1850,6 +1870,7 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
     subtitle: '',
   });
   const [confirmActivateWeekId, setConfirmActivateWeekId] = useState('');
+  const [confirmCloseLiveCoupon, setConfirmCloseLiveCoupon] = useState(false);
   const [confirmNewCoupon, setConfirmNewCoupon] = useState(false);
   const [confirmDeleteWeekId, setConfirmDeleteWeekId] = useState('');
   const [confirmDeleteArchiveId, setConfirmDeleteArchiveId] = useState('');
@@ -2681,6 +2702,42 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
     }
   }
 
+  async function closeLiveCoupon() {
+    const liveFixtures = Array.isArray(state.fixtures) ? state.fixtures : [];
+    const liveEntries = Array.isArray(state.entries) ? state.entries : [];
+    const finishedCount = liveFixtures.filter(isFinishedFixture).length;
+
+    if (!activeWeekId) {
+      setMsg('There is no live coupon to close.');
+      return;
+    }
+
+    if (!liveFixtures.length || !liveEntries.length) {
+      setMsg('Cannot close the live coupon until it has fixtures and entries.');
+      return;
+    }
+
+    if (finishedCount !== liveFixtures.length) {
+      setMsg(`Cannot close yet: ${finishedCount} of ${liveFixtures.length} fixture(s) are finished.`);
+      return;
+    }
+
+    if (!confirmCloseLiveCoupon) {
+      setConfirmCloseLiveCoupon(true);
+      setMsg(
+        `Confirm close: this will archive ${activeWeekLabel}, save the leaderboard to Historic Winners, and close public entries for that coupon.`
+      );
+      return;
+    }
+
+    setConfirmCloseLiveCoupon(false);
+    await runAdminAction(
+      'closeLiveCoupon',
+      {},
+      `${activeWeekLabel} closed and saved to Historic Winners.`
+    );
+  }
+
   function prepareNewCoupon() {
     const entryCount = selectedWeekEntries.length;
 
@@ -3286,6 +3343,20 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
             Save Settings
           </button>
 
+          <h3>Close Live Coupon</h3>
+          <p>
+            When all live fixtures are finished, archive the current leaderboard into Historic Winners and close
+            the coupon.
+          </p>
+
+          <button
+            className={confirmCloseLiveCoupon ? 'dangerButton' : ''}
+            disabled={!activeWeekId}
+            onClick={closeLiveCoupon}
+          >
+            {confirmCloseLiveCoupon ? 'Confirm Close Live Coupon' : 'Close Live Coupon'}
+          </button>
+
           <h3>New Coupon</h3>
           <p>
             Saves a full snapshot first, optionally adds the winner to Historic Winners, then clears
@@ -3337,8 +3408,15 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
                 const snapshotEntries = Array.isArray(archive.snapshot?.entries) ? archive.snapshot.entries : [];
                 const paymentRows = leaderboard.length ? leaderboard : snapshotEntries;
                 const unpaidRows = paymentRows.filter(entry => entry && entry.paid !== true);
-                const winnerName = archive.winner_name || leaderboard[0]?.name || 'No winner recorded';
-                const winnerPoints = archive.winner_points ?? leaderboard[0]?.pts ?? 0;
+                const leader = leaderboard[0] || {};
+                const archiveWinners = Array.isArray(archive.snapshot?.winners) ? archive.snapshot.winners : [];
+                const winners = archiveWinners.length
+                  ? archiveWinners
+                  : leaderboard.filter(entry => entry.pts === leader.pts && entry.exact === leader.exact);
+                const winnerLabel = winners.length > 1
+                  ? `Split: ${winners.map(entry => entry.name).join(', ')}`
+                  : archive.winner_name || leader.name || 'No winner recorded';
+                const winnerPoints = archive.winner_points ?? leader.pts ?? 0;
                 const isConfirmingDelete = confirmDeleteArchiveId === archive.id;
 
                 return (
@@ -3346,7 +3424,7 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
                     <div className="archiveAdminText">
                       <strong>{archive.week_title || 'DMI Coupon'}</strong>
                       <span>{archive.week_subtitle || formatArchiveDate(archive.created_at) || 'Historic winner page'}</span>
-                      <small>{winnerName} • {winnerPoints} pts</small>
+                      <small>{winnerLabel} • {winnerPoints} pts</small>
 
                       <div className={unpaidRows.length ? 'archiveUnpaidList' : 'archiveUnpaidList allPaid'}>
                         {unpaidRows.length ? (
