@@ -125,7 +125,7 @@ async function resolveCurrentWeekId(db) {
   if (latest.data?.id) return latest.data.id;
 
   const created = await insertCouponWeek(db, {
-    title: 'DMI Coupon',
+    title: 'RIG Coupon',
     subtitle: '',
     is_current: true,
     is_published: true,
@@ -286,7 +286,7 @@ export default async function handler(req, res) {
       const calendarYear = Number(payload?.calendar_year || new Date().getFullYear());
       const calendarWeek = Number(payload?.calendar_week || 1);
       const specialName = String(payload?.special_name || '').trim();
-      const title = String(payload?.title || specialName || `DMI Coupon Week ${calendarWeek}`).trim();
+      const title = String(payload?.title || specialName || `RIG Coupon Week ${calendarWeek}`).trim();
       const subtitle = String(payload?.subtitle || '').trim();
       const created = await insertCouponWeek(db, {
         title,
@@ -584,7 +584,7 @@ export default async function handler(req, res) {
       const { error: weekError } = await db
         .from('coupon_weeks')
         .update({
-          title: title || 'DMI Coupon – New Coupon',
+          title: title || 'RIG Coupon – New Coupon',
           subtitle: subtitle || '',
         })
         .eq('id', targetWeekId);

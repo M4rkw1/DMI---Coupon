@@ -70,7 +70,7 @@ const isoWeekInfo = (input = new Date()) => {
 const weekDisplayName = week => {
   if (!week?.id) return 'No coupon week selected';
 
-  const title = week.title || 'DMI Coupon';
+  const title = week.title || 'RIG Coupon';
   const bits = [];
 
   if (week.calendar_year && week.calendar_week) {
@@ -499,11 +499,11 @@ export default function Home() {
       .catch(e => {
         setMsg(e.message);
         setState(current => current || {
-          week: { id: null, title: 'DMI Coupon', subtitle: '' },
+          week: { id: null, title: 'RIG Coupon', subtitle: '' },
           fixtures: [],
           entries: [],
           settings: defaultSettings(),
-          entryWeek: { id: null, title: 'DMI Coupon', subtitle: '' },
+          entryWeek: { id: null, title: 'RIG Coupon', subtitle: '' },
           entryFixtures: [],
           entrySettings: defaultSettings(),
           weeks: [],
@@ -599,7 +599,7 @@ async function validateAdminPassword() {
   if (!state) {
     return (
       <main className="wrap">
-        <h1>DMI Coupon</h1>
+        <h1>RIG Coupon</h1>
         <p>Loading… {msg}</p>
       </main>
     );
@@ -699,7 +699,7 @@ async function adminAction(action, payload) {
   return (
     <div className={`appShell ${tab === 'admin' ? 'adminPage' : ''}`}>
       <header>
-        <b>{entryWeek?.title || week.title || 'DMI Coupon'}</b>
+        <b>{entryWeek?.title || week.title || 'RIG Coupon'}</b>
         <nav>
           {nav.map(n => (
             <button
@@ -720,13 +720,13 @@ async function adminAction(action, payload) {
 
         {tab === 'home' && (
           <section className="card">
-            <h1>{entryWeek?.title || 'DMI Coupon'}</h1>
+            <h1>{entryWeek?.title || 'RIG Coupon'}</h1>
             <p>{entryWeek?.subtitle}</p>
 
             <div className="stats">
               <b>{entryFixtures.length}</b> fixtures
               <b>{entryFixtures.length * 3}</b> max points
-              <b>{week.title || 'DMI Coupon'}</b> leaderboard week
+              <b>{week.title || 'RIG Coupon'}</b> leaderboard week
               <b>
                 {sym(entrySettings?.currency || 'USD')}
                 {entrySettings?.entry_fee || 10}
@@ -975,7 +975,7 @@ function Leaderboard({ ranked, fixtures, settings = {}, maxPts, pot }) {
 
   return (
     <section className="card">
-      <h2>DMI Coupon Dashboard</h2>
+      <h2>RIG Coupon Dashboard</h2>
 
       <div className="dashboardStats">
         <div className="statCard">
@@ -1259,7 +1259,7 @@ function EntriesMatrixExport({ entries, fixtures, settings = {}, week = {} }) {
     <div className="entriesMatrixExport">
       <div className="entriesExportHeader">
         <div>
-          <span>DMI Football Coupon</span>
+          <span>RIG Football Coupon</span>
           <h2>{week.title || 'Released Entries'}</h2>
           {week.subtitle && <p>{week.subtitle}</p>}
         </div>
@@ -1389,7 +1389,7 @@ function OldSchool({ week, fixtures, settings = {}, maxPts, entryDeadline }) {
   const entryFee = `${sym(settings?.currency || 'GBP')}${settings?.entry_fee || 10}`;
   const deadlineText = entryDeadline ? entryDeadline.toLocaleString('en-GB') : 'TBC';
   const sheetRules = rules.length ? rules : parseRulesText(DEFAULT_RULES_TEMPLATE);
-  const printFileTitle = String(week?.title || 'DMI Football Coupon')
+  const printFileTitle = String(week?.title || 'RIG Football Coupon')
     .trim()
     .replace(/[\\/:*?"<>|]+/g, ' ')
     .replace(/\s+/g, ' ');
@@ -1440,7 +1440,7 @@ function OldSchool({ week, fixtures, settings = {}, maxPts, entryDeadline }) {
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `${printFileTitle || 'DMI Football Coupon'} Fillable.pdf`;
+      link.download = `${printFileTitle || 'RIG Football Coupon'} Fillable.pdf`;
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -1455,7 +1455,7 @@ function OldSchool({ week, fixtures, settings = {}, maxPts, entryDeadline }) {
   const CouponPanel = ({ label, copyType = 'office' }) => (
     <div className={`couponBox ${copyType === 'entrant' ? 'entrantCopy' : 'officeCopy'}`}>
       <div className="couponTitle">
-        <span>DMI</span>
+        <span>RIG</span>
         <em>Football Coupon</em>
       </div>
 
@@ -1860,7 +1860,7 @@ function HistoricWinners({ archives = [] }) {
               <div className="historicWinnerHeader">
                 <div>
                   <small>{archive.week_subtitle || archiveDate || 'Archived coupon'}</small>
-                  <h3>{archive.week_title || 'DMI Coupon'}</h3>
+                  <h3>{archive.week_title || 'RIG Coupon'}</h3>
                 </div>
 
                 <span>{leaderboard.length} entr{leaderboard.length === 1 ? 'y' : 'ies'}</span>
@@ -1955,7 +1955,7 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
   const latestArchive = archives[0];
   const activeWeekId = state.week?.id || '';
   const currentWeekId = selectedWeekKey || settings.week_id || activeWeekId || '';
-  const activeWeekLabel = state.week?.title || 'DMI Coupon';
+  const activeWeekLabel = state.week?.title || 'RIG Coupon';
   const editingActiveWeek = currentWeekId && currentWeekId === activeWeekId;
   const calendarDefaults = isoWeekInfo();
   const gamesPlayed = fixtures.filter(isFinishedFixture).length;
@@ -1985,7 +1985,7 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
   const [fixtureApiMeta, setFixtureApiMeta] = useState(null);
   const [confirmReplace, setConfirmReplace] = useState(false);
   const [newCoupon, setNewCoupon] = useState({
-    title: 'DMI Coupon – New Coupon',
+    title: 'RIG Coupon – New Coupon',
     subtitle: '',
     saveHistoric: true,
   });
@@ -2744,7 +2744,7 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
     }
 
     const specialName = String(newWeek.special_name || '').trim();
-    const title = specialName || `DMI Coupon Week ${calendarWeek}`;
+    const title = specialName || `RIG Coupon Week ${calendarWeek}`;
     const created = await runAdminAction(
       'createWeek',
       {
@@ -3175,13 +3175,13 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
     const blob = new Blob([`${header}\n${body}`], { type: 'text/tab-separated-values;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
-    const safeTitle = String(week.title || 'dmi-coupon-entries')
+    const safeTitle = String(week.title || 'rig-coupon-entries')
       .trim()
       .replace(/[\\/:*?"<>|]+/g, ' ')
       .replace(/\s+/g, '-');
 
     link.href = url;
-    link.download = `${safeTitle || 'dmi-coupon-entries'}-entries.tsv`;
+    link.download = `${safeTitle || 'rig-coupon-entries'}-entries.tsv`;
     document.body.appendChild(link);
     link.click();
     link.remove();
@@ -3305,7 +3305,7 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
               </div>
 
               <input
-                placeholder={`Special name optional, otherwise DMI Coupon Week ${newWeek.calendar_week || ''}`}
+                placeholder={`Special name optional, otherwise RIG Coupon Week ${newWeek.calendar_week || ''}`}
                 value={newWeek.special_name}
                 onChange={e => setNewWeek({ ...newWeek, special_name: e.target.value })}
               />
@@ -3548,7 +3548,7 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
                 return (
                   <div className="archiveAdminItem" key={archive.id}>
                     <div className="archiveAdminText">
-                      <strong>{archive.week_title || 'DMI Coupon'}</strong>
+                      <strong>{archive.week_title || 'RIG Coupon'}</strong>
                       <span>{archive.week_subtitle || formatArchiveDate(archive.created_at) || 'Historic winner page'}</span>
                       <small>{winnerLabel} • {winnerPoints} pts</small>
 
@@ -4243,7 +4243,7 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
 
       <div className={`share leaderboardShare ${leaderboardShareDensity}`} ref={imgRef}>
         <div className="shareHeader">
-          <span>DMI Football Coupon</span>
+          <span>RIG Football Coupon</span>
           <h1>{state.week.title}</h1>
           {state.week.subtitle && <p>{state.week.subtitle}</p>}
         </div>
@@ -4286,7 +4286,7 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
 
       <div className="share paymentShare" ref={unpaidImgRef}>
         <div className="shareHeader">
-          <span>DMI Football Coupon</span>
+          <span>RIG Football Coupon</span>
           <h1>Yet To Pay</h1>
           <p>{state.week.title}</p>
           {state.week.subtitle && <p>{state.week.subtitle}</p>}

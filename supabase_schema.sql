@@ -2,7 +2,7 @@ create extension if not exists pgcrypto;
 
 create table if not exists coupon_weeks (
   id uuid primary key default gen_random_uuid(),
-  title text not null default 'DMI Coupon',
+  title text not null default 'RIG Coupon',
   subtitle text default '',
   is_current boolean not null default false,
   is_published boolean not null default true,
@@ -143,7 +143,7 @@ create table if not exists coupon_archives (
 );
 
 insert into coupon_weeks(title, subtitle, is_current)
-select 'DMI Coupon – Next Coupon', 'Weekend trial', true
+select 'RIG Coupon – Next Coupon', 'Weekend trial', true
 where not exists (select 1 from coupon_weeks where is_current = true);
 
 insert into coupon_settings(week_id)

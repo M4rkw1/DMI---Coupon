@@ -23,7 +23,7 @@ async function readPublicAsset(fileName) {
 }
 
 function safeFileName(value) {
-  return String(value || 'DMI Football Coupon')
+  return String(value || 'RIG Football Coupon')
     .replace(/[\u2013\u2014]/g, '-')
     .normalize('NFKD')
     .replace(/[^\x20-\x7E]/g, '')

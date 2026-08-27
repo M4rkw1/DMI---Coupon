@@ -1,4 +1,4 @@
-# DMI Coupon — Vercel + Supabase build
+# RIG Coupon — Vercel + Supabase build
 
 This is the first real hosted version: public entry page, Old School print page, leaderboard, admin settings, dynamic fixtures, TSV import, payment tracking, released entries, and PNG downloads.
 
