@@ -1738,6 +1738,31 @@ function rankArchivedEntries(entries = [], fixtures = [], leaderboard = []) {
     );
 }
 
+function archivedWinnersFromLeaderboard(leaderboard = []) {
+  const leader = leaderboard[0];
+  if (!leader) return [];
+
+  const topPoints = Number(leader.pts || 0);
+  return leaderboard.filter(entry => Number(entry.pts || 0) === topPoints);
+}
+
+function archiveWinners(archive, leaderboard = []) {
+  const pointsWinners = archivedWinnersFromLeaderboard(leaderboard);
+  const snapshotWinners = Array.isArray(archive.snapshot?.winners) ? archive.snapshot.winners : [];
+
+  if (pointsWinners.length > 1) return pointsWinners;
+  if (snapshotWinners.length > 1) return snapshotWinners;
+  if (pointsWinners.length) return pointsWinners;
+  if (snapshotWinners.length) return snapshotWinners;
+
+  const leader = leaderboard[0] || {};
+  return [{
+    name: archive.winner_name || leader.name || 'No winner recorded',
+    department: archive.winner_department || leader.department || '',
+    pts: archive.winner_points ?? leader.pts ?? 0,
+  }];
+}
+
 function HistoricWinnerDetail({ archive, leaderboard = [] }) {
   const fixtures = Array.isArray(archive.snapshot?.fixtures) ? archive.snapshot.fixtures : [];
   const entries = Array.isArray(archive.snapshot?.entries) ? archive.snapshot.entries : [];
@@ -1851,15 +1876,8 @@ function HistoricWinners({ archives = [] }) {
         {archives.map(archive => {
           const leaderboard = Array.isArray(archive.leaderboard) ? archive.leaderboard : [];
           const archiveDate = formatArchiveDate(archive.created_at);
-          const leader = leaderboard[0] || {};
-          const archiveWinners = Array.isArray(archive.snapshot?.winners) ? archive.snapshot.winners : [];
-          const tiedWinners = archiveWinners.length
-            ? archiveWinners
-            : leaderboard.filter(entry => entry.pts === leader.pts);
-          const winners = tiedWinners.length
-            ? tiedWinners
-            : [{ name: archive.winner_name || leader.name || 'No winner recorded', department: archive.winner_department || leader.department || '', pts: archive.winner_points ?? leader.pts ?? 0 }];
-          const winnerPoints = archive.winner_points ?? leader.pts ?? winners[0]?.pts ?? 0;
+          const winners = archiveWinners(archive, leaderboard);
+          const winnerPoints = winners[0]?.pts ?? archive.winner_points ?? leaderboard[0]?.pts ?? 0;
 
           return (
             <article className="historicWinner" key={archive.id}>
@@ -3540,15 +3558,11 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
                 const snapshotEntries = Array.isArray(archive.snapshot?.entries) ? archive.snapshot.entries : [];
                 const paymentRows = leaderboard.length ? leaderboard : snapshotEntries;
                 const unpaidRows = paymentRows.filter(entry => entry && entry.paid !== true);
-                const leader = leaderboard[0] || {};
-                const archiveWinners = Array.isArray(archive.snapshot?.winners) ? archive.snapshot.winners : [];
-                const winners = archiveWinners.length
-                  ? archiveWinners
-                  : leaderboard.filter(entry => entry.pts === leader.pts);
+                const winners = archiveWinners(archive, leaderboard);
                 const winnerLabel = winners.length > 1
                   ? `Split: ${winners.map(entry => entry.name).join(', ')}`
-                  : archive.winner_name || leader.name || 'No winner recorded';
-                const winnerPoints = archive.winner_points ?? leader.pts ?? 0;
+                  : winners[0]?.name || 'No winner recorded';
+                const winnerPoints = winners[0]?.pts ?? archive.winner_points ?? leaderboard[0]?.pts ?? 0;
                 const isConfirmingDelete = confirmDeleteArchiveId === archive.id;
 
                 return (
