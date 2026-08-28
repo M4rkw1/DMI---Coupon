@@ -44,7 +44,15 @@ function points(pred, fix) {
     : 0;
 }
 
-const sym = c => ({ GBP: '£', USD: '$', EUR: '€', NAD: 'N$', ZAR: 'R' }[c] || `${c} `);
+const sym = c => ({ GBP: '£', USD: '$', EUR: '€' }[c] || `${c} `);
+const CURRENCY_OPTIONS = ['GBP', 'USD', 'EUR'];
+const leaderboardPosition = (entries, index) => {
+  const current = entries[index];
+  if (!current) return index + 1;
+
+  const firstSameScoreIndex = entries.findIndex(entry => Number(entry.pts || 0) === Number(current.pts || 0));
+  return firstSameScoreIndex >= 0 ? firstSameScoreIndex + 1 : index + 1;
+};
 const addDaysIsoDate = (value, days) => {
   if (!value) return '';
 
@@ -362,7 +370,7 @@ const formatArchiveDate = value => {
   });
 };
 
-const DEFAULT_RULES_TEMPLATE = `Entry Fee: £10 / €10 / $10 / N$200 per sheet.
+const DEFAULT_RULES_TEMPLATE = `Entry Fee: £10 / €10 / $10 per sheet.
 
 1. Payment is preferred via Bank Transfer or Revolut.
 2. Submit your predicted scores. One point is awarded for a correct result, and three points are awarded for a correct score.
@@ -1052,7 +1060,7 @@ function Leaderboard({ ranked, fixtures, settings = {}, maxPts, pot }) {
             <tbody>
               {ranked.map((e, i) => (
                 <tr key={e.id}>
-                  <td>{i + 1}</td>
+                  <td>{leaderboardPosition(ranked, i)}</td>
                   <td>
                     {e.name} {e.department}
                   </td>
@@ -1224,7 +1232,7 @@ function EntriesMatrix({ entries, fixtures, settings = {}, maxPts, pot }) {
           <tbody>
             {entries.map((e, i) => (
               <tr key={e.id}>
-                <td>{i + 1}</td>
+                <td>{leaderboardPosition(entries, i)}</td>
                 <td>{e.name} {e.department}</td>
                 <td><b>{e.pts}</b></td>
               </tr>
@@ -1319,9 +1327,7 @@ function WinnerBanner({ ranked = [], fixtures = [], pot = 0, settings = {} }) {
 
   if (!allGamesFinished || !leader) return null;
 
-  const winners = ranked.filter(
-    entry => entry.pts === leader.pts && entry.exact === leader.exact
-  );
+  const winners = ranked.filter(entry => entry.pts === leader.pts);
   const prize = `${sym(settings?.currency || 'GBP')}${pot}`;
 
   return (
@@ -1777,7 +1783,7 @@ function HistoricWinnerDetail({ archive, leaderboard = [] }) {
             {ranked.map((entry, index) => (
               <tr key={entry.id || `${entry.name}-${index}`}>
                 <td>
-                  <strong>{index + 1}. {entry.name || 'Unnamed entry'}</strong>
+                  <strong>{leaderboardPosition(ranked, index)}. {entry.name || 'Unnamed entry'}</strong>
                   {entry.department && <small>{entry.department}</small>}
                 </td>
                 <td>
@@ -1849,7 +1855,7 @@ function HistoricWinners({ archives = [] }) {
           const archiveWinners = Array.isArray(archive.snapshot?.winners) ? archive.snapshot.winners : [];
           const tiedWinners = archiveWinners.length
             ? archiveWinners
-            : leaderboard.filter(entry => entry.pts === leader.pts && entry.exact === leader.exact);
+            : leaderboard.filter(entry => entry.pts === leader.pts);
           const winners = tiedWinners.length
             ? tiedWinners
             : [{ name: archive.winner_name || leader.name || 'No winner recorded', department: archive.winner_department || leader.department || '', pts: archive.winner_points ?? leader.pts ?? 0 }];
@@ -1894,7 +1900,7 @@ function HistoricWinners({ archives = [] }) {
                     {leaderboard.slice(0, 5).map((entry, index) => (
                       <li key={entry.id || `${entry.name}-${index}`}>
                         <span>
-                          <b>{index + 1}</b>
+                          <b>{leaderboardPosition(leaderboard, index)}</b>
                           {entry.name}
                         </span>
                         <strong>{entry.pts} pts</strong>
@@ -3399,7 +3405,7 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
             value={settings.currency || 'GBP'}
             onChange={e => setSettings({ ...settings, currency: e.target.value })}
           >
-            {['GBP', 'USD', 'EUR', 'NAD', 'ZAR'].map(c => (
+            {CURRENCY_OPTIONS.map(c => (
               <option key={c}>{c}</option>
             ))}
           </select>
@@ -3538,7 +3544,7 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
                 const archiveWinners = Array.isArray(archive.snapshot?.winners) ? archive.snapshot.winners : [];
                 const winners = archiveWinners.length
                   ? archiveWinners
-                  : leaderboard.filter(entry => entry.pts === leader.pts && entry.exact === leader.exact);
+                  : leaderboard.filter(entry => entry.pts === leader.pts);
                 const winnerLabel = winners.length > 1
                   ? `Split: ${winners.map(entry => entry.name).join(', ')}`
                   : archive.winner_name || leader.name || 'No winner recorded';
@@ -4270,8 +4276,8 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
 
         <div className="shareRows">
           {ranked.map((e, i) => (
-            <div className={i === 0 ? 'shareRow leader' : 'shareRow'} key={e.id}>
-              <b>{i + 1}</b>
+            <div className={leaderboardPosition(ranked, i) === 1 ? 'shareRow leader' : 'shareRow'} key={e.id}>
+              <b>{leaderboardPosition(ranked, i)}</b>
               <span>
                 <strong>{e.name}</strong>
                 {e.department && <small>{e.department}</small>}
@@ -4281,7 +4287,7 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
           ))}
         </div>
 
-        <p className="shareFooter">Exact scores beat result-only ties.</p>
+        <p className="shareFooter">Players on the same points share the same position.</p>
       </div>
 
       <div className="share paymentShare" ref={unpaidImgRef}>

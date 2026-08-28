@@ -1,7 +1,7 @@
 import { supabaseAdmin, isAdmin } from '../../lib/supabase';
 
 const resultOf = (h, a) => (h > a ? 'H' : h < a ? 'A' : 'D');
-const DEFAULT_RULES_TEXT = `Entry Fee: £10 / €10 / $10 / N$200 per sheet.
+const DEFAULT_RULES_TEXT = `Entry Fee: £10 / €10 / $10 per sheet.
 
 1. Payment is preferred via Bank Transfer or Revolut.
 2. Submit your predicted scores. One point is awarded for a correct result, and three points are awarded for a correct score.
@@ -166,7 +166,7 @@ async function createArchive(db, weekId, saveHistoric) {
   const ranked = rankedEntries(snapshot.entries, snapshot.fixtures);
   const winner = ranked[0] || {};
   const winners = winner.id
-    ? ranked.filter(entry => entry.pts === winner.pts && entry.exact === winner.exact)
+    ? ranked.filter(entry => entry.pts === winner.pts)
     : [];
 
   const { data, error } = await db

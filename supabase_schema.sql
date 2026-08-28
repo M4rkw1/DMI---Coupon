@@ -25,7 +25,7 @@ create table if not exists coupon_settings (
   week_id uuid references coupon_weeks(id) on delete cascade,
   currency text default 'GBP',
   entry_fee numeric default 10,
-  rules text default 'Entry Fee: £10 / €10 / $10 / N$200 per sheet.
+  rules text default 'Entry Fee: £10 / €10 / $10 per sheet.
 
 1. Payment is preferred via Bank Transfer or Revolut.
 2. Submit your predicted scores. One point is awarded for a correct result, and three points are awarded for a correct score.
