@@ -1,5 +1,37 @@
 import { supabaseAdmin, supabasePublic } from '../../lib/supabase';
 
+const UK_TIME_ZONE = 'Europe/London';
+function getTimeZoneOffsetMs(date, timeZone) {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(date);
+  const values = Object.fromEntries(parts.map(part => [part.type, part.value]));
+  const asUtc = Date.UTC(
+    Number(values.year),
+    Number(values.month) - 1,
+    Number(values.day),
+    Number(values.hour),
+    Number(values.minute),
+    Number(values.second)
+  );
+
+  return asUtc - date.getTime();
+}
+
+function zonedTimeToUtc({ year, month, day, hour = 0, minute = 0 }, timeZone = UK_TIME_ZONE) {
+  const utcGuess = new Date(Date.UTC(year, month - 1, day, hour, minute));
+  const firstPass = new Date(utcGuess.getTime() - getTimeZoneOffsetMs(utcGuess, timeZone));
+
+  return new Date(utcGuess.getTime() - getTimeZoneOffsetMs(firstPass, timeZone));
+}
+
 function stateDb() {
   try {
     return supabaseAdmin();
@@ -66,7 +98,9 @@ export default async function handler(req, res) {
       if (datePart?.includes('/') && timePart) {
         const [day, month, year] = datePart.split('/').map(Number);
         const [hour, minute] = timePart.split(':').map(Number);
-        if (day && month && year) return new Date(year, month - 1, day, hour || 0, minute || 0);
+        if (day && month && year) {
+          return zonedTimeToUtc({ year, month, day, hour: hour || 0, minute: minute || 0 });
+        }
       }
 
       const parsed = new Date(raw);

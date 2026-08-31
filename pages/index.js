@@ -356,6 +356,37 @@ const TIMEZONE_OPTIONS = [
   { label: 'UK + 12 hours', offset: 720 },
 ];
 
+const UK_TIME_ZONE = 'Europe/London';
+const getTimeZoneOffsetMs = (date, timeZone) => {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(date);
+  const values = Object.fromEntries(parts.map(part => [part.type, part.value]));
+  const asUtc = Date.UTC(
+    Number(values.year),
+    Number(values.month) - 1,
+    Number(values.day),
+    Number(values.hour),
+    Number(values.minute),
+    Number(values.second)
+  );
+
+  return asUtc - date.getTime();
+};
+const zonedTimeToUtc = ({ year, month, day, hour = 0, minute = 0 }, timeZone = UK_TIME_ZONE) => {
+  const utcGuess = new Date(Date.UTC(year, month - 1, day, hour, minute));
+  const firstPass = new Date(utcGuess.getTime() - getTimeZoneOffsetMs(utcGuess, timeZone));
+
+  return new Date(utcGuess.getTime() - getTimeZoneOffsetMs(firstPass, timeZone));
+};
+
 const parseKickoff = kickoff => {
   if (!kickoff) return null;
 
@@ -367,7 +398,7 @@ const parseKickoff = kickoff => {
     const [hour, minute] = timePart.split(':').map(Number);
 
     if (day && month && year) {
-      return new Date(year, month - 1, day, hour || 0, minute || 0);
+      return zonedTimeToUtc({ year, month, day, hour: hour || 0, minute: minute || 0 });
     }
   }
 
@@ -392,8 +423,13 @@ const entryDeadlineFor = fixtures => {
   return firstKickoff ? new Date(firstKickoff.getTime() - 60 * 1000) : null;
 };
 
-const formatDateTime = date =>
+const viewerTimeZone = () => {
+  if (typeof Intl === 'undefined') return '';
+  return Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+};
+const formatDateTime = (date, timeZone) =>
   date.toLocaleString('en-GB', {
+    ...(timeZone ? { timeZone } : {}),
     weekday: 'short',
     day: '2-digit',
     month: 'short',
@@ -401,6 +437,14 @@ const formatDateTime = date =>
     hour: '2-digit',
     minute: '2-digit',
   });
+const formatViewerDateTime = date => {
+  const zone = viewerTimeZone();
+  const ukText = formatDateTime(date, UK_TIME_ZONE);
+
+  if (!zone || zone === UK_TIME_ZONE) return `${ukText} (UK)`;
+
+  return `${ukText} UK / ${formatDateTime(date, zone)} local`;
+};
 
 const formatArchiveDate = value => {
   const date = value ? new Date(value) : null;
@@ -502,16 +546,18 @@ const formatKickoff = (kickoff, settings = {}, selectedOnly = false) => {
 
   const { offset, label, hasLocalTime } = timezoneSelection(settings);
   const localDate = new Date(ukDate.getTime() + offset * 60000);
+  const automaticTime = formatViewerDateTime(ukDate);
 
   if (selectedOnly) {
-    return hasLocalTime ? `${formatDateTime(localDate)} (${label})` : `${formatDateTime(ukDate)} (UK)`;
+    if (hasLocalTime) return `${formatDateTime(localDate)} (${label})`;
+    return automaticTime;
   }
 
   if (hasLocalTime) {
-    return `UK: ${formatDateTime(ukDate)} | ${label}: ${formatDateTime(localDate)}`;
+    return `UK: ${formatDateTime(ukDate, UK_TIME_ZONE)} | ${label}: ${formatDateTime(localDate)}`;
   }
 
-  return `UK: ${formatDateTime(ukDate)}`;
+  return automaticTime;
 };
 
 export default function Home() {
@@ -676,6 +722,28 @@ async function validateAdminPassword() {
 
   const entryDeadline = entryDeadlineFor(entryFixtures);
   const entryFinalFixture = finalKickoffFor(entryFixtures);
+  const upcomingEntryWeeks = (state.weeks || [])
+    .filter(item => item?.id && item.is_current !== true && item.is_published !== false)
+    .map(item => {
+      const weekFixtures = state.fixturesByWeek?.[item.id] || [];
+      const weekEntries = state.entriesByWeek?.[item.id] || [];
+      const deadline = entryDeadlineFor(weekFixtures);
+      const finalFixture = finalKickoffFor(weekFixtures);
+
+      return {
+        week: item,
+        fixtures: weekFixtures,
+        entries: weekEntries,
+        deadline,
+        finalFixture,
+      };
+    })
+    .filter(item => item.fixtures.length > 0 && (!item.deadline || now < item.deadline))
+    .sort((a, b) => {
+      const aTime = firstKickoffFor(a.fixtures)?.getTime() || Number.MAX_SAFE_INTEGER;
+      const bTime = firstKickoffFor(b.fixtures)?.getTime() || Number.MAX_SAFE_INTEGER;
+      return aTime - bTime;
+    });
 
   const entriesOpen = entryFixtures.length > 0 && (entryDeadline ? now < entryDeadline : true);
 
@@ -793,18 +861,18 @@ async function adminAction(action, payload) {
                 <p className="homeTicker">
                   {entriesOpen
                     ? `Entries close in: ${countdownText}`
-                    : `Entries closed at ${formatDateTime(entryDeadline)}`}
+                    : `Entries closed at ${formatViewerDateTime(entryDeadline)}`}
                 </p>
 
                 <div>
                   <span>Entry deadline</span>
-                  <strong>{formatDateTime(entryDeadline)}</strong>
+                  <strong>{formatViewerDateTime(entryDeadline)}</strong>
                 </div>
 
                 {entryFinalFixture && (
                   <div>
                     <span>Final fixture</span>
-                    <strong>{formatDateTime(entryFinalFixture)}</strong>
+                    <strong>{formatViewerDateTime(entryFinalFixture)}</strong>
                   </div>
                 )}
               </div>
@@ -835,7 +903,7 @@ async function adminAction(action, payload) {
             {!entriesOpen ? (
               <>
                 <h2>Entries Closed</h2>
-                <p>Entries closed at {entryDeadline?.toLocaleString('en-GB')}</p>
+                <p>Entries closed at {entryDeadline ? formatViewerDateTime(entryDeadline) : 'TBC'}</p>
                 <p>Good luck everyone ⚽</p>
               </>
             ) : (
@@ -865,7 +933,7 @@ async function adminAction(action, payload) {
                     settings={entrySettings}
                   />
 
-                  {entryDeadline && <p>Entries close: {entryDeadline.toLocaleString('en-GB')}</p>}
+                  {entryDeadline && <p>Entries close: {formatViewerDateTime(entryDeadline)}</p>}
 
                   <button type="submit" className="primary" disabled={!entriesOpen}>
                     {entriesOpen ? 'Submit Entry' : 'Entries Closed'}
@@ -883,6 +951,7 @@ async function adminAction(action, payload) {
             settings={settings}
             maxPts={maxPts}
             pot={pot}
+            upcomingEntryWeeks={upcomingEntryWeeks}
           />
         )}
 
@@ -999,7 +1068,7 @@ function FixtureInputs({ fixtures, predictions, setPredictions, settings = {} })
   );
 }
 
-function Leaderboard({ ranked, fixtures, settings = {}, maxPts, pot }) {
+function Leaderboard({ ranked, fixtures, settings = {}, maxPts, pot, upcomingEntryWeeks = [] }) {
   const [view, setView] = useState('leaderboard');
 
   const now = new Date();
@@ -1090,6 +1159,13 @@ function Leaderboard({ ranked, fixtures, settings = {}, maxPts, pot }) {
         >
           Yet To Pay
         </button>
+
+        <button
+          className={view === 'upcoming' ? 'on' : ''}
+          onClick={() => setView('upcoming')}
+        >
+          Next Week Entries
+        </button>
       </div>
 
       {view === 'leaderboard' && (
@@ -1160,6 +1236,46 @@ function Leaderboard({ ranked, fixtures, settings = {}, maxPts, pot }) {
               ) : (
                 <tr>
                   <td colSpan="5">Everyone is marked as paid.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {view === 'upcoming' && (
+        <div className="leagueTableWrap">
+          <table className="leagueTable">
+            <thead>
+              <tr>
+                <th>Coupon</th>
+                <th>Entry Deadline</th>
+                <th>Final Fixture</th>
+                <th>Entered</th>
+                <th>Names</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {upcomingEntryWeeks.length ? (
+                upcomingEntryWeeks.map(item => (
+                  <tr key={item.week.id}>
+                    <td>{weekDisplayName(item.week)}</td>
+                    <td>{item.deadline ? formatViewerDateTime(item.deadline) : 'TBC'}</td>
+                    <td>{item.finalFixture ? formatViewerDateTime(item.finalFixture) : 'TBC'}</td>
+                    <td>
+                      <b>{item.entries.length}</b>
+                    </td>
+                    <td>
+                      {item.entries.length
+                        ? item.entries.map(entry => entry.department ? `${entry.name} (${entry.department})` : entry.name).join(', ')
+                        : 'No entries yet'}
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="5">No open future coupon entries yet.</td>
                 </tr>
               )}
             </tbody>
@@ -1439,7 +1555,7 @@ function OldSchool({ week, fixtures, settings = {}, maxPts, entryDeadline }) {
     fixtureCount > 20 ? '4.5mm' :
     '5mm';
   const entryFee = `${sym(settings?.currency || 'GBP')}${settings?.entry_fee || 10}`;
-  const deadlineText = entryDeadline ? entryDeadline.toLocaleString('en-GB') : 'TBC';
+  const deadlineText = entryDeadline ? formatViewerDateTime(entryDeadline) : 'TBC';
   const sheetRules = rules.length ? rules : parseRulesText(DEFAULT_RULES_TEMPLATE);
   const printFileTitle = String(week?.title || 'RIG Football Coupon')
     .trim()

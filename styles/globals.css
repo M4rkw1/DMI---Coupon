@@ -2244,8 +2244,10 @@ th {
 }
 
 .leagueTableWrap {
-    max-width: 500px;
-    margin: auto;
+  max-width: 100%;
+  margin: auto;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .leagueTable th,
@@ -2877,8 +2879,10 @@ th {
 }
 
 .leagueTableWrap {
-    max-width: 500px;
-    margin: auto;
+  max-width: 100%;
+  margin: auto;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .leagueTable th,
