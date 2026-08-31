@@ -53,6 +53,50 @@ const leaderboardPosition = (entries, index) => {
   const firstSameScoreIndex = entries.findIndex(entry => Number(entry.pts || 0) === Number(current.pts || 0));
   return firstSameScoreIndex >= 0 ? firstSameScoreIndex + 1 : index + 1;
 };
+const isMobileAppleDevice = () => {
+  if (typeof navigator === 'undefined') return false;
+
+  return (
+    /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+  );
+};
+const saveGeneratedBlob = (blob, filename) => {
+  if (typeof document === 'undefined' || typeof window === 'undefined') return;
+
+  const url = URL.createObjectURL(blob);
+
+  if (isMobileAppleDevice()) {
+    const opened = window.open(url, '_blank', 'noopener,noreferrer');
+
+    if (!opened) {
+      window.location.href = url;
+    }
+
+    window.setTimeout(() => URL.revokeObjectURL(url), 10 * 60 * 1000);
+    return;
+  }
+
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  link.rel = 'noopener';
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 60 * 1000);
+};
+const canvasToBlob = (canvas, type = 'image/png', quality = 1) =>
+  new Promise((resolve, reject) => {
+    canvas.toBlob(blob => {
+      if (blob) {
+        resolve(blob);
+        return;
+      }
+
+      reject(new Error('Unable to create image file'));
+    }, type, quality);
+  });
 const addDaysIsoDate = (value, days) => {
   if (!value) return '';
 
@@ -430,6 +474,8 @@ function TeamBadge({ src, name, className = '' }) {
       alt=""
       aria-hidden="true"
       className={`teamBadge ${className}`}
+      crossOrigin="anonymous"
+      referrerPolicy="no-referrer"
       src={src}
     />
   );
@@ -1443,14 +1489,7 @@ function OldSchool({ week, fixtures, settings = {}, maxPts, entryDeadline }) {
       }
 
       const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `${printFileTitle || 'RIG Football Coupon'} Fillable.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.setTimeout(() => URL.revokeObjectURL(url), 10 * 60 * 1000);
+      saveGeneratedBlob(blob, `${printFileTitle || 'RIG Football Coupon'} Fillable.pdf`);
     } catch (error) {
       window.alert(error.message || 'Unable to create fillable PDF');
     } finally {
@@ -1471,7 +1510,7 @@ function OldSchool({ week, fixtures, settings = {}, maxPts, entryDeadline }) {
             <div className="couponFixtureLine">
               <div className="team home">{f.home_team}</div>
               <div className="couponBadgeSlot">
-                {f.home_badge && <img alt="" src={f.home_badge} />}
+                {f.home_badge && <img alt="" crossOrigin="anonymous" referrerPolicy="no-referrer" src={f.home_badge} />}
               </div>
               <input
                 aria-label={`${f.home_team} score`}
@@ -1495,7 +1534,7 @@ function OldSchool({ week, fixtures, settings = {}, maxPts, entryDeadline }) {
                 onChange={event => updateScoreDraft(f.id, 'away', event.target.value)}
               />
               <div className="couponBadgeSlot">
-                {f.away_badge && <img alt="" src={f.away_badge} />}
+                {f.away_badge && <img alt="" crossOrigin="anonymous" referrerPolicy="no-referrer" src={f.away_badge} />}
               </div>
               <div className="team away">{f.away_team}</div>
             </div>
@@ -3027,6 +3066,11 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
 
     const previousMargin = element.style.margin;
     const previousBorderRadius = element.style.borderRadius;
+    const width = Math.ceil(element.scrollWidth || element.getBoundingClientRect().width);
+    const height = Math.ceil(element.scrollHeight || element.getBoundingClientRect().height);
+    const maxPixels = isMobileAppleDevice() ? 9000000 : 18000000;
+    const naturalScale = Math.min(2, window.devicePixelRatio || 2);
+    const safeScale = Math.max(1, Math.min(naturalScale, Math.sqrt(maxPixels / Math.max(1, width * height))));
 
     if (options.flushToEdges) {
       element.style.margin = '0';
@@ -3035,18 +3079,24 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
 
     try {
       const canvas = await html2canvas(element, {
-        scale: 2,
+        scale: safeScale,
         backgroundColor: options.backgroundColor || '#ffffff',
-        width: element.scrollWidth,
-        height: element.scrollHeight,
-        windowWidth: element.scrollWidth,
-        windowHeight: element.scrollHeight,
+        useCORS: true,
+        allowTaint: false,
+        imageTimeout: 15000,
+        logging: false,
+        width,
+        height,
+        windowWidth: Math.max(document.documentElement.clientWidth, width),
+        windowHeight: Math.max(document.documentElement.clientHeight, height),
+        scrollX: 0,
+        scrollY: -window.scrollY,
       });
 
-      const a = document.createElement('a');
-      a.href = canvas.toDataURL(options.type || 'image/png', options.quality || 1);
-      a.download = name;
-      a.click();
+      const blob = await canvasToBlob(canvas, options.type || 'image/png', options.quality || 1);
+      saveGeneratedBlob(blob, name);
+    } catch (error) {
+      setMsg(error.message || 'Unable to create image download on this device.');
     } finally {
       element.style.margin = previousMargin;
       element.style.borderRadius = previousBorderRadius;
@@ -3197,19 +3247,12 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
     ].join('\t');
     const body = entriesToTsv(selectedRanked, fixtures);
     const blob = new Blob([`${header}\n${body}`], { type: 'text/tab-separated-values;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
     const safeTitle = String(week.title || 'rig-coupon-entries')
       .trim()
       .replace(/[\\/:*?"<>|]+/g, ' ')
       .replace(/\s+/g, '-');
 
-    link.href = url;
-    link.download = `${safeTitle || 'rig-coupon-entries'}-entries.tsv`;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    URL.revokeObjectURL(url);
+    saveGeneratedBlob(blob, `${safeTitle || 'rig-coupon-entries'}-entries.tsv`);
     setMsg(`Exported ${selectedRanked.length} entr${selectedRanked.length === 1 ? 'y' : 'ies'} to TSV.`);
   }
 
