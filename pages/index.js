@@ -1248,11 +1248,8 @@ function Leaderboard({ ranked, fixtures, settings = {}, maxPts, pot, upcomingEnt
           <table className="leagueTable">
             <thead>
               <tr>
-                <th>Coupon</th>
-                <th>Entry Deadline</th>
-                <th>Final Fixture</th>
-                <th>Entered</th>
-                <th>Names</th>
+                <th>Coupon / Week</th>
+                <th>Entered Names</th>
               </tr>
             </thead>
 
@@ -1260,11 +1257,11 @@ function Leaderboard({ ranked, fixtures, settings = {}, maxPts, pot, upcomingEnt
               {upcomingEntryWeeks.length ? (
                 upcomingEntryWeeks.map(item => (
                   <tr key={item.week.id}>
-                    <td>{weekDisplayName(item.week)}</td>
-                    <td>{item.deadline ? formatViewerDateTime(item.deadline) : 'TBC'}</td>
-                    <td>{item.finalFixture ? formatViewerDateTime(item.finalFixture) : 'TBC'}</td>
                     <td>
-                      <b>{item.entries.length}</b>
+                      <b>{weekDisplayName(item.week)}</b>
+                      <small>
+                        {item.entries.length} entered
+                      </small>
                     </td>
                     <td>
                       {item.entries.length
@@ -1275,7 +1272,7 @@ function Leaderboard({ ranked, fixtures, settings = {}, maxPts, pot, upcomingEnt
                 ))
               ) : (
                 <tr>
-                  <td colSpan="5">No open future coupon entries yet.</td>
+                  <td colSpan="2">No open future coupon entries yet.</td>
                 </tr>
               )}
             </tbody>

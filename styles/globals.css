@@ -2259,6 +2259,14 @@ th {
 .leagueTable td:nth-child(2) {
   text-align: left;
 }
+
+.leagueTable td small {
+  color: #46618a;
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  margin-top: 3px;
+}
 .predictionLayout {
   display: grid;
   grid-template-columns: 1fr 240px;
@@ -2893,6 +2901,14 @@ th {
 .leagueTable th:nth-child(2),
 .leagueTable td:nth-child(2) {
   text-align: left;
+}
+
+.leagueTable td small {
+  color: #46618a;
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  margin-top: 3px;
 }
 .predictionLayout {
   display: grid;
