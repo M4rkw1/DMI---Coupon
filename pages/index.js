@@ -110,6 +110,7 @@ const fixtureSearchDateRange = (from, days) => {
   const count = Math.max(1, Math.min(31, Number(days) || 1));
   return Array.from({ length: count }, (_, index) => addDaysIsoDate(from, index)).filter(Boolean);
 };
+const SAVED_API_LEAGUES_KEY = 'rigCouponSavedApiLeagues';
 const isoWeekInfo = (input = new Date()) => {
   const date = new Date(Date.UTC(input.getFullYear(), input.getMonth(), input.getDate()));
   const day = date.getUTCDay() || 7;
@@ -172,51 +173,6 @@ const normaliseMatchText = value =>
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, ' ')
     .trim();
-const USUAL_LEAGUE_PRESETS = [
-  { name: 'Premier League', countries: ['England'] },
-  { name: 'Ligue 1', countries: ['France'] },
-  { name: 'Bundesliga', countries: ['Germany'] },
-  { name: 'Serie A', countries: ['Italy'] },
-  { name: 'Eredivisie', countries: ['Netherlands'] },
-  { name: 'Eliteserien', countries: ['Norway'] },
-  { name: 'Premiership', countries: ['Scotland'] },
-  { name: 'Scottish Premiership', countries: ['Scotland'] },
-  { name: 'LaLiga', countries: ['Spain'] },
-  { name: 'La Liga', countries: ['Spain'] },
-].map(preset => ({
-  ...preset,
-  key: normaliseMatchText(preset.name),
-  countryKeys: (preset.countries || []).map(normaliseMatchText),
-}));
-const NON_MENS_LEAGUE_TERMS = [
-  'women',
-  'womens',
-  'female',
-  'feminine',
-  'feminina',
-  'femenina',
-  'femenil',
-  'frauen',
-  'ladies',
-  'girls',
-].map(normaliseMatchText);
-const isUsualLeaguePreset = league => {
-  const leagueName = normaliseMatchText(league?.name);
-  const countryName = normaliseMatchText(league?.country);
-  if (!leagueName) return false;
-  if (NON_MENS_LEAGUE_TERMS.some(term => leagueName.includes(term))) return false;
-
-  return USUAL_LEAGUE_PRESETS.some(preset => {
-    const nameMatches =
-      leagueName === preset.key ||
-      leagueName.includes(preset.key) ||
-      preset.key.includes(leagueName);
-    const countryMatches =
-      !preset.countryKeys.length || preset.countryKeys.includes(countryName);
-
-    return nameMatches && countryMatches;
-  });
-};
 const fixtureMatchKey = fixture =>
   `${normaliseMatchText(fixture.home_team)}__${normaliseMatchText(fixture.away_team)}`;
 const fixtureKickoffIsoDate = value => {
@@ -2191,6 +2147,7 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
   const [fixtureSearchAllResults, setFixtureSearchAllResults] = useState([]);
   const [fixtureSearchResults, setFixtureSearchResults] = useState([]);
   const [selectedApiLeagues, setSelectedApiLeagues] = useState({});
+  const [savedApiLeagues, setSavedApiLeagues] = useState([]);
   const [selectedApiFixtures, setSelectedApiFixtures] = useState({});
   const [fixtureSearchLoading, setFixtureSearchLoading] = useState(false);
   const fixtureSearchDays = Math.max(1, Math.min(31, Number(fixtureSearch.days) || 1));
@@ -2198,6 +2155,15 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
   const fixtureSearchTo = fixtureSearchDates[fixtureSearchDates.length - 1] || '';
 
   const [tsv, setTsv] = useState('');
+
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(window.localStorage.getItem(SAVED_API_LEAGUES_KEY) || '[]');
+      setSavedApiLeagues(Array.isArray(saved) ? saved : []);
+    } catch {
+      setSavedApiLeagues([]);
+    }
+  }, []);
 
   useEffect(() => {
     if (!selectedWeekId || !allWeeks.some(item => item.id === selectedWeekId)) {
@@ -2667,30 +2633,54 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
     }));
   }
 
-  function selectUsualLeagues() {
-    const usualSelections = availableApiLeagues.reduce((selected, league) => {
-      if (isUsualLeaguePreset(league)) {
-        selected[league.id] = true;
-      }
-      return selected;
-    }, {});
-    const selectedCount = Object.values(usualSelections).filter(Boolean).length;
+  function savedLeagueMatches(league, savedLeague) {
+    if (!league || !savedLeague) return false;
+    if (String(league.id) === String(savedLeague.id)) return true;
 
-    setSelectedApiLeagues(usualSelections);
-    setMsg(
-      selectedCount
-        ? `Selected ${selectedCount} usual league(s) from the current search.`
-        : 'None of the usual leagues were found in the current search results.'
-    );
+    const leagueName = normaliseMatchText(league.name);
+    const savedName = normaliseMatchText(savedLeague.name);
+    const leagueCountry = normaliseMatchText(league.country);
+    const savedCountry = normaliseMatchText(savedLeague.country);
+
+    return leagueName && leagueName === savedName && (!savedCountry || leagueCountry === savedCountry);
   }
 
-  function listSelectedLeagueFixtures() {
-    const selectedLeagueIds = Object.entries(selectedApiLeagues)
+  function selectedApiLeagueIds() {
+    return Object.entries(selectedApiLeagues)
       .filter(([, selected]) => selected)
       .map(([id]) => id);
+  }
+
+  function saveCurrentLeagueSelections() {
+    const selected = availableApiLeagues
+      .filter(league => selectedApiLeagues[league.id])
+      .map(league => ({
+        id: league.id,
+        name: league.name,
+        country: league.country || '',
+      }));
+
+    if (!selected.length) {
+      setMsg('Select at least one league or cup competition before saving.');
+      return;
+    }
+
+    setSavedApiLeagues(selected);
+
+    try {
+      window.localStorage.setItem(SAVED_API_LEAGUES_KEY, JSON.stringify(selected));
+    } catch {
+      setMsg('Saved for this session, but this browser blocked permanent storage.');
+      return;
+    }
+
+    setMsg(`Saved ${selected.length} league selection${selected.length === 1 ? '' : 's'}.`);
+  }
+
+  function listLeagueFixturesByIds(selectedLeagueIds, emptyMessage = 'Select at least one league or cup competition first.') {
 
     if (!selectedLeagueIds.length) {
-      setMsg('Select at least one league or cup competition first.');
+      setMsg(emptyMessage);
       return;
     }
 
@@ -2707,6 +2697,31 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
     setSelectedApiFixtures({});
     setFixtureSearchResults(fixturesFound);
     setMsgForFixtureSearch(fixturesFound);
+  }
+
+  function listSelectedLeagueFixtures() {
+    listLeagueFixturesByIds(selectedApiLeagueIds());
+  }
+
+  function listSavedLeagueFixtures() {
+    if (!savedApiLeagues.length) {
+      setMsg('No saved league selections yet. Tick leagues, then press Save Current Selections.');
+      return;
+    }
+
+    const savedSelectionMap = availableApiLeagues.reduce((selected, league) => {
+      if (savedApiLeagues.some(savedLeague => savedLeagueMatches(league, savedLeague))) {
+        selected[league.id] = true;
+      }
+      return selected;
+    }, {});
+    const savedLeagueIds = Object.keys(savedSelectionMap);
+
+    setSelectedApiLeagues(savedSelectionMap);
+    listLeagueFixturesByIds(
+      savedLeagueIds,
+      'None of the saved leagues were found in the current search results. Run Search Leagues for the date range first.'
+    );
   }
 
   function toggleApiFixture(id) {
@@ -4047,9 +4062,15 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
                   <span>
                     {Object.values(selectedApiLeagues).filter(Boolean).length} selected
                   </span>
-                  <button type="button" onClick={selectUsualLeagues}>
-                    Select Usual Leagues
-                  </button>
+                  <span>{savedApiLeagues.length} saved</span>
+                  <div className="fixtureSearchSummaryActions">
+                    <button type="button" onClick={saveCurrentLeagueSelections}>
+                      Save Current Selections
+                    </button>
+                    <button type="button" onClick={listSavedLeagueFixtures}>
+                      List Saved Fixtures
+                    </button>
+                  </div>
                 </div>
 
                 <div className="leaguePickerGrid">
