@@ -1,4 +1,5 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
+import FixtureImageExport from '../components/FixtureImageExport';
 
 const resultOf = (h, a) => (h > a ? 'H' : h < a ? 'A' : 'D');
 const FINAL_STATUSES = new Set(['FT', 'AET', 'PEN']);
@@ -4407,6 +4408,9 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
       <button onClick={exportEntriesTsv}>Export All Entries TSV</button>
 
       <h3>Share Images</h3>
+
+      <FixtureImageExport key={selectedWeekKey} preview={fixturePreview}
+        parseKickoff={parseKickoff} download={download} setMsg={setMsg} />
 
       <button
         onClick={() =>
