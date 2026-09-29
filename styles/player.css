@@ -1,0 +1,166 @@
+/* Player surfaces are scoped so print layouts and admin exports retain their own styles. */
+.playerApp { background:#071522; color:#eef3f8; min-height:100dvh; --player-muted:#a6b9cb; --player-line:#2a3d4e; --player-gold:#efc873; }
+.playerApp::before { display:none; }
+.playerHeader { position:sticky; top:0; z-index:20; padding:16px max(20px,calc((100vw - 1120px)/2)); padding-top:max(16px,env(safe-area-inset-top)); background:#081724; border-bottom:1px solid #233747; color:#f2f5f9; display:flex; justify-content:space-between; align-items:center; gap:16px; }
+.playerBrand { display:flex; align-items:center; text-align:left; gap:12px; padding:0; background:none; color:#f2f5f9; min-width:0; border-radius:0; }
+.rigMark { width:39px; height:47px; color:#efc873; flex-shrink:0; }
+.playerBrand strong { display:block; font-size:20px; letter-spacing:.045em; font-weight:800; white-space:nowrap; }
+.playerBrand em { color:#efc873; font-style:normal; }
+.playerBrand small { display:block; font-size:8px; letter-spacing:.16em; font-weight:400; margin-top:5px; color:#b3c2d0; }
+.desktopPlayerNav { display:flex; gap:8px; }
+.desktopPlayerNav button { color:#a6b9cb; background:transparent; padding:12px 16px; font-weight:500; }
+.desktopPlayerNav button[aria-current] { color:#efc873; background:#20303c; }
+.playerMenuWrap { position:relative; }
+.playerMenuButton { background:transparent; color:#efc873; width:44px; height:44px; display:grid; place-items:center; padding:0; }
+.playerMenu { position:absolute; right:0; top:54px; width:min(290px,85vw); background:#142838; border:1px solid #405566; padding:8px; border-radius:14px; box-shadow:0 14px 40px #0006; }
+.playerMenu button { display:block; width:100%; background:transparent; color:#eef3f8; text-align:left; padding:14px; font-weight:500; }
+.playerMenu button:hover { background:#263e4e; }
+.playerMenu p { margin:10px; font-size:13px; line-height:1.7; color:#c4d2df; }
+.playerApp .playerMain { max-width:1120px; padding:0 24px; margin:28px auto 0; padding-bottom:48px; }
+.playerApp h1,.playerApp h2,.playerApp h3,.playerApp h4 { color:#f3f6fa; }
+.playerApp h1 { font-size:32px; letter-spacing:-.035em; line-height:1.15; margin:8px 0 20px; }
+.playerApp h2 { font-size:19px; letter-spacing:-.02em; margin:0; }
+.playerApp p { line-height:1.6; }
+.playerApp .playerEyebrow { color:#efc873; font-size:11px; letter-spacing:.17em; font-weight:700; margin:0 0 10px; }
+.playerHero { position:relative; min-height:370px; overflow:hidden; border-radius:20px; background:#153144; isolation:isolate; border:1px solid #324756; }
+.playerHeroImage { position:absolute; width:100%; height:100%; object-fit:cover; object-position:70% 52%; z-index:-2; }
+.playerHero::after { content:''; position:absolute; inset:0; background:linear-gradient(90deg,#061622f5 4%,#061622c7 38%,#06162216 100%),linear-gradient(0deg,#06162299,transparent 60%); z-index:-1; }
+.playerHeroContent { padding:42px; max-width:680px; }
+.playerApp .playerHero h1 { font-size:48px; margin:12px 0; max-width:650px; overflow-wrap:anywhere; }
+.playerHeroContent>p { color:#d4e0e9; margin:0 0 18px; }
+.playerHeroMeta { display:flex; gap:18px; font-size:14px; margin:22px 0 12px; }
+.playerHeroMeta span+span { border-left:1px solid #758b9b; padding-left:18px; }
+.playerDeadline { display:flex; align-items:center; gap:8px; font-size:13px; }
+.playerGold,.playerApp button.primary { background:linear-gradient(#f5d68b,#deb158); color:#15212b; border:1px solid #f1d493; font-weight:750; min-height:48px; }
+.playerGold { display:inline-flex; gap:22px; align-items:center; justify-content:space-between; margin-top:4px; padding:14px 20px; }
+.playerShortcuts { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin:20px 0; }
+.playerShortcuts button { display:flex; align-items:center; text-align:left; gap:16px; background:#112534; border:1px solid #2a3d4e; padding:20px; color:#efc873; }
+.playerShortcuts button>span { flex:1; min-width:0; }
+.playerShortcuts small { display:block; font-size:12px; color:#adc0d0; font-weight:400; margin-bottom:6px; }
+.playerShortcuts strong { font-size:16px; color:#f2f4f8; }
+.playerHomeGrid { display:grid; grid-template-columns:minmax(0,1.2fr) minmax(0,1fr); gap:20px; align-items:start; }
+.playerPanel { background:#0d202f; border:1px solid #2a3d4e; border-radius:16px; padding:20px; margin-bottom:20px; min-width:0; }
+.playerSectionHeading { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:18px; }
+.playerSectionHeading button { background:transparent; color:#b8cadd; padding:8px 0 8px 8px; font-size:12px; font-weight:500; white-space:nowrap; }
+.playerSectionHeading>span { font-size:13px; color:#b8cadd; white-space:nowrap; }
+.playerMatch { border-top:1px solid #263e4f; padding:16px 0; }
+.playerMatchTeams { display:grid; grid-template-columns:minmax(0,1fr) auto minmax(0,1fr); gap:12px; align-items:center; font-size:13px; }
+.playerMatchTeams>span { display:flex; align-items:center; gap:8px; min-width:0; overflow-wrap:anywhere; }
+.playerMatchTeams>span:last-child { justify-content:flex-end; text-align:right; }
+.playerMatchTeams b { color:#efc873; font-size:12px; }
+.playerMatchTeams img,.playerInitials { width:25px; height:25px; object-fit:contain; flex-shrink:0; }
+.playerInitials { display:grid; place-items:center; border-radius:50%; background:#2a4052; color:#d6e3ec; font-size:9px; }
+.playerMatch>small { display:block; text-align:center; color:#a6b9cb; margin:10px 0 0; font-size:11px; }
+.playerApp .playerSmallNote { color:#a6b9cb; font-size:12px; margin:8px 0 12px; }
+.playerMiniTable { list-style:none; padding:0; margin:0; }
+.playerMiniTable li { display:grid; grid-template-columns:28px 1fr auto; align-items:center; gap:10px; padding:15px 8px; border-bottom:1px solid #263e4f; }
+.playerMiniTable li:first-child { background:#dcb55f15; border-radius:9px; }
+.playerMiniTable li>b { color:#efc873; font-size:14px; }
+.playerMiniTable small { display:block; color:#a6b9cb; font-size:11px; margin-top:4px; font-weight:400; }
+.playerMiniTable strong { color:#efc873; text-align:right; }
+.playerEmpty { color:#a6b9cb; padding:24px 0; font-size:14px; }
+.playerRules summary { cursor:pointer; min-height:28px; font-size:14px; }
+.playerRules p { color:#b9c9d7; white-space:pre-line; font-size:14px; }
+.playerRules img { border-radius:8px; }
+.playerApp .card { background:#0d202f!important; backdrop-filter:none!important; border:1px solid #2a3d4e; color:#eef3f8; box-shadow:none; padding:24px; }
+.playerApp .card>h2 { margin-bottom:20px; }
+.playerApp .playerCoupon { max-width:760px; margin-inline:auto; }
+.playerApp input,.playerApp select { color:#eef3f8; background:#081926; border:1px solid #425b70; font-size:16px; min-height:46px; }
+.playerApp input::placeholder { color:#a6b9cb; }
+.playerApp button:focus-visible,.playerApp summary:focus-visible,.playerHeader button:focus-visible,.playerBottomNav button:focus-visible { outline:2px solid #f5d68b; outline-offset:4px; }
+.playerApp input:focus-visible { outline:2px solid #f5d68b; outline-offset:2px; }
+.playerClosing { padding:12px 14px; background:#142c3d; border-radius:10px; font-size:12px; color:#c8d7e4; display:flex; gap:10px; flex-wrap:wrap; justify-content:space-between; }
+.playerClosing strong { color:#efc873; font-variant-numeric:tabular-nums; }
+.playerPredictionList { display:grid; gap:12px; margin:20px 0; }
+.playerPrediction { border:1px solid #2c4458; background:linear-gradient(120deg,#152d3e,#102332); border-radius:12px; padding:18px 14px; }
+.playerPredictionRow { display:grid; grid-template-columns:minmax(0,1fr) 108px minmax(0,1fr); align-items:center; gap:12px; }
+.playerPredictionRow .teamLabel { font-size:14px; line-height:1.4; overflow-wrap:anywhere; }
+.playerPredictionRow .teamLabel.right { flex-direction:row-reverse; text-align:right; justify-content:flex-start; }
+.playerScoreInputs { display:flex; align-items:center; gap:6px; }
+.playerScoreInputs input { width:44px; text-align:center; padding:5px 1px; margin:0; border-radius:7px; -moz-appearance:textfield; appearance:textfield; }
+.playerScoreInputs input::-webkit-inner-spin-button,.playerScoreInputs input::-webkit-outer-spin-button { -webkit-appearance:none; margin:0; }
+.playerPrediction>small { display:block; text-align:center; color:#a6b9cb; font-size:11px; margin-top:14px; }
+.playerSubmit { width:100%; margin-top:12px; }
+.playerCoupon .playerSmallNote { text-align:center; }
+.playerPageHeading { margin:0 0 24px; }
+.playerPageHeading h1 { margin-bottom:8px; }
+.playerPageHeading>p:last-child { color:#a6b9cb; font-size:13px; }
+.playerApp .dashboardStats { grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }
+.playerApp .statCard { background:#142c3d; border:1px solid #2a3d4e; padding:14px 8px; border-radius:10px; }
+.playerApp .statCard small { font-size:11px; color:#b8c9d8; font-weight:400; }
+.playerApp .statCard strong { color:#efc873; font-size:22px; }
+.playerApp .tabs { display:flex; gap:8px; flex-wrap:wrap; margin:20px 0; }
+.playerApp .tabs button { background:#203747; color:#c5d4e0; font-size:12px; min-height:42px; font-weight:500; }
+.playerApp .tabs button.on { background:#efc873; color:#142230; }
+.playerApp table { background:#102333; color:#e4ecf3; }
+.playerApp th { background:#183042; color:#b5c9da; font-weight:500; font-size:12px; }
+.playerApp td,.playerApp th { border:0; border-bottom:1px solid #2a3d4e; padding:14px 10px; }
+.playerApp .leagueTable td:first-child { color:#efc873; width:52px; }
+.playerApp .leagueTable td:last-child { color:#efc873; }
+.playerApp .leagueTable tbody tr:first-child { background:#e4b75e14; }
+.playerApp .leagueTable td small { color:#a6b9cb; }
+.playerApp .msg,.playerLoadError { background:#25352e; border:1px solid #6b805f; color:#e4f0df; padding:16px; border-radius:12px; margin-bottom:20px; line-height:1.5; }
+.playerLoadError { background:#3a3021; border-color:#8b7040; color:#ffe1a5; }
+.playerLoadError p { font-size:13px; }
+.playerApp .historicWinner { background:#122a3b; border-color:#344b5e; }
+.playerApp .historicWinnerHeader small,.playerApp .historicWinnerHeader span,.playerApp .historicStandings li,.playerApp .historicStandings li span { color:#c0d0df; }
+.playerApp .winnerPanel { background:#e2b96314; border:1px solid #8b7544; color:#edce8f; }
+.playerApp .winnerPanel strong,.playerApp .winnerPanel b,.playerApp .winnerPanel p { color:#efc873; }
+.playerApp .historicStandings li,.playerApp .historicEntryDetails { border-color:#344b5e; }
+.playerApp .historicEmpty { background:#142c3d; color:#c0d0df; }
+.playerApp .historicEntryCard,.playerApp .historicPredictionRow { color:#14213d; }
+.playerApp .predictionSide,.playerApp .resultsMatrix,.playerApp .matrix { color:#14213d; }
+.playerApp .matrix td,.playerApp .resultsMatrix td { color:#14213d; }
+.playerBottomNav { display:none; }
+@media(max-width:760px) {
+  .desktopPlayerNav { display:none; }
+  .playerHeader { padding:12px 18px; padding-top:max(12px,env(safe-area-inset-top)); }
+  .playerBrand strong { font-size:18px; }
+  .playerBrand small { font-size:7px; }
+  .rigMark { width:33px; height:42px; }
+  .playerApp .playerMain { padding:0 16px calc(100px + env(safe-area-inset-bottom)); margin-top:18px; }
+  .playerApp .playerHero h1 { font-size:36px; }
+  .playerHero { min-height:370px; border-radius:14px; }
+  .playerHeroImage { object-position:62% center; }
+  .playerHero::after { background:linear-gradient(0deg,#071522 0%,#071522d9 33%,#07152218 90%); }
+  .playerHeroContent { padding:132px 22px 24px; }
+  .playerHeroContent .playerEyebrow { position:absolute; top:20px; left:22px; color:#fff0c8; text-shadow:0 1px 8px #000; }
+  .playerHeroContent>p { font-size:13px; margin-bottom:12px; }
+  .playerHeroMeta { margin:16px 0 12px; font-size:12px; }
+  .playerGold { width:100%; justify-content:center; margin-top:8px; }
+  .playerShortcuts { gap:10px; margin:14px 0; }
+  .playerShortcuts button { gap:10px; padding:16px 12px; align-items:flex-start; }
+  .playerShortcuts button>svg:last-child { display:none; }
+  .playerShortcuts small { font-size:10px; }
+  .playerShortcuts strong { font-size:13px; }
+  .playerHomeGrid { grid-template-columns:1fr; gap:0; }
+  .playerPanel { padding:16px; border-radius:12px; margin-bottom:14px; }
+  .playerApp h2 { font-size:17px; }
+  .playerApp .card { padding:18px 14px; border-radius:14px; }
+  .playerApp .playerCoupon .grid2 { grid-template-columns:1fr; gap:2px; }
+  .playerApp h1 { font-size:28px; }
+  .playerPrediction { padding:16px 10px; }
+  .playerPredictionRow { grid-template-columns:minmax(0,1fr) 96px minmax(0,1fr); gap:8px; }
+  .playerPredictionRow .teamLabel { flex-direction:column; font-size:12px; text-align:center; gap:8px; }
+  .playerPredictionRow .teamLabel.right { flex-direction:column; text-align:center; }
+  .playerScoreInputs input { width:40px; }
+  .playerScoreInputs { gap:4px; }
+  .playerBottomNav { position:fixed; bottom:0; left:0; right:0; z-index:30; display:grid; grid-template-columns:repeat(4,1fr); background:#081724; border-top:1px solid #2a3d4e; padding:8px max(12px,env(safe-area-inset-left)) calc(8px + env(safe-area-inset-bottom)); gap:4px; }
+  .playerBottomNav button { display:flex; flex-direction:column; align-items:center; gap:5px; color:#9bb0c3; background:transparent; padding:7px 4px; min-height:52px; font-size:11px; font-weight:400; }
+  .playerBottomNav button[aria-current] { color:#efc873; background:#e9c47709; }
+  .adminPage .playerMain,.printPage .playerMain { padding-bottom:100px; }
+  .playerApp .historicGrid { grid-template-columns:1fr; }
+}
+@media(prefers-reduced-motion:no-preference) { .playerApp button { transition:background-color .15s,filter .15s; } .playerApp button:hover { filter:brightness(1.08); } }
+@media print { .playerHeader,.playerBottomNav { display:none!important; } }
+/* Override legacy mobile header stacking and archive light surfaces. */
+.playerHeader { flex-direction:row; flex-wrap:nowrap; }
+.playerApp .eyebrow { color:#efc873; }
+.playerApp .historicStandings li { background:#1a3243; }
+.playerApp .historicStandings li>strong { color:#efc873; }
+.playerApp .historicStandings li span b { background:#354c5c; }
+.playerApp .historicEntryDetails summary { background:#243d50; color:#dbe7f0; }
+.playerApp .historicEmpty p { color:#b8c9d8; }
+.playerApp .sectionTitleRow>strong { background:#253e4e; color:#efc873; font-size:12px; }
+.playerApp .historicDetailTable .exactScore,.playerApp .historicDetailTable .correctResult { color:#13253b; }
+@media(max-width:360px) { .playerBrand strong { font-size:15px; } .playerBrand small { font-size:6px; } .playerHeader { gap:8px; padding-inline:14px; } .playerApp .sectionTitleRow { gap:8px; flex-wrap:wrap; } }
