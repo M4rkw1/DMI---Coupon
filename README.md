@@ -42,3 +42,6 @@ Upload/import this folder into Vercel, or push it to GitHub and import the repo.
 - Manual score entry remains the fallback for all fixtures.
 - Live score sync uses API-Football when `API_FOOTBALL_KEY` is set and fixtures have an API fixture ID.
 - Fixture import supports `Home TAB Away TAB Kick-off TAB API Fixture ID`. The final API ID column is optional.
+
+## Fixture image export
+In Admin, preview the TSV fixtures, then open **Share Images → Export Fixtures Image**. Choose **Full fixtures** or a dated **Day 1 / Day 2 / …** option and press **Download Fixtures PNG**. The image uses the current preview, including badges and removed rows, without saving or replacing fixtures. Dates and kick-off times use Europe/London; undated fixtures have a separate TBC option. Missing or failed badge images use team initials.
