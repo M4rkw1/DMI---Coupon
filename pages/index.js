@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import FixtureImageExport from '../components/FixtureImageExport';
 import { PlayerHeader, PlayerNavigation, PlayerHome, MatchList } from '../components/PlayerApp';
+import { fixturePresentation, predictionPresentation } from '../lib/predictionPresentation.mjs';
 
 const resultOf = (h, a) => (h > a ? 'H' : h < a ? 'A' : 'D');
 const FINAL_STATUSES = new Set(['FT', 'AET', 'PEN']);
@@ -1206,136 +1207,69 @@ function Leaderboard({ ranked, fixtures, settings = {}, maxPts, pot, upcomingEnt
 }
 
 function EntriesMatrix({ entries, fixtures, settings = {}, maxPts, pot }) {
-  const fixtureResult = f => {
-    if (
-      f.home_score === null ||
-      f.home_score === undefined ||
-      f.away_score === null ||
-      f.away_score === undefined
-    ) {
-      return '-';
-    }
-
-    if (f.home_score > f.away_score) return '1';
-    if (f.home_score < f.away_score) return '2';
-    return 'X';
-  };
-
-  const predictionClass = (entry, fixture) => {
-    const pts = points(entry.predictions?.[fixture.id], fixture);
-
-    if (pts === 3) return 'exactScore';
-    if (pts === 1) return 'correctResult';
-    return '';
-  };
-
   const stake = Number(settings?.entry_fee || 10);
   const prizeFund = entries.length * stake;
 
   return (
-    <div className="predictionLayout">
-      <div className="predictionMain scroll">
-        <table className="matrix resultsMatrix">
-          <thead>
-            <tr>
-              <th className="nameHeader"></th>
-              {fixtures.map(f => (
-                <th key={f.id} className="angledHeader">
-                  <span>
-                    {f.home_team} v {f.away_team}
-                  </span>
-                </th>
-              ))}
-            </tr>
-          </thead>
-
-          <tbody>
-            <tr>
-              <td><b>SCORE</b></td>
-              {fixtures.map(f => (
-                <td key={f.id}>
-                  {f.home_score ?? '-'}-{f.away_score ?? '-'}
-                </td>
-              ))}
-            </tr>
-
-            <tr>
-              <td><b>STATUS</b></td>
-              {fixtures.map(f => (
-                <td key={f.id}>
-                  {f.status || 'NS'}
-                  {f.ht_home_score !== null &&
-                    f.ht_home_score !== undefined &&
-                    f.ht_away_score !== null &&
-                    f.ht_away_score !== undefined &&
-                    ` HT ${f.ht_home_score}-${f.ht_away_score}`}
-                </td>
-              ))}
-            </tr>
-
-            <tr>
-              <td><b>RESULT</b></td>
-              {fixtures.map(f => (
-                <td key={f.id}>{fixtureResult(f)}</td>
-              ))}
-            </tr>
-
-            {entries.map(e => (
-              <tr key={e.id}>
-                <td>{e.name} {e.department}</td>
-                {fixtures.map(f => (
-                  <td key={f.id} className={predictionClass(e, f)}>
-                    {e.predictions?.[f.id]?.home ?? ''}-
-                    {e.predictions?.[f.id]?.away ?? ''}
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
+    <section className="scoreGrid" aria-labelledby="score-grid-heading">
+      <div className="scoreGridHeading">
+        <div>
+          <h3 id="score-grid-heading">Everyone’s predictions</h3>
+          <p>Actual scores above · everyone’s picks below</p>
+        </div>
+        <span>{fixtures.length} fixtures · {entries.length} players</span>
       </div>
-
-      <aside className="predictionSide">
-        <h3>League Table</h3>
-
-        <table className="miniLeague">
-          <thead>
-            <tr>
-              <th>Pos.</th>
-              <th>Player</th>
-              <th>Points</th>
-            </tr>
-          </thead>
-          <tbody>
-            {entries.map((e, i) => (
-              <tr key={e.id}>
-                <td>{leaderboardPosition(entries, i)}</td>
-                <td>{e.name} {e.department}</td>
-                <td><b>{e.pts}</b></td>
+      <p className="scoreGridHint" id="score-grid-hint">Scroll across for more matches. Player names stay visible. Points during matches are provisional.</p>
+      {!fixtures.length ? <p className="playerEmpty">No fixtures published yet.</p> : (
+        <div className="scoreGridScroll" role="region" aria-label="All predictions" aria-describedby="score-grid-hint" tabIndex={0}>
+          <table className="scoreGridTable" aria-label="Player predictions compared with actual scores" style={{ '--fixture-count': fixtures.length }}>
+            <colgroup><col className="scoreGridNameCol" />{fixtures.map(f => <col key={f.id} className="scoreGridMatchCol" />)}</colgroup>
+            <thead>
+              <tr>
+                <th scope="col" className="scoreGridName"><span>Player</span><small>Prediction / points</small></th>
+                {fixtures.map(f => {
+                  const actual = fixturePresentation(f);
+                  return (
+                    <th key={f.id} scope="col">
+                      <span className="scoreGridFixture"><span>{f.home_team}</span><em>v</em><span>{f.away_team}</span></span>
+                      <div className="scoreGridActual">
+                        <span className="scoreGridScoreLabel">{actual.scoreLabel}</span>
+                        <strong>{actual.score}</strong>
+                        <small>{actual.status}</small>
+                        {actual.result && <small>{actual.result}{actual.halfTime ? ` · ${actual.halfTime}` : ''}</small>}
+                      </div>
+                    </th>
+                  );
+                })}
               </tr>
-            ))}
-          </tbody>
-        </table>
-
-        <div className="legendBox greenBox">
-          1 Point for correct result
+            </thead>
+            <tbody>
+              {entries.length ? entries.map(entry => (
+                <tr key={entry.id}>
+                  <th scope="row" className="scoreGridName">
+                    <span>{entry.name}</span>
+                    {entry.department && <small>{entry.department}</small>}
+                    <b>{entry.pts ?? 0} pts</b>
+                  </th>
+                  {fixtures.map(f => {
+                    const prediction = entry.predictions?.[f.id];
+                    const display = predictionPresentation(prediction, f, points(prediction, f));
+                    return <td key={f.id}><span className={`scoreGridPick ${display.kind}`}><strong>{display.score}</strong><small>{display.label}</small></span></td>;
+                  })}
+                </tr>
+              )) : <tr><td colSpan={fixtures.length + 1}>No entries to show yet.</td></tr>}
+            </tbody>
+          </table>
         </div>
-
-        <div className="legendBox blueBox">
-          3 Points for correct score
-        </div>
-
-        <div className="legendBox">
-          Maximum Points: {maxPts}
-        </div>
-
-        <div className="prizeBox">
-          <b>Prize Fund</b>
-          <strong>{sym(settings?.currency || 'USD')}{prizeFund}</strong>
-        </div>
-      </aside>
-
-    </div>
+      )}
+      <div className="scoreGridLegend" aria-label="Scoring key">
+        <span><i className="exact" aria-hidden="true" />Exact score · 3 pts</span>
+        <span><i className="result" aria-hidden="true" />Correct result · 1 pt</span>
+        <span><i className="miss" aria-hidden="true" />Miss · 0 pts</span>
+        <span><i className="pending" aria-hidden="true" />Awaiting score</span>
+      </div>
+      <div className="scoreGridFooter"><span>Maximum: <b>{maxPts} points</b></span><span>Prize fund: <b>{sym(settings?.currency || 'USD')}{prizeFund}</b></span></div>
+    </section>
   );
 }
 

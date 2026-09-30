@@ -164,3 +164,46 @@
 .playerApp .sectionTitleRow>strong { background:#253e4e; color:#efc873; font-size:12px; }
 .playerApp .historicDetailTable .exactScore,.playerApp .historicDetailTable .correctResult { color:#13253b; }
 @media(max-width:360px) { .playerBrand strong { font-size:15px; } .playerBrand small { font-size:6px; } .playerHeader { gap:8px; padding-inline:14px; } .playerApp .sectionTitleRow { gap:8px; flex-wrap:wrap; } }
+
+/* Design A: scoped classes keep print/export matrices independent of the player grid. */
+.scoreGrid { color:#f4f7fb; background:#0b1c29; border:1px solid #344d60; border-radius:14px; overflow:hidden; --score-name-width:160px; --score-match-width:136px; }
+.scoreGridHeading { padding:20px 20px 10px; display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; }
+.scoreGridHeading h3 { margin:0; font-size:20px; line-height:1.3; color:#f4f7fb; }
+.scoreGridHeading p { margin:6px 0 0; color:#bbccda; font-size:12px; }
+.scoreGridHeading>span { color:#bbccda; font-size:12px; }
+.scoreGrid .scoreGridHint { margin:0; padding:0 20px 18px; font-size:12px; color:#bbccda; }
+.scoreGridScroll { overflow:auto; max-width:100%; overscroll-behavior-x:contain; scrollbar-color:#718ca2 #142b3c; }
+.scoreGridScroll:focus-visible { outline:2px solid #f1cf80; outline-offset:-2px; }
+.playerApp .scoreGridTable { table-layout:fixed; border-collapse:separate; border-spacing:0; min-width:100%; width:calc(var(--score-name-width) + var(--fixture-count) * var(--score-match-width)); background:#0b1c29; color:#f4f7fb; }
+.scoreGridNameCol { width:var(--score-name-width); }
+.scoreGridMatchCol { width:var(--score-match-width); }
+.playerApp .scoreGridTable th,.playerApp .scoreGridTable td { padding:12px 6px; text-align:center; vertical-align:middle; border:0; border-bottom:1px solid #344d60; background:#0b1c29; color:#f4f7fb; }
+.playerApp .scoreGridTable thead th { background:#193142; padding:14px 8px; font-weight:500; vertical-align:top; }
+.playerApp .scoreGridTable tbody tr:nth-child(even)>th,.playerApp .scoreGridTable tbody tr:nth-child(even)>td { background:#102331; }
+.playerApp .scoreGridTable .scoreGridName { position:sticky; left:0; z-index:2; text-align:left; padding-left:14px; padding-right:12px; border-right:1px solid #40586b; overflow-wrap:anywhere; }
+.scoreGridName>span { display:block; font-size:14px; font-weight:650; }
+.scoreGridName>small { display:block; color:#bbccda; font-size:12px; font-weight:400; margin-top:4px; }
+.scoreGridName>b { display:block; font-size:13px; color:#f1cf80; margin-top:10px; }
+.scoreGridFixture { display:flex; flex-direction:column; justify-content:center; min-height:82px; gap:3px; font-size:13px; font-weight:600; line-height:1.35; overflow-wrap:anywhere; }
+.scoreGridFixture em { color:#bbccda; font-size:11px; font-weight:400; font-style:normal; }
+.scoreGridActual { border-top:1px solid #40586b; padding-top:10px; margin-top:10px; }
+.scoreGridActual strong { display:block; font-size:24px; line-height:1.3; letter-spacing:.8px; color:#f1cf80; font-variant-numeric:tabular-nums; font-weight:750; }
+.scoreGridScoreLabel { display:block; font-size:11px; color:#bbccda; margin-bottom:4px; }
+.scoreGridActual small { display:block; font-size:11px; color:#d4e1eb; margin-top:5px; line-height:1.4; }
+.scoreGridPick { display:flex; flex-direction:column; justify-content:center; min-height:76px; padding:10px 5px; border-radius:8px; background:#263849; color:#e2e9ef; }
+.scoreGridPick strong { font-size:24px; line-height:1.3; font-weight:750; font-variant-numeric:tabular-nums; letter-spacing:.6px; color:inherit; }
+.scoreGridPick small { display:block; font-size:11px; font-weight:500; margin-top:5px; color:inherit; }
+.scoreGridPick.exact { background:#153e34; color:#baf5d6; }
+.scoreGridPick.result { background:#44371d; color:#ffe0a0; }
+.scoreGridPick.pending { background:#1a3042; color:#e4edf5; }
+.scoreGridPick.missing { background:#1a3042; color:#bbccda; }
+.scoreGridLegend { display:flex; flex-wrap:wrap; gap:10px 20px; padding:18px 20px 12px; font-size:12px; color:#bbccda; }
+.scoreGridLegend span { display:inline-flex; align-items:center; gap:7px; }
+.scoreGridLegend i { display:inline-block; width:10px; height:10px; border-radius:3px; }
+.scoreGridLegend i.exact { background:#82ddb0; }
+.scoreGridLegend i.result { background:#f0cd7c; }
+.scoreGridLegend i.miss { background:#a3b3c0; }
+.scoreGridLegend i.pending { background:#3a5971; }
+.scoreGridFooter { display:flex; gap:12px 24px; flex-wrap:wrap; padding:0 20px 18px; color:#bbccda; font-size:12px; }
+.scoreGridFooter b { color:#f1cf80; }
+@media(max-width:760px) { .scoreGrid { --score-name-width:130px; --score-match-width:124px; border-radius:10px; } .scoreGridHeading { padding:16px 12px 10px; } .scoreGridHeading h3 { font-size:18px; } .scoreGrid .scoreGridHint { padding:0 12px 14px; } .playerApp .scoreGridTable .scoreGridName { padding-left:10px; padding-right:8px; } .scoreGridName>span { font-size:13px; } .scoreGridLegend,.scoreGridFooter { padding-left:12px; padding-right:12px; } }
