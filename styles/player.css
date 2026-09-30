@@ -207,3 +207,34 @@
 .scoreGridFooter { display:flex; gap:12px 24px; flex-wrap:wrap; padding:0 20px 18px; color:#bbccda; font-size:12px; }
 .scoreGridFooter b { color:#f1cf80; }
 @media(max-width:760px) { .scoreGrid { --score-name-width:130px; --score-match-width:124px; border-radius:10px; } .scoreGridHeading { padding:16px 12px 10px; } .scoreGridHeading h3 { font-size:18px; } .scoreGrid .scoreGridHint { padding:0 12px 14px; } .playerApp .scoreGridTable .scoreGridName { padding-left:10px; padding-right:8px; } .scoreGridName>span { font-size:13px; } .scoreGridLegend,.scoreGridFooter { padding-left:12px; padding-right:12px; } }
+
+/* Duo screen-shape detection is scoped to player pages; admin/print stay intact. */
+.playerNavSetting { display:block; padding:12px 14px; color:#c4d2df; font-size:13px; }
+.playerNavSetting select { display:block; width:100%; margin-top:8px; }
+.playerApp[data-navigation="right"] { --player-rail:calc(72px + env(safe-area-inset-right)); padding-right:var(--player-rail); }
+.playerApp[data-navigation="right"] .desktopPlayerNav { display:none; }
+.playerApp[data-navigation="right"] .playerHeader { padding-inline:20px; }
+.playerApp[data-navigation="right"] .playerMain { padding-bottom:calc(32px + env(safe-area-inset-bottom)); min-width:0; }
+.playerApp[data-navigation="right"] .playerBottomNav { position:fixed; top:0; bottom:0; right:0; left:auto; width:var(--player-rail); height:100dvh; z-index:30; display:flex; flex-direction:column; justify-content:center; gap:12px; overflow-y:auto; background:#081724; border:0; border-left:1px solid #2a3d4e; padding: max(12px,env(safe-area-inset-top)) calc(6px + env(safe-area-inset-right)) max(12px,env(safe-area-inset-bottom)) 6px; }
+.playerApp[data-navigation="right"] .playerBottomNav button { flex-shrink:0; display:flex; flex-direction:column; justify-content:center; align-items:center; gap:7px; width:100%; min-height:64px; padding:10px 3px; color:#b9ccdc; background:transparent; font-size:11px; font-weight:500; }
+.playerApp[data-navigation="right"] .playerBottomNav button[aria-current] { color:#efc873; background:#efc87316; }
+@media(max-width:520px) {
+  .playerApp[data-navigation="right"] { --player-rail:calc(62px + env(safe-area-inset-right)); }
+  .playerApp[data-navigation="right"] .playerHeader { padding-inline:10px; gap:6px; }
+  .playerApp[data-navigation="right"] .playerBrand { gap:7px; }
+  .playerApp[data-navigation="right"] .playerBrand strong { font-size:15px; letter-spacing:0; }
+  .playerApp[data-navigation="right"] .playerBrand small { display:none; }
+  .playerApp[data-navigation="right"] .rigMark { width:26px; }
+  .playerApp[data-navigation="right"] .playerMain { padding-inline:10px; }
+  .playerApp[data-navigation="right"] .playerMenu { width:min(290px,calc(100vw - var(--player-rail) - 24px)); }
+  .playerApp[data-navigation="right"] .playerHeroContent { padding-inline:16px; }
+  .playerApp[data-navigation="right"] .playerShortcuts { grid-template-columns:1fr; }
+  .playerApp[data-navigation="right"] .playerSectionHeading { flex-wrap:wrap; }
+  .playerApp[data-navigation="right"] .scoreGrid { --score-name-width:105px; }
+  .playerApp[data-navigation="right"] .playerPredictionRow { gap:4px; }
+}
+@media(max-height:360px) {
+  .playerApp[data-navigation="right"] .playerBottomNav { justify-content:flex-start; gap:4px; }
+  .playerApp[data-navigation="right"] .playerBottomNav button { min-height:48px; gap:3px; padding:5px 3px; }
+}
+@media print { .playerApp[data-navigation="right"] { padding-right:0; } }

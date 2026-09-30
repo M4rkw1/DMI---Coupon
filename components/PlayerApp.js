@@ -1,4 +1,29 @@
 import { useEffect, useState } from 'react';
+import { prefersDuoNavigation, navigationPreference } from '../lib/playerNavigation.mjs';
+
+export function usePlayerNavigation() {
+  const [preference, setPreference] = useState('auto');
+  const [duo, setDuo] = useState(false);
+  useEffect(() => {
+    try { setPreference(navigationPreference(localStorage.getItem('rig-navigation'))); } catch {}
+    const update = () => setDuo(prefersDuoNavigation({ userAgent: navigator.userAgent, width: screen.width, height: screen.height }));
+    update();
+    window.addEventListener('resize', update);
+    window.addEventListener('orientationchange', update);
+    window.addEventListener('pageshow', update);
+    return () => {
+      window.removeEventListener('resize', update);
+      window.removeEventListener('orientationchange', update);
+      window.removeEventListener('pageshow', update);
+    };
+  }, []);
+  function changePreference(value) {
+    const next = navigationPreference(value);
+    setPreference(next);
+    try { localStorage.setItem('rig-navigation', next); } catch {}
+  }
+  return { preference, changePreference, right: preference === 'right' || (preference === 'auto' && duo) };
+}
 
 export function AppIcon({ name, size = 22 }) {
   const paths = {
@@ -18,7 +43,7 @@ export function RigMark() {
 }
 
 const navItems = [['home', 'Home', 'home'], ['enter coupon', 'Coupon', 'coupon'], ['leaderboard', 'Table', 'table'], ['historic winners', 'History', 'history']];
-export function PlayerHeader({ tab, onNavigate }) {
+export function PlayerHeader({ tab, onNavigate, navigation }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [installEvent, setInstallEvent] = useState(null);
   const [installHelp, setInstallHelp] = useState(false);
@@ -44,6 +69,7 @@ export function PlayerHeader({ tab, onNavigate }) {
           <button onClick={() => onNavigate('old school')}>Print coupon</button>
           <button onClick={install}>Add to home screen</button>
           <button onClick={() => onNavigate('admin')}>Admin</button>
+          {navigation && <label className="playerNavSetting">Navigation position<select value={navigation.preference} onChange={e => navigation.changePreference(e.target.value)}><option value="auto">Automatic</option><option value="right">Right side</option><option value="standard">Standard layout</option></select></label>}
           {installHelp && <p>On iPhone or iPad, open this site in Safari, tap Share, then Add to Home Screen. On Android, use your browser menu and choose Install app or Add to Home screen.</p>}
         </div>}
       </div>

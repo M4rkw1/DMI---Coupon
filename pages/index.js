@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import FixtureImageExport from '../components/FixtureImageExport';
-import { PlayerHeader, PlayerNavigation, PlayerHome, MatchList } from '../components/PlayerApp';
+import { PlayerHeader, PlayerNavigation, PlayerHome, MatchList, usePlayerNavigation } from '../components/PlayerApp';
 import { fixturePresentation, predictionPresentation } from '../lib/predictionPresentation.mjs';
 
 const resultOf = (h, a) => (h > a ? 'H' : h < a ? 'A' : 'D');
@@ -520,6 +520,7 @@ const formatKickoff = (kickoff, settings = {}, selectedOnly = false) => {
 };
 
 export default function Home() {
+  const navigation = usePlayerNavigation();
   const [state, setState] = useState(null);
   const [tab, setTab] = useState('home');
   const [admin, setAdmin] = useState('');
@@ -828,8 +829,8 @@ async function adminAction(action, payload) {
   }
 
   return (
-    <div className={`appShell ${tab === 'admin' ? 'adminPage' : tab === 'old school' ? 'printPage' : 'playerApp'}`}>
-      <PlayerHeader tab={tab} onNavigate={navigate} />
+    <div data-navigation={navigation.right ? 'right' : 'standard'} className={`appShell ${tab === 'admin' ? 'adminPage' : tab === 'old school' ? 'printPage' : 'playerApp'}`}>
+      <PlayerHeader tab={tab} onNavigate={navigate} navigation={navigation} />
       <main className="wrap playerMain">
         {msg && <div className="msg" role="status">{msg}</div>}
         {loadError && <div className="playerLoadError" role="alert"><strong>Unable to refresh the coupon.</strong><p>{week.id ? 'Showing the last loaded scores. Please reconnect before submitting.' : 'Please check your connection and try again.'}</p><button onClick={load}>Try again</button></div>}
