@@ -238,3 +238,66 @@
   .playerApp[data-navigation="right"] .playerBottomNav button { min-height:48px; gap:3px; padding:5px 3px; }
 }
 @media print { .playerApp[data-navigation="right"] { padding-right:0; } }
+
+
+/* Keep all header content below the system status bar / camera safe area.
+   Blur only the backdrop; never filter the logo or text themselves. */
+html:has(.playerApp), body:has(.playerApp) { background:#081724; }
+.playerHeaderGlass { display:contents; }
+.playerApp .playerHeader {
+  display:block;
+  padding:calc(env(safe-area-inset-top,0px) + 12px) max(20px,calc((100vw - 1120px)/2)) 10px;
+  border:0;
+  background:linear-gradient(to bottom,#081724 0,#081724 env(safe-area-inset-top,0px),#08172400 100%);
+}
+.playerApp .playerHeaderGlass {
+  display:flex; align-items:center; justify-content:space-between; gap:16px;
+  min-height:68px; padding:10px 12px 10px 18px;
+  border:1px solid #ffffff26; border-top-color:#ffffff45; border-radius:24px;
+  background:#132a3b;
+  box-shadow:inset 0 1px 0 #ffffff0d,0 8px 24px #0003;
+}
+.playerApp .playerMenuButton {
+  flex-shrink:0; border-radius:50%; background:#ffffff0c;
+  border:1px solid #ffffff20; box-shadow:inset 0 1px 0 #ffffff0c;
+}
+.playerApp .playerMenu { border-color:#ffffff30; background:#142838; border-radius:20px; }
+.playerApp .playerBrand { min-height:44px; }
+.playerApp .playerBrand small { letter-spacing:.1em; color:#b8cbd9; }
+.playerApp .playerMain { margin-top:12px; }
+@supports ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))) {
+  .playerApp .playerHeaderGlass {
+    background:linear-gradient(135deg,#294458cc,#102434e8);
+    -webkit-backdrop-filter:blur(20px) saturate(135%);
+    backdrop-filter:blur(20px) saturate(135%);
+  }
+  .playerApp .playerMenu {
+    background:#142838f5;
+    -webkit-backdrop-filter:blur(20px); backdrop-filter:blur(20px);
+  }
+}
+@media(max-width:760px) {
+  .playerApp .playerHeader { padding:calc(env(safe-area-inset-top,0px) + 12px) max(12px,env(safe-area-inset-right)) 8px max(12px,env(safe-area-inset-left)); }
+  .playerApp .playerHeaderGlass { min-height:64px; padding:8px 10px 8px 12px; gap:8px; border-radius:22px; }
+  .playerApp .playerBrand { gap:9px; }
+  .playerApp .playerBrand strong { font-size:17px; letter-spacing:.02em; }
+  .playerApp .playerBrand small { font-size:7px; letter-spacing:.06em; margin-top:4px; }
+  .playerApp .rigMark { width:29px; height:38px; }
+  .playerApp .playerHero h1 { font-size:clamp(28px,7.5vw,36px); }
+  .playerApp .playerMenu { top:54px; width:min(290px,calc(100vw - 48px)); }
+}
+.playerApp[data-navigation="right"] .playerHeader { padding-inline:12px; }
+@media(max-width:520px) {
+  .playerApp[data-navigation="right"] .playerHeader { padding-inline:8px; }
+  .playerApp[data-navigation="right"] .playerHeaderGlass { padding-inline:8px; gap:4px; }
+  .playerApp[data-navigation="right"] .playerBrand { gap:6px; }
+  .playerApp[data-navigation="right"] .playerBrand strong { font-size:clamp(12px,3.5vw,16px); letter-spacing:0; }
+  .playerApp[data-navigation="right"] .rigMark { width:23px; }
+  .playerApp[data-navigation="right"] .playerMenu { width:min(290px,calc(100vw - var(--player-rail) - 40px)); }
+}
+@media(prefers-reduced-transparency:reduce), (prefers-contrast:more) {
+  .playerApp .playerHeaderGlass,.playerApp .playerMenu {
+    background:#142838; -webkit-backdrop-filter:none; backdrop-filter:none; border-color:#7890a3;
+  }
+}
+@media print { html:has(.playerApp),body:has(.playerApp) { background:white; } }

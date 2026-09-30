@@ -61,6 +61,7 @@ export function PlayerHeader({ tab, onNavigate, navigation }) {
   }
   return <>
     <header className="playerHeader">
+      <div className="playerHeaderGlass">
       <button className="playerBrand" onClick={() => onNavigate('home')} aria-label="The Rig Coupon home"><RigMark /><span><strong>THE <em>RIG</em> COUPON</strong><small>OFFSHORE FOOTBALL PREDICTIONS</small></span></button>
       <nav className="desktopPlayerNav" aria-label="Main navigation">{navItems.map(([id, label]) => <button key={id} aria-current={tab === id ? 'page' : undefined} onClick={() => onNavigate(id)}>{label}</button>)}</nav>
       <div className="playerMenuWrap">
@@ -72,6 +73,7 @@ export function PlayerHeader({ tab, onNavigate, navigation }) {
           {navigation && <label className="playerNavSetting">Navigation position<select value={navigation.preference} onChange={e => navigation.changePreference(e.target.value)}><option value="auto">Automatic</option><option value="right">Right side</option><option value="standard">Standard layout</option></select></label>}
           {installHelp && <p>On iPhone or iPad, open this site in Safari, tap Share, then Add to Home Screen. On Android, use your browser menu and choose Install app or Add to Home screen.</p>}
         </div>}
+      </div>
       </div>
     </header>
   </>;
