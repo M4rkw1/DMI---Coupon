@@ -1,3 +1,4 @@
+import AdminTabs from '../components/AdminTabs';
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import FixtureImageExport from '../components/FixtureImageExport';
 import { PlayerHeader, PlayerNavigation, PlayerHome, MatchList, usePlayerNavigation } from '../components/PlayerApp';
@@ -3324,11 +3325,7 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
 
   return (
     <div>
-      <div className="adminGrid">
-        <div>
-          <h3>Coupon Weeks</h3>
-
-          <div className="couponWeekManager">
+      <div className="adminWeekContext">
             <label>
               Editing coupon week
               <select
@@ -3354,6 +3351,11 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
               </span>
             </div>
 
+      </div>
+      <AdminTabs>
+        <section data-tab="setup" data-label="Coupon Setup">
+          <h3>Coupon Weeks</h3>
+          <div className="couponWeekManager">
             <div className="couponWeekActions">
               <button
                 className={confirmActivateWeekId === currentWeekId ? 'dangerButton' : ''}
@@ -3616,75 +3618,8 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
             Revert Last New Coupon
           </button>
 
-          <h3>Historic Winners Admin</h3>
-          <p>View and remove saved winner pages from the Historic Winners section.</p>
-
-          <div className="archiveAdminList">
-            {historicArchives.length ? (
-              historicArchives.map(archive => {
-                const leaderboard = Array.isArray(archive.leaderboard) ? archive.leaderboard : [];
-                const snapshotEntries = Array.isArray(archive.snapshot?.entries) ? archive.snapshot.entries : [];
-                const paymentRows = leaderboard.length ? leaderboard : snapshotEntries;
-                const unpaidRows = paymentRows.filter(entry => entry && entry.paid !== true);
-                const winners = archiveWinners(archive, leaderboard);
-                const winnerLabel = winners.length > 1
-                  ? `Split: ${winners.map(entry => entry.name).join(', ')}`
-                  : winners[0]?.name || 'No winner recorded';
-                const winnerPoints = winners[0]?.pts ?? archive.winner_points ?? leaderboard[0]?.pts ?? 0;
-                const isConfirmingDelete = confirmDeleteArchiveId === archive.id;
-
-                return (
-                  <div className="archiveAdminItem" key={archive.id}>
-                    <div className="archiveAdminText">
-                      <strong>{archive.week_title || 'RIG Coupon'}</strong>
-                      <span>{archive.week_subtitle || formatArchiveDate(archive.created_at) || 'Historic winner page'}</span>
-                      <small>{winnerLabel} • {winnerPoints} pts</small>
-
-                      <div className={unpaidRows.length ? 'archiveUnpaidList' : 'archiveUnpaidList allPaid'}>
-                        {unpaidRows.length ? (
-                          <>
-                            <b>{`Unpaid at archive: ${unpaidRows.length}`}</b>
-                            <span>Tick entrants off here when they pay after the coupon has been archived.</span>
-                          </>
-                        ) : (
-                          <b>ALL PAID!</b>
-                        )}
-                        {unpaidRows.length && paymentRows.length ? (
-                          <div className="archivePaymentChecks">
-                            {paymentRows.map(entry => (
-                              <label key={entry.id || `${entry.name}-${entry.department}`}>
-                                <input
-                                  type="checkbox"
-                                  checked={entry.paid === true}
-                                  onChange={event => updateArchivedEntryPayment(archive, entry, event.target.checked)}
-                                />
-                                <span>
-                                  {entry.name || 'Unnamed entry'}
-                                  {entry.department ? ` (${entry.department})` : ''}
-                                </span>
-                              </label>
-                            ))}
-                          </div>
-                        ) : null}
-                      </div>
-                    </div>
-
-                    <button
-                      className={isConfirmingDelete ? 'dangerButton' : ''}
-                      onClick={() => deleteHistoricArchive(archive)}
-                    >
-                      {isConfirmingDelete ? 'Confirm Remove' : 'Remove'}
-                    </button>
-                  </div>
-                );
-              })
-            ) : (
-              <div className="archiveAdminEmpty">No historic winner pages saved yet.</div>
-            )}
-          </div>
-        </div>
-
-        <div>
+        </section>
+        <section data-tab="fixtures" data-label="Fixtures">
           <h3>Fixtures</h3>
           <p>
             Main workflow: paste fixtures from your FotMob picks, preview them, and replace the coupon directly.
@@ -4068,6 +4003,8 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
             )}
           </div>
 
+        </section>
+        <section data-tab="results" data-label="Results">
           <div className="fixtureApiActions">
             <button onClick={syncLiveScores}>Sync Live Scores</button>
             <button
@@ -4173,9 +4110,8 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
           <button onClick={() => saveScoreDrafts(scoreDrafts)}>
             Save Results Now
           </button>
-        </div>
-      </div>
-
+        </section>
+        <section data-tab="entries" data-label="Entries & Payments">
       <h3>Entries / Payments</h3>
       <p>
         Showing entries for <strong>{week.title || 'selected coupon'}</strong>
@@ -4303,6 +4239,8 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
       <button onClick={importTsv}>Import TSV Entries</button>
       <button onClick={exportEntriesTsv}>Export All Entries TSV</button>
 
+        </section>
+        <section data-tab="share" data-label="Share Images">
       <h3>Share Images</h3>
 
       <FixtureImageExport key={selectedWeekKey} preview={fixturePreview}
@@ -4438,6 +4376,76 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
           week={state.week}
         />
       </div>
+        </section>
+        <section data-tab="history" data-label="History">
+          <h3>Historic Winners Admin</h3>
+          <p>View and remove saved winner pages from the Historic Winners section.</p>
+
+          <div className="archiveAdminList">
+            {historicArchives.length ? (
+              historicArchives.map(archive => {
+                const leaderboard = Array.isArray(archive.leaderboard) ? archive.leaderboard : [];
+                const snapshotEntries = Array.isArray(archive.snapshot?.entries) ? archive.snapshot.entries : [];
+                const paymentRows = leaderboard.length ? leaderboard : snapshotEntries;
+                const unpaidRows = paymentRows.filter(entry => entry && entry.paid !== true);
+                const winners = archiveWinners(archive, leaderboard);
+                const winnerLabel = winners.length > 1
+                  ? `Split: ${winners.map(entry => entry.name).join(', ')}`
+                  : winners[0]?.name || 'No winner recorded';
+                const winnerPoints = winners[0]?.pts ?? archive.winner_points ?? leaderboard[0]?.pts ?? 0;
+                const isConfirmingDelete = confirmDeleteArchiveId === archive.id;
+
+                return (
+                  <div className="archiveAdminItem" key={archive.id}>
+                    <div className="archiveAdminText">
+                      <strong>{archive.week_title || 'RIG Coupon'}</strong>
+                      <span>{archive.week_subtitle || formatArchiveDate(archive.created_at) || 'Historic winner page'}</span>
+                      <small>{winnerLabel} • {winnerPoints} pts</small>
+
+                      <div className={unpaidRows.length ? 'archiveUnpaidList' : 'archiveUnpaidList allPaid'}>
+                        {unpaidRows.length ? (
+                          <>
+                            <b>{`Unpaid at archive: ${unpaidRows.length}`}</b>
+                            <span>Tick entrants off here when they pay after the coupon has been archived.</span>
+                          </>
+                        ) : (
+                          <b>ALL PAID!</b>
+                        )}
+                        {unpaidRows.length && paymentRows.length ? (
+                          <div className="archivePaymentChecks">
+                            {paymentRows.map(entry => (
+                              <label key={entry.id || `${entry.name}-${entry.department}`}>
+                                <input
+                                  type="checkbox"
+                                  checked={entry.paid === true}
+                                  onChange={event => updateArchivedEntryPayment(archive, entry, event.target.checked)}
+                                />
+                                <span>
+                                  {entry.name || 'Unnamed entry'}
+                                  {entry.department ? ` (${entry.department})` : ''}
+                                </span>
+                              </label>
+                            ))}
+                          </div>
+                        ) : null}
+                      </div>
+                    </div>
+
+                    <button
+                      className={isConfirmingDelete ? 'dangerButton' : ''}
+                      onClick={() => deleteHistoricArchive(archive)}
+                    >
+                      {isConfirmingDelete ? 'Confirm Remove' : 'Remove'}
+                    </button>
+                  </div>
+                );
+              })
+            ) : (
+              <div className="archiveAdminEmpty">No historic winner pages saved yet.</div>
+            )}
+          </div>
+        </section>
+      </AdminTabs>
     </div>
   );
 }
