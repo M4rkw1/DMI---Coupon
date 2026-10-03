@@ -77,3 +77,6 @@ required to submit predictions or refresh results.
   and the Print/Admin menu. Use an isolated fake API for submission checks.
 - A real deployment still needs the existing Supabase environment variables above.
   No database migration is required for this interface update.
+
+## Admin sections
+Admin controls are grouped into Coupon Setup, Fixtures, Results, Entries & Payments, Share Images, and History. The coupon-week selector stays visible above the tabs. Switching sections keeps drafts and fixture previews in memory; saving and autosave behave as before. Use Left/Right arrows, Home, or End on the tab bar for keyboard navigation.
