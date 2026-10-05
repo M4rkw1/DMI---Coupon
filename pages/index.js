@@ -1376,7 +1376,7 @@ function WinnerBanner({ ranked = [], fixtures = [], pot = 0, settings = {} }) {
   );
 }
 
-function OldSchool({ week, fixtures, settings = {}, maxPts, entryDeadline }) {
+function OldSchool({ week, fixtures, settings = {}, maxPts, entryDeadline, buttonOnly = false }) {
   const [scoreDrafts, setScoreDrafts] = useState({});
   const [entrantName, setEntrantName] = useState('');
   const [entrantDepartment, setEntrantDepartment] = useState('');
@@ -1464,6 +1464,14 @@ function OldSchool({ week, fixtures, settings = {}, maxPts, entryDeadline }) {
     }
   };
 
+  const printButton = (
+    <button type="button" disabled={pdfDownloading || !fixtures.length} onClick={downloadFillablePdf}>
+      {pdfDownloading ? 'Creating Old School PDF...' : 'Print Old School Coupon'}
+    </button>
+  );
+
+  if (buttonOnly) return printButton;
+
   const CouponPanel = ({ label, copyType = 'office' }) => (
     <div className={`couponBox ${copyType === 'entrant' ? 'entrantCopy' : 'officeCopy'}`}>
       <div className="couponTitle">
@@ -1525,9 +1533,7 @@ function OldSchool({ week, fixtures, settings = {}, maxPts, entryDeadline }) {
       }}
     >
       <div className="printButtonWrap">
-        <button disabled={pdfDownloading} onClick={downloadFillablePdf}>
-          {pdfDownloading ? 'Creating Old School PDF...' : 'Print Old School Coupon'}
-        </button>
+        {printButton}
       </div>
 
       <div className="couponPrintGrid">
@@ -4242,6 +4248,14 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
         </section>
         <section data-tab="share" data-label="Share Images">
       <h3>Share Images</h3>
+
+      <div className="adminPrintCoupon">
+        <OldSchool key={`print-${selectedWeekKey}`} buttonOnly
+          week={selectedWeek} fixtures={selectedWeekFixtures} settings={selectedWeekSettings}
+          entryDeadline={entryDeadlineFor(selectedWeekFixtures)} />
+        <p>Prints a blank PDF for <strong>{selectedWeek.title || 'the selected coupon week'}</strong> using its saved fixtures and settings. You can print future coupons before publishing them; printing does not release them online.</p>
+        {!selectedWeekFixtures.length && <p>Add and save fixtures for this week to enable printing.</p>}
+      </div>
 
       <FixtureImageExport key={selectedWeekKey} preview={fixturePreview}
         parseKickoff={parseKickoff} download={download} setMsg={setMsg} />
