@@ -1,5 +1,8 @@
+import AdminTabs from '../components/AdminTabs';
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import FixtureImageExport from '../components/FixtureImageExport';
+import { PlayerHeader, PlayerNavigation, PlayerHome, MatchList, usePlayerNavigation } from '../components/PlayerApp';
+import { fixturePresentation, predictionPresentation } from '../lib/predictionPresentation.mjs';
 
 const resultOf = (h, a) => (h > a ? 'H' : h < a ? 'A' : 'D');
 const FINAL_STATUSES = new Set(['FT', 'AET', 'PEN']);
@@ -518,6 +521,7 @@ const formatKickoff = (kickoff, settings = {}, selectedOnly = false) => {
 };
 
 export default function Home() {
+  const navigation = usePlayerNavigation();
   const [state, setState] = useState(null);
   const [tab, setTab] = useState('home');
   const [admin, setAdmin] = useState('');
@@ -525,6 +529,47 @@ export default function Home() {
   const [msg, setMsg] = useState('');
   const [now, setNow] = useState(new Date());
   const [form, setForm] = useState({ name: '', department: '', predictions: {} });
+  const [submitting, setSubmitting] = useState(false);
+  const [loadError, setLoadError] = useState(false);
+  const draftWeek = useRef(null);
+  const submittingRef = useRef(false);
+  const entryWeekId = state?.entryWeek?.id;
+  useEffect(() => { if (msg) window.scrollTo({ top: 0 }); }, [msg]);
+
+  function navigate(next) {
+    setTab(next);
+    setMsg('');
+    window.location.hash = encodeURIComponent(next);
+    window.scrollTo({ top: 0 });
+  }
+  useEffect(() => {
+    const syncTab = () => {
+      const allowed = ['home', 'enter coupon', 'leaderboard', 'historic winners', 'old school', 'admin'];
+      let value = '';
+      try { value = decodeURIComponent(window.location.hash.slice(1)); } catch {}
+      setTab(allowed.includes(value) ? value : 'home');
+    };
+    syncTab();
+    window.addEventListener('hashchange', syncTab);
+    return () => window.removeEventListener('hashchange', syncTab);
+  }, []);
+  useEffect(() => {
+    if (!entryWeekId) return;
+    let draft = { name: '', department: '', predictions: {} };
+    try {
+      const stored = JSON.parse(localStorage.getItem(`rig-coupon-draft:${entryWeekId}`));
+      if (stored && typeof stored.name === 'string' && stored.predictions && typeof stored.predictions === 'object') draft = { ...draft, ...stored };
+    } catch {}
+    draftWeek.current = entryWeekId;
+    setForm(draft);
+  }, [entryWeekId]);
+  useEffect(() => {
+    if (!entryWeekId || draftWeek.current !== entryWeekId) return;
+    const timer = setTimeout(() => {
+      try { localStorage.setItem(`rig-coupon-draft:${entryWeekId}`, JSON.stringify(form)); } catch {}
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [form, entryWeekId]);
 
   const imgRef = useRef(null);
   const unpaidImgRef = useRef(null);
@@ -538,6 +583,7 @@ export default function Home() {
         return data;
       })
       .then(data => {
+        setLoadError(false);
         setState({
           week: data?.week || {},
           fixtures: Array.isArray(data?.fixtures) ? data.fixtures : [],
@@ -554,7 +600,7 @@ export default function Home() {
         });
       })
       .catch(e => {
-        setMsg(e.message);
+        setLoadError(true);
         setState(current => current || {
           week: { id: null, title: 'RIG Coupon', subtitle: '' },
           fixtures: [],
@@ -656,8 +702,8 @@ async function validateAdminPassword() {
   if (!state) {
     return (
       <main className="wrap">
-        <h1>RIG Coupon</h1>
-        <p>Loading… {msg}</p>
+        <h1>The Rig Coupon</h1>
+        <p role="status">Loading your coupon…</p>
       </main>
     );
   }
@@ -754,96 +800,43 @@ async function adminAction(action, payload) {
       return setMsg('Entries are now closed for this coupon');
     }
 
-    const r = await fetch('/api/entry', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...form, week_id: entryWeek.id }),
-    });
-
-    const j = await r.json();
-
-    if (!r.ok) {
-      setMsg(j.error || 'Entry failed');
-      return;
+    if (submittingRef.current) return;
+    if (!form.name.trim()) return setMsg('Please enter your name.');
+    if (entryFixtures.some(f => ['home', 'away'].some(side => {
+      const value = form.predictions[f.id]?.[side];
+      return value === undefined || value === '' || !Number.isInteger(Number(value)) || Number(value) < 0 || Number(value) > 99;
+    }))) return setMsg('Please enter a score from 0 to 99 for every team.');
+    submittingRef.current = true;
+    setSubmitting(true);
+    try {
+      const r = await fetch('/api/entry', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...form, week_id: entryWeek.id }),
+      });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || 'Entry failed');
+      try { localStorage.removeItem(`rig-coupon-draft:${entryWeek.id}`); } catch {}
+      setForm({ name: '', department: '', predictions: {} });
+      navigate('leaderboard');
+      setMsg('Your coupon has been submitted. Good luck!');
+      load();
+    } catch (error) {
+      setMsg(error.message || 'Unable to submit. Your predictions are still here; please try again.');
+    } finally {
+      submittingRef.current = false;
+      setSubmitting(false);
     }
-
-    setMsg('Entry submitted ✅');
-    setForm({ name: '', department: '', predictions: {} });
-    load();
-    setTab('leaderboard');
   }
 
-  const nav = ['home', 'old school', 'enter coupon', 'leaderboard', 'historic winners', 'admin'];
-
   return (
-    <div className={`appShell ${tab === 'admin' ? 'adminPage' : ''}`}>
-      <header>
-        <b>{entryWeek?.title || week.title || 'RIG Coupon'}</b>
-        <nav>
-          {nav.map(n => (
-            <button
-              className={tab === n ? 'on' : ''}
-              onClick={() => setTab(n)}
-              key={n}
-            >
-              {n === 'old school' ? 'Old School' : n.replace(/\b\w/g, m => m.toUpperCase())}
-            </button>
-          ))}
-        </nav>
-      </header>
-
-      <main className="wrap">
-        {msg && <div className="msg">{msg}</div>}
-
-        <WinnerBanner ranked={ranked} fixtures={fixtures} pot={pot} settings={settings} />
-
-        {tab === 'home' && (
-          <section className="card">
-            <h1>{entryWeek?.title || 'RIG Coupon'}</h1>
-            <p>{entryWeek?.subtitle}</p>
-
-            <div className="stats">
-              <b>{entryFixtures.length}</b> fixtures
-              <b>{entryFixtures.length * 3}</b> max points
-              <b>{week.title || 'RIG Coupon'}</b> leaderboard week
-              <b>
-                {sym(entrySettings?.currency || 'USD')}
-                {entrySettings?.entry_fee || 10}
-              </b>{' '}
-              entry
-            </div>
-
-            {entryDeadline && (
-              <div className="homeCouponDates">
-                <p className="homeTicker">
-                  {entriesOpen
-                    ? `Entries close in: ${countdownText}`
-                    : `Entries closed at ${formatViewerDateTime(entryDeadline)}`}
-                </p>
-
-                <div>
-                  <span>Entry deadline</span>
-                  <strong>{formatViewerDateTime(entryDeadline)}</strong>
-                </div>
-
-                {entryFinalFixture && (
-                  <div>
-                    <span>Final fixture</span>
-                    <strong>{formatViewerDateTime(entryFinalFixture)}</strong>
-                  </div>
-                )}
-              </div>
-            )}
-
-            <div className="homeRulesBlock">
-              <p style={{ whiteSpace: 'pre-line' }}>{entrySettings?.rules}</p>
-
-              <div className="homeQrWrap">
-                <img alt="WhatsApp QR" src="/whatsapp-qr.png" />
-              </div>
-            </div>
-          </section>
-        )}
+    <div data-navigation={navigation.right ? 'right' : 'standard'} className={`appShell ${tab === 'admin' ? 'adminPage' : tab === 'old school' ? 'printPage' : 'playerApp'}`}>
+      <PlayerHeader tab={tab} onNavigate={navigate} navigation={navigation} />
+      <main className="wrap playerMain">
+        {msg && <div className="msg" role="status">{msg}</div>}
+        {loadError && <div className="playerLoadError" role="alert"><strong>Unable to refresh the coupon.</strong><p>{week.id ? 'Showing the last loaded scores. Please reconnect before submitting.' : 'Please check your connection and try again.'}</p><button onClick={load}>Try again</button></div>}
+        {tab === 'leaderboard' && <WinnerBanner ranked={ranked} fixtures={fixtures} pot={pot} settings={settings} />}
+        {tab === 'home' && <PlayerHome week={entryWeek} fixtures={entryFixtures} settings={entrySettings} ranked={ranked} liveWeek={week} entriesOpen={entriesOpen} deadline={entryDeadline} countdown={countdownText} archives={archives.filter(a => a.saved_as_historic)} onNavigate={navigate} formatKickoff={formatKickoff} formatDate={formatViewerDateTime} position={leaderboardPosition} />}
 
         {tab === 'old school' && (
           <OldSchool
@@ -856,28 +849,35 @@ async function adminAction(action, payload) {
         )}
 
         {tab === 'enter coupon' && (
-          <section className="card">
+          <section className="card playerCoupon">
+            <p className="playerEyebrow">{entryWeek.title || 'This week'}</p>
             {!entriesOpen ? (
               <>
                 <h2>Entries Closed</h2>
                 <p>Entries closed at {entryDeadline ? formatViewerDateTime(entryDeadline) : 'TBC'}</p>
-                <p>Good luck everyone ⚽</p>
+                <p>{entryFixtures.length ? 'Follow the results as the matches unfold.' : 'The next coupon will appear here once published.'}</p><MatchList fixtures={entryFixtures} settings={entrySettings} formatKickoff={formatKickoff} />
               </>
             ) : (
               <>
-                <h2>Enter Coupon</h2>
+                <div className="playerSectionHeading"><h1>My coupon</h1><span>{entryFixtures.filter(f => ['home', 'away'].every(side => form.predictions[f.id]?.[side] !== undefined && form.predictions[f.id]?.[side] !== '')).length} / {entryFixtures.length} picked</span></div>
+                {entryDeadline && <p className="playerClosing">Closes {formatViewerDateTime(entryDeadline)} <strong>{countdownText}</strong></p>}
 
                 <form onSubmit={submitEntry}>
                   <div className="grid2">
                     <input
                       required
-                      placeholder="Name"
+                      placeholder="Your name"
+                      aria-label="Your name"
+                      autoComplete="name"
+                      maxLength={100}
                       value={form.name}
                       onChange={e => setForm({ ...form, name: e.target.value })}
                     />
 
                     <input
-                      placeholder="Department"
+                      placeholder="Department (optional)"
+                      aria-label="Department (optional)"
+                      maxLength={100}
                       value={form.department}
                       onChange={e => setForm({ ...form, department: e.target.value })}
                     />
@@ -892,9 +892,9 @@ async function adminAction(action, payload) {
 
                   {entryDeadline && <p>Entries close: {formatViewerDateTime(entryDeadline)}</p>}
 
-                  <button type="submit" className="primary" disabled={!entriesOpen}>
-                    {entriesOpen ? 'Submit Entry' : 'Entries Closed'}
-                  </button>
+                  <button type="submit" className="primary playerSubmit" disabled={!entriesOpen || submitting || loadError}>
+                    {submitting ? 'Submitting…' : 'Submit predictions'}
+                  </button><p className="playerSmallNote">Drafts stay on this device. Submit to enter the coupon.</p>
                 </form>
               </>
             )}
@@ -902,14 +902,14 @@ async function adminAction(action, payload) {
         )}
 
         {tab === 'leaderboard' && (
-          <Leaderboard
+          <><div className="playerPageHeading"><p className="playerEyebrow">{week.title}</p><h1>Live table</h1><p>Scores refresh every minute.</p></div><Leaderboard
             ranked={ranked}
             fixtures={fixtures}
             settings={settings}
             maxPts={maxPts}
             pot={pot}
             upcomingEntryWeeks={upcomingEntryWeeks}
-          />
+          /><section className="playerPanel"><div className="playerSectionHeading"><h2>Match scores</h2></div><MatchList fixtures={fixtures} settings={settings} formatKickoff={formatKickoff} /></section></>
         )}
 
         {tab === 'historic winners' && (
@@ -970,59 +970,23 @@ async function adminAction(action, payload) {
           </section>
         )}
       </main>
+      <PlayerNavigation tab={tab} onNavigate={navigate} />
     </div>
   );
 }
 
 function FixtureInputs({ fixtures, predictions, setPredictions, settings = {} }) {
-  return (
-    <div>
-      {fixtures.map(f => (
-        <div className="fixture" key={f.id}>
-          <span>
-            <span className="fixtureTeams">
-              <TeamLabel badge={f.home_badge} name={f.home_team} />
-              <b>v</b>
-              <TeamLabel badge={f.away_badge} name={f.away_team} />
-            </span>
-            {f.kickoff && <small className="fixtureKickoffDisplay">{formatKickoff(f.kickoff, settings)}</small>}
-          </span>
-
-          <input
-            type="number"
-            min="0"
-            value={predictions[f.id]?.home || ''}
-            onChange={e =>
-              setPredictions({
-                ...predictions,
-                [f.id]: {
-                  ...(predictions[f.id] || {}),
-                  home: e.target.value,
-                },
-              })
-            }
-          />
-
-          <b>-</b>
-
-          <input
-            type="number"
-            min="0"
-            value={predictions[f.id]?.away || ''}
-            onChange={e =>
-              setPredictions({
-                ...predictions,
-                [f.id]: {
-                  ...(predictions[f.id] || {}),
-                  away: e.target.value,
-                },
-              })
-            }
-          />
-        </div>
-      ))}
+  return <div className="playerPredictionList">{fixtures.map(f => <div className="playerPrediction" key={f.id}>
+    <div className="playerPredictionRow">
+      <TeamLabel badge={f.home_badge} name={f.home_team} />
+      <div className="playerScoreInputs">{['home', 'away'].map((side, i) => <Fragment key={side}>
+        {i === 1 && <span aria-hidden="true">:</span>}
+        <input aria-label={`${side === 'home' ? f.home_team : f.away_team} goals`} required type="number" inputMode="numeric" min="0" max="99" step="1" value={predictions[f.id]?.[side] ?? ''} onChange={e => setPredictions({ ...predictions, [f.id]: { ...(predictions[f.id] || {}), [side]: e.target.value } })} />
+      </Fragment>)}</div>
+      <TeamLabel badge={f.away_badge} name={f.away_team} align="right" />
     </div>
-  );
+    <small>{f.kickoff ? formatKickoff(f.kickoff, settings) : 'Kick-off to be confirmed'}</small>
+  </div>)}</div>;
 }
 
 function Leaderboard({ ranked, fixtures, settings = {}, maxPts, pot, upcomingEntryWeeks = [] }) {
@@ -1055,7 +1019,7 @@ function Leaderboard({ ranked, fixtures, settings = {}, maxPts, pot, upcomingEnt
 
   return (
     <section className="card">
-      <h2>RIG Coupon Dashboard</h2>
+      <h2>Leaderboard</h2>
 
       <div className="dashboardStats">
         <div className="statCard">
@@ -1245,136 +1209,69 @@ function Leaderboard({ ranked, fixtures, settings = {}, maxPts, pot, upcomingEnt
 }
 
 function EntriesMatrix({ entries, fixtures, settings = {}, maxPts, pot }) {
-  const fixtureResult = f => {
-    if (
-      f.home_score === null ||
-      f.home_score === undefined ||
-      f.away_score === null ||
-      f.away_score === undefined
-    ) {
-      return '-';
-    }
-
-    if (f.home_score > f.away_score) return '1';
-    if (f.home_score < f.away_score) return '2';
-    return 'X';
-  };
-
-  const predictionClass = (entry, fixture) => {
-    const pts = points(entry.predictions?.[fixture.id], fixture);
-
-    if (pts === 3) return 'exactScore';
-    if (pts === 1) return 'correctResult';
-    return '';
-  };
-
   const stake = Number(settings?.entry_fee || 10);
   const prizeFund = entries.length * stake;
 
   return (
-    <div className="predictionLayout">
-      <div className="predictionMain scroll">
-        <table className="matrix resultsMatrix">
-          <thead>
-            <tr>
-              <th className="nameHeader"></th>
-              {fixtures.map(f => (
-                <th key={f.id} className="angledHeader">
-                  <span>
-                    {f.home_team} v {f.away_team}
-                  </span>
-                </th>
-              ))}
-            </tr>
-          </thead>
-
-          <tbody>
-            <tr>
-              <td><b>SCORE</b></td>
-              {fixtures.map(f => (
-                <td key={f.id}>
-                  {f.home_score ?? '-'}-{f.away_score ?? '-'}
-                </td>
-              ))}
-            </tr>
-
-            <tr>
-              <td><b>STATUS</b></td>
-              {fixtures.map(f => (
-                <td key={f.id}>
-                  {f.status || 'NS'}
-                  {f.ht_home_score !== null &&
-                    f.ht_home_score !== undefined &&
-                    f.ht_away_score !== null &&
-                    f.ht_away_score !== undefined &&
-                    ` HT ${f.ht_home_score}-${f.ht_away_score}`}
-                </td>
-              ))}
-            </tr>
-
-            <tr>
-              <td><b>RESULT</b></td>
-              {fixtures.map(f => (
-                <td key={f.id}>{fixtureResult(f)}</td>
-              ))}
-            </tr>
-
-            {entries.map(e => (
-              <tr key={e.id}>
-                <td>{e.name} {e.department}</td>
-                {fixtures.map(f => (
-                  <td key={f.id} className={predictionClass(e, f)}>
-                    {e.predictions?.[f.id]?.home ?? ''}-
-                    {e.predictions?.[f.id]?.away ?? ''}
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
+    <section className="scoreGrid" aria-labelledby="score-grid-heading">
+      <div className="scoreGridHeading">
+        <div>
+          <h3 id="score-grid-heading">Everyone’s predictions</h3>
+          <p>Actual scores above · everyone’s picks below</p>
+        </div>
+        <span>{fixtures.length} fixtures · {entries.length} players</span>
       </div>
-
-      <aside className="predictionSide">
-        <h3>League Table</h3>
-
-        <table className="miniLeague">
-          <thead>
-            <tr>
-              <th>Pos.</th>
-              <th>Player</th>
-              <th>Points</th>
-            </tr>
-          </thead>
-          <tbody>
-            {entries.map((e, i) => (
-              <tr key={e.id}>
-                <td>{leaderboardPosition(entries, i)}</td>
-                <td>{e.name} {e.department}</td>
-                <td><b>{e.pts}</b></td>
+      <p className="scoreGridHint" id="score-grid-hint">Scroll across for more matches. Player names stay visible. Points during matches are provisional.</p>
+      {!fixtures.length ? <p className="playerEmpty">No fixtures published yet.</p> : (
+        <div className="scoreGridScroll" role="region" aria-label="All predictions" aria-describedby="score-grid-hint" tabIndex={0}>
+          <table className="scoreGridTable" aria-label="Player predictions compared with actual scores" style={{ '--fixture-count': fixtures.length }}>
+            <colgroup><col className="scoreGridNameCol" />{fixtures.map(f => <col key={f.id} className="scoreGridMatchCol" />)}</colgroup>
+            <thead>
+              <tr>
+                <th scope="col" className="scoreGridName"><span>Player</span><small>Prediction / points</small></th>
+                {fixtures.map(f => {
+                  const actual = fixturePresentation(f);
+                  return (
+                    <th key={f.id} scope="col">
+                      <span className="scoreGridFixture"><span>{f.home_team}</span><em>v</em><span>{f.away_team}</span></span>
+                      <div className="scoreGridActual">
+                        <span className="scoreGridScoreLabel">{actual.scoreLabel}</span>
+                        <strong>{actual.score}</strong>
+                        <small>{actual.status}</small>
+                        {actual.result && <small>{actual.result}{actual.halfTime ? ` · ${actual.halfTime}` : ''}</small>}
+                      </div>
+                    </th>
+                  );
+                })}
               </tr>
-            ))}
-          </tbody>
-        </table>
-
-        <div className="legendBox greenBox">
-          1 Point for correct result
+            </thead>
+            <tbody>
+              {entries.length ? entries.map(entry => (
+                <tr key={entry.id}>
+                  <th scope="row" className="scoreGridName">
+                    <span>{entry.name}</span>
+                    {entry.department && <small>{entry.department}</small>}
+                    <b>{entry.pts ?? 0} pts</b>
+                  </th>
+                  {fixtures.map(f => {
+                    const prediction = entry.predictions?.[f.id];
+                    const display = predictionPresentation(prediction, f, points(prediction, f));
+                    return <td key={f.id}><span className={`scoreGridPick ${display.kind}`}><strong>{display.score}</strong><small>{display.label}</small></span></td>;
+                  })}
+                </tr>
+              )) : <tr><td colSpan={fixtures.length + 1}>No entries to show yet.</td></tr>}
+            </tbody>
+          </table>
         </div>
-
-        <div className="legendBox blueBox">
-          3 Points for correct score
-        </div>
-
-        <div className="legendBox">
-          Maximum Points: {maxPts}
-        </div>
-
-        <div className="prizeBox">
-          <b>Prize Fund</b>
-          <strong>{sym(settings?.currency || 'USD')}{prizeFund}</strong>
-        </div>
-      </aside>
-
-    </div>
+      )}
+      <div className="scoreGridLegend" aria-label="Scoring key">
+        <span><i className="exact" aria-hidden="true" />Exact score · 3 pts</span>
+        <span><i className="result" aria-hidden="true" />Correct result · 1 pt</span>
+        <span><i className="miss" aria-hidden="true" />Miss · 0 pts</span>
+        <span><i className="pending" aria-hidden="true" />Awaiting score</span>
+      </div>
+      <div className="scoreGridFooter"><span>Maximum: <b>{maxPts} points</b></span><span>Prize fund: <b>{sym(settings?.currency || 'USD')}{prizeFund}</b></span></div>
+    </section>
   );
 }
 
@@ -1479,7 +1376,7 @@ function WinnerBanner({ ranked = [], fixtures = [], pot = 0, settings = {} }) {
   );
 }
 
-function OldSchool({ week, fixtures, settings = {}, maxPts, entryDeadline }) {
+function OldSchool({ week, fixtures, settings = {}, maxPts, entryDeadline, buttonOnly = false }) {
   const [scoreDrafts, setScoreDrafts] = useState({});
   const [entrantName, setEntrantName] = useState('');
   const [entrantDepartment, setEntrantDepartment] = useState('');
@@ -1567,6 +1464,14 @@ function OldSchool({ week, fixtures, settings = {}, maxPts, entryDeadline }) {
     }
   };
 
+  const printButton = (
+    <button type="button" disabled={pdfDownloading || !fixtures.length} onClick={downloadFillablePdf}>
+      {pdfDownloading ? 'Creating Old School PDF...' : 'Print Old School Coupon'}
+    </button>
+  );
+
+  if (buttonOnly) return printButton;
+
   const CouponPanel = ({ label, copyType = 'office' }) => (
     <div className={`couponBox ${copyType === 'entrant' ? 'entrantCopy' : 'officeCopy'}`}>
       <div className="couponTitle">
@@ -1628,9 +1533,7 @@ function OldSchool({ week, fixtures, settings = {}, maxPts, entryDeadline }) {
       }}
     >
       <div className="printButtonWrap">
-        <button disabled={pdfDownloading} onClick={downloadFillablePdf}>
-          {pdfDownloading ? 'Creating Old School PDF...' : 'Print Old School Coupon'}
-        </button>
+        {printButton}
       </div>
 
       <div className="couponPrintGrid">
@@ -1958,13 +1861,13 @@ function HistoricWinners({ archives = [] }) {
         <div className="sectionTitleRow">
           <div>
             <p className="eyebrow">Past Coupons</p>
-            <h2>Historic Winners</h2>
+            <h1>Results & history</h1>
           </div>
         </div>
 
         <div className="historicEmpty">
           <h3>No historic winners saved yet</h3>
-          <p>Use New Coupon in admin and tick “Save current leaderboard” to add the first winner here.</p>
+          <p>Completed coupons and their results will appear here after they are archived.</p>
         </div>
       </section>
     );
@@ -1975,7 +1878,7 @@ function HistoricWinners({ archives = [] }) {
       <div className="sectionTitleRow">
         <div>
           <p className="eyebrow">Past Coupons</p>
-          <h2>Historic Winners</h2>
+          <h1>Results & history</h1>
         </div>
 
         <strong>{archives.length} saved</strong>
@@ -3428,11 +3331,7 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
 
   return (
     <div>
-      <div className="adminGrid">
-        <div>
-          <h3>Coupon Weeks</h3>
-
-          <div className="couponWeekManager">
+      <div className="adminWeekContext">
             <label>
               Editing coupon week
               <select
@@ -3458,6 +3357,11 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
               </span>
             </div>
 
+      </div>
+      <AdminTabs>
+        <section data-tab="setup" data-label="Coupon Setup">
+          <h3>Coupon Weeks</h3>
+          <div className="couponWeekManager">
             <div className="couponWeekActions">
               <button
                 className={confirmActivateWeekId === currentWeekId ? 'dangerButton' : ''}
@@ -3720,75 +3624,8 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
             Revert Last New Coupon
           </button>
 
-          <h3>Historic Winners Admin</h3>
-          <p>View and remove saved winner pages from the Historic Winners section.</p>
-
-          <div className="archiveAdminList">
-            {historicArchives.length ? (
-              historicArchives.map(archive => {
-                const leaderboard = Array.isArray(archive.leaderboard) ? archive.leaderboard : [];
-                const snapshotEntries = Array.isArray(archive.snapshot?.entries) ? archive.snapshot.entries : [];
-                const paymentRows = leaderboard.length ? leaderboard : snapshotEntries;
-                const unpaidRows = paymentRows.filter(entry => entry && entry.paid !== true);
-                const winners = archiveWinners(archive, leaderboard);
-                const winnerLabel = winners.length > 1
-                  ? `Split: ${winners.map(entry => entry.name).join(', ')}`
-                  : winners[0]?.name || 'No winner recorded';
-                const winnerPoints = winners[0]?.pts ?? archive.winner_points ?? leaderboard[0]?.pts ?? 0;
-                const isConfirmingDelete = confirmDeleteArchiveId === archive.id;
-
-                return (
-                  <div className="archiveAdminItem" key={archive.id}>
-                    <div className="archiveAdminText">
-                      <strong>{archive.week_title || 'RIG Coupon'}</strong>
-                      <span>{archive.week_subtitle || formatArchiveDate(archive.created_at) || 'Historic winner page'}</span>
-                      <small>{winnerLabel} • {winnerPoints} pts</small>
-
-                      <div className={unpaidRows.length ? 'archiveUnpaidList' : 'archiveUnpaidList allPaid'}>
-                        {unpaidRows.length ? (
-                          <>
-                            <b>{`Unpaid at archive: ${unpaidRows.length}`}</b>
-                            <span>Tick entrants off here when they pay after the coupon has been archived.</span>
-                          </>
-                        ) : (
-                          <b>ALL PAID!</b>
-                        )}
-                        {unpaidRows.length && paymentRows.length ? (
-                          <div className="archivePaymentChecks">
-                            {paymentRows.map(entry => (
-                              <label key={entry.id || `${entry.name}-${entry.department}`}>
-                                <input
-                                  type="checkbox"
-                                  checked={entry.paid === true}
-                                  onChange={event => updateArchivedEntryPayment(archive, entry, event.target.checked)}
-                                />
-                                <span>
-                                  {entry.name || 'Unnamed entry'}
-                                  {entry.department ? ` (${entry.department})` : ''}
-                                </span>
-                              </label>
-                            ))}
-                          </div>
-                        ) : null}
-                      </div>
-                    </div>
-
-                    <button
-                      className={isConfirmingDelete ? 'dangerButton' : ''}
-                      onClick={() => deleteHistoricArchive(archive)}
-                    >
-                      {isConfirmingDelete ? 'Confirm Remove' : 'Remove'}
-                    </button>
-                  </div>
-                );
-              })
-            ) : (
-              <div className="archiveAdminEmpty">No historic winner pages saved yet.</div>
-            )}
-          </div>
-        </div>
-
-        <div>
+        </section>
+        <section data-tab="fixtures" data-label="Fixtures">
           <h3>Fixtures</h3>
           <p>
             Main workflow: paste fixtures from your FotMob picks, preview them, and replace the coupon directly.
@@ -4172,6 +4009,8 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
             )}
           </div>
 
+        </section>
+        <section data-tab="results" data-label="Results">
           <div className="fixtureApiActions">
             <button onClick={syncLiveScores}>Sync Live Scores</button>
             <button
@@ -4277,9 +4116,8 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
           <button onClick={() => saveScoreDrafts(scoreDrafts)}>
             Save Results Now
           </button>
-        </div>
-      </div>
-
+        </section>
+        <section data-tab="entries" data-label="Entries & Payments">
       <h3>Entries / Payments</h3>
       <p>
         Showing entries for <strong>{week.title || 'selected coupon'}</strong>
@@ -4407,7 +4245,17 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
       <button onClick={importTsv}>Import TSV Entries</button>
       <button onClick={exportEntriesTsv}>Export All Entries TSV</button>
 
+        </section>
+        <section data-tab="share" data-label="Share Images">
       <h3>Share Images</h3>
+
+      <div className="adminPrintCoupon">
+        <OldSchool key={`print-${selectedWeekKey}`} buttonOnly
+          week={selectedWeek} fixtures={selectedWeekFixtures} settings={selectedWeekSettings}
+          entryDeadline={entryDeadlineFor(selectedWeekFixtures)} />
+        <p>Prints a blank PDF for <strong>{selectedWeek.title || 'the selected coupon week'}</strong> using its saved fixtures and settings. You can print future coupons before publishing them; printing does not release them online.</p>
+        {!selectedWeekFixtures.length && <p>Add and save fixtures for this week to enable printing.</p>}
+      </div>
 
       <FixtureImageExport key={selectedWeekKey} preview={fixturePreview}
         parseKickoff={parseKickoff} download={download} setMsg={setMsg} />
@@ -4542,6 +4390,76 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
           week={state.week}
         />
       </div>
+        </section>
+        <section data-tab="history" data-label="History">
+          <h3>Historic Winners Admin</h3>
+          <p>View and remove saved winner pages from the Historic Winners section.</p>
+
+          <div className="archiveAdminList">
+            {historicArchives.length ? (
+              historicArchives.map(archive => {
+                const leaderboard = Array.isArray(archive.leaderboard) ? archive.leaderboard : [];
+                const snapshotEntries = Array.isArray(archive.snapshot?.entries) ? archive.snapshot.entries : [];
+                const paymentRows = leaderboard.length ? leaderboard : snapshotEntries;
+                const unpaidRows = paymentRows.filter(entry => entry && entry.paid !== true);
+                const winners = archiveWinners(archive, leaderboard);
+                const winnerLabel = winners.length > 1
+                  ? `Split: ${winners.map(entry => entry.name).join(', ')}`
+                  : winners[0]?.name || 'No winner recorded';
+                const winnerPoints = winners[0]?.pts ?? archive.winner_points ?? leaderboard[0]?.pts ?? 0;
+                const isConfirmingDelete = confirmDeleteArchiveId === archive.id;
+
+                return (
+                  <div className="archiveAdminItem" key={archive.id}>
+                    <div className="archiveAdminText">
+                      <strong>{archive.week_title || 'RIG Coupon'}</strong>
+                      <span>{archive.week_subtitle || formatArchiveDate(archive.created_at) || 'Historic winner page'}</span>
+                      <small>{winnerLabel} • {winnerPoints} pts</small>
+
+                      <div className={unpaidRows.length ? 'archiveUnpaidList' : 'archiveUnpaidList allPaid'}>
+                        {unpaidRows.length ? (
+                          <>
+                            <b>{`Unpaid at archive: ${unpaidRows.length}`}</b>
+                            <span>Tick entrants off here when they pay after the coupon has been archived.</span>
+                          </>
+                        ) : (
+                          <b>ALL PAID!</b>
+                        )}
+                        {unpaidRows.length && paymentRows.length ? (
+                          <div className="archivePaymentChecks">
+                            {paymentRows.map(entry => (
+                              <label key={entry.id || `${entry.name}-${entry.department}`}>
+                                <input
+                                  type="checkbox"
+                                  checked={entry.paid === true}
+                                  onChange={event => updateArchivedEntryPayment(archive, entry, event.target.checked)}
+                                />
+                                <span>
+                                  {entry.name || 'Unnamed entry'}
+                                  {entry.department ? ` (${entry.department})` : ''}
+                                </span>
+                              </label>
+                            ))}
+                          </div>
+                        ) : null}
+                      </div>
+                    </div>
+
+                    <button
+                      className={isConfirmingDelete ? 'dangerButton' : ''}
+                      onClick={() => deleteHistoricArchive(archive)}
+                    >
+                      {isConfirmingDelete ? 'Confirm Remove' : 'Remove'}
+                    </button>
+                  </div>
+                );
+              })
+            ) : (
+              <div className="archiveAdminEmpty">No historic winner pages saved yet.</div>
+            )}
+          </div>
+        </section>
+      </AdminTabs>
     </div>
   );
 }

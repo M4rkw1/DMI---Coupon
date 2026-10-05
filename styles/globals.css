@@ -3518,3 +3518,32 @@ th {
     line-height: 1.18;
   }
 }
+
+/* Admin sections: keep the selected coupon visible above every tab. */
+.adminWeekContext {
+  padding: 16px;
+  border: 1px solid #ccd5e1;
+  border-radius: 12px;
+  background: #f4f7fc;
+  margin-bottom: 18px;
+}
+.adminWeekContext > label { display: block; font-weight: 700; }
+.adminWeekContext select { max-width: 620px; }
+.adminSectionTabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #ccd5e1;
+}
+.adminSectionTabs [role="tab"] { min-height: 44px; }
+.adminSectionTabs [aria-selected="true"] { background: #102a50; color: #fff; }
+.adminSectionTabs [role="tab"]:focus-visible,
+.adminSectionPanel:focus-visible { outline: 3px solid #b97800; outline-offset: 3px; }
+.adminSectionPanel { min-width: 0; padding-top: 8px; overflow-x: auto; }
+.adminSectionPanel[hidden] { display: none !important; }
+.adminSectionPanel textarea { min-height: 170px; }
+@media (max-width: 600px) {
+  .adminSectionTabs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .adminSectionTabs [role="tab"] { padding: 10px 8px; }
+}
