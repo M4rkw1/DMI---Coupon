@@ -1,3 +1,4 @@
+import { outstandingPayments, outstandingTotals } from '../lib/outstandingPayments.mjs';
 import AdminTabs from '../components/AdminTabs';
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import FixtureImageExport from '../components/FixtureImageExport';
@@ -908,6 +909,7 @@ async function adminAction(action, payload) {
             settings={settings}
             maxPts={maxPts}
             pot={pot}
+            unpaidEntries={outstandingPayments(state, parseKickoff)}
             upcomingEntryWeeks={upcomingEntryWeeks}
           /><section className="playerPanel"><div className="playerSectionHeading"><h2>Match scores</h2></div><MatchList fixtures={fixtures} settings={settings} formatKickoff={formatKickoff} /></section></>
         )}
@@ -989,7 +991,7 @@ function FixtureInputs({ fixtures, predictions, setPredictions, settings = {} })
   </div>)}</div>;
 }
 
-function Leaderboard({ ranked, fixtures, settings = {}, maxPts, pot, upcomingEntryWeeks = [] }) {
+function Leaderboard({ ranked, fixtures, settings = {}, maxPts, pot, upcomingEntryWeeks = [], unpaidEntries = [] }) {
   const [view, setView] = useState('leaderboard');
 
   const now = new Date();
@@ -1012,8 +1014,7 @@ function Leaderboard({ ranked, fixtures, settings = {}, maxPts, pot, upcomingEnt
       f.away_score !== undefined
   ).length;
 
-  const unpaidPlayers = ranked.filter(e => !e.paid).length;
-  const unpaidEntries = ranked.filter(e => !e.paid);
+  const unpaidPlayers = unpaidEntries.length;
   const stake = Number(settings?.entry_fee || 10);
   const fullPot = playersEntered * stake;
 
@@ -1045,7 +1046,7 @@ function Leaderboard({ ranked, fixtures, settings = {}, maxPts, pot, upcomingEnt
         </div>
 
         <div className="statCard">
-          <small>Players Yet To Pay</small>
+          <small>Unpaid Entries · All Weeks</small>
           <strong>{unpaidPlayers}</strong>
         </div>
 
@@ -1129,14 +1130,15 @@ function Leaderboard({ ranked, fixtures, settings = {}, maxPts, pot, upcomingEnt
 
       {view === 'unpaid' && (
         <div className="leagueTableWrap">
+          <p>Outstanding: <strong>{outstandingTotals(unpaidEntries)}</strong>. Includes unpaid previous coupons, even after they close.</p>
           <table className="leagueTable">
             <thead>
               <tr>
                 <th>Pos.</th>
                 <th>Player</th>
                 <th>Department</th>
-                <th>Entry Fee</th>
-                <th>Status</th>
+                <th>Outstanding</th>
+                <th>Coupon</th>
               </tr>
             </thead>
 
@@ -1148,10 +1150,9 @@ function Leaderboard({ ranked, fixtures, settings = {}, maxPts, pot, upcomingEnt
                     <td>{entry.name}</td>
                     <td>{entry.department || '-'}</td>
                     <td>
-                      {sym(settings?.currency || 'USD')}
-                      {stake}
+                      {sym(entry.currency)}{entry.amount.toFixed(2)}
                     </td>
-                    <td>Unpaid</td>
+                    <td>{entry.weekTitle}{entry.previous ? " · Previous" : ""}</td>
                   </tr>
                 ))
               ) : (
@@ -2008,7 +2009,7 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
         b.exact - a.exact ||
         String(a.name || '').localeCompare(String(b.name || ''))
     );
-  const activeUnpaidEntries = ranked.filter(entry => !entry.paid);
+  const outstandingEntries = outstandingPayments(state, parseKickoff);
   const leaderboardShareDensity =
     ranked.length > 28 ? 'shareUltraCompact' :
     ranked.length > 20 ? 'shareVeryCompact' :
@@ -4273,6 +4274,17 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
         Download Mobile Leaderboard JPG
       </button>
 
+      <details className="archiveUnpaidList">
+        <summary>Manage outstanding payments · {outstandingEntries.length} entries</summary>
+        <p>Includes previous coupons. Mark each entry paid when its payment is received.</p>
+        {outstandingEntries.map(entry => <div key={entry.id}>
+          <span>{entry.name} {entry.department ? `(${entry.department})` : ''} · {entry.weekTitle} · {sym(entry.currency)}{entry.amount.toFixed(2)} </span>
+          <button type="button" onClick={() => entry.archiveId
+            ? updateArchivedEntryPayment({ id: entry.archiveId }, entry, true)
+            : adminAction('updateEntry', { id: entry.id, paid: true })}>Mark paid</button>
+        </div>)}
+      </details>
+
       <button
         onClick={() =>
           download(unpaidImgRef, unpaidDownloadName(), {
@@ -4343,32 +4355,30 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
 
         <div className="shareMeta paymentMeta">
           <div>
-            <small>Outstanding</small>
-            <strong>{activeUnpaidEntries.length}</strong>
+            <small>Unpaid entries</small>
+            <strong>{outstandingEntries.length}</strong>
           </div>
           <div>
-            <small>Paid</small>
-            <strong>{ranked.length - activeUnpaidEntries.length}</strong>
+            <small>Previous coupons</small>
+            <strong>{outstandingEntries.filter(entry => entry.previous).length}</strong>
           </div>
           <div>
-            <small>Entry Fee</small>
-            <strong>
-              {sym(state.settings?.currency || 'USD')}
-              {state.settings?.entry_fee || 10}
-            </strong>
+            <small>Total due</small>
+            <strong>{outstandingTotals(outstandingEntries)}</strong>
           </div>
         </div>
 
         <div className="shareRows">
-          {activeUnpaidEntries.length ? (
-            activeUnpaidEntries.map((entry, index) => (
+          {outstandingEntries.length ? (
+            outstandingEntries.map((entry, index) => (
               <div className="shareRow paymentRow" key={entry.id}>
                 <b>{index + 1}</b>
                 <span>
                   <strong>{entry.name}</strong>
                   {entry.department && <small>{entry.department}</small>}
+                  <small>{entry.weekTitle}{entry.previous ? ' · Previous coupon' : ''}</small>
                 </span>
-                <em>To pay</em>
+                <em>{sym(entry.currency)}{entry.amount.toFixed(2)}</em>
               </div>
             ))
           ) : (
