@@ -1801,6 +1801,12 @@ function HistoricWinnerDetail({ archive, leaderboard = [] }) {
         </span>
       </div>
 
+      <div className="scoreGridLegend" aria-label="Scoring key">
+        <span><i className="exact" aria-hidden="true" />Exact score · 3 pts</span>
+        <span><i className="result" aria-hidden="true" />Correct result · 1 pt</span>
+        <span><i className="miss" aria-hidden="true" />No points · 0 pts</span>
+      </div>
+
       <div className="scroll">
         <table className="historicDetailTable">
           <thead>
