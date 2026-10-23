@@ -301,3 +301,21 @@ html:has(.playerApp), body:has(.playerApp) { background:#081724; }
   }
 }
 @media print { html:has(.playerApp),body:has(.playerApp) { background:white; } }
+
+/* Historical results: explicit foreground/background pairs prevent legacy
+   white cells from inheriting the player app's pale text. */
+.playerApp .historicDetailTable { border-collapse:separate; border-spacing:0; background:#102333; }
+.playerApp .historicDetailTable th,
+.playerApp .historicDetailTable td { border:0; border-right:1px solid #40586b; border-bottom:1px solid #40586b; padding:14px 10px; }
+.playerApp .historicDetailTable thead th { background:#193142; color:#e4edf5; font-weight:600; }
+.playerApp .historicDetailTable th b { color:#f1cf80; font-size:16px; font-variant-numeric:tabular-nums; }
+.playerApp .historicDetailTable tbody td { background:#102333; color:#f4f7fb; }
+.playerApp .historicDetailTable tbody td:first-child { background:#193142; color:#f4f7fb; min-width:160px; }
+.playerApp .historicDetailTable tbody td:nth-child(2) { background:#193142; color:#f1cf80; }
+.playerApp .historicDetailTable td strong,
+.playerApp .historicDetailTable td b { color:inherit; font-size:15px; font-weight:750; font-variant-numeric:tabular-nums; }
+.playerApp .historicDetailTable td small { color:#c5d6e5; font-size:12px; margin-top:5px; }
+.playerApp .historicDetailTable td.exactScore { background:#153e34; color:#baf5d6; }
+.playerApp .historicDetailTable td.exactScore small { color:#baf5d6; }
+.playerApp .historicDetailTable td.correctResult { background:#44371d; color:#ffe0a0; }
+.playerApp .historicDetailTable td.correctResult small { color:#ffe0a0; }
