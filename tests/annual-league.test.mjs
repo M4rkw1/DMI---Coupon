@@ -1,0 +1,14 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {emptyLeague,changeLeague,standings,calculateScores} from '../lib/annualLeague.mjs';
+const source={week:{calendar_year:2027,calendar_week:1,title:'Week 1'},fixtures:[{id:'f',home_score:1,away_score:0,status:'FT'}],entries:[{id:'e1',predictions:{f:{home:1,away:0}}},{id:'e2',predictions:{f:{home:2,away:0}}},{id:'e3',predictions:{f:{home:1,away:0}}}]};
+const seed=()=>({...emptyLeague(),members:[{id:'m1',name:'A',paid:true},{id:'m2',name:'B',paid:true},{id:'m3',name:'C',paid:false}]});
+const links=[{memberId:'m1',entryId:'e1'},{memberId:'m2',entryId:'e2'},{memberId:'m3',entryId:'e3'}];
+const payload={week:1,sourceId:'coupon',links}, context={source,now:'2027-01-01T00:00:00Z'};
+test('private by default; registration starts unpaid',()=>{const d=changeLeague(emptyLeague(),'register',{name:' Mark ',paid:true},{id:'m',now:'now'});assert.equal(d.released,false);assert.deepEqual(d.members,[{id:'m',name:'Mark',paid:false}]);});
+test('paid verified entrants receive 6 for win and 3 for runner-up; finalisation cannot repeat',()=>{const d=changeLeague(seed(),'finalise',payload,context);assert.deepEqual(standings(d).map(m=>m.points),[6,3]);assert.equal(d.weeks[1].scores.length,2);assert.throws(()=>changeLeague(d,'finalise',payload,context),/Reopen/);});
+test('drafts award nothing; reopening removes points and allows replacement',()=>{let d=changeLeague(seed(),'saveWeek',payload,context);assert.equal(standings(d)[0].points,0);d=changeLeague(d,'finalise',payload,context);d=changeLeague(d,'reopen',{week:1},context);assert.equal(standings(d)[0].points,0);d=changeLeague(d,'finalise',payload,context);assert.equal(standings(d)[0].points,6);});
+test('reject duplicate links, unfinished fixtures, wrong calendar week and week 53',()=>{assert.throws(()=>calculateScores(seed(),[links[0],links[0]],source),/once/);assert.throws(()=>calculateScores(seed(),links,{...source,fixtures:[{...source.fixtures[0],status:'1H'}]}),/Finish/);assert.throws(()=>changeLeague(seed(),'finalise',{...payload,week:2},context),/calendar week/);assert.throws(()=>changeLeague(seed(),'finalise',{...payload,week:53},context),/1 and 52/);});
+test('unpaid winner does not pass bonus down; tied scores share bonus',()=>{const d=seed();d.members[0].paid=false;assert.equal(calculateScores(d,links,source)[0].bonus,2);d.members[2].paid=true;assert.deepEqual(calculateScores(d,links,source).map(s=>s.bonus),[2,5]);});
+test('payment after finalisation cannot retrospectively award points',()=>{let d=changeLeague(seed(),'finalise',payload,context);d=changeLeague(d,'payment',{memberId:'m3',paid:true},context);assert.equal(standings(d).find(m=>m.id==='m3').points,0);});
+test('invalid member and visibility settings are rejected',()=>{assert.throws(()=>changeLeague(seed(),'payment',{memberId:'bad',paid:true}),/not found/);assert.throws(()=>changeLeague(seed(),'release',{released:'true'}),/visibility/);});

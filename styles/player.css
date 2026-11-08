@@ -319,3 +319,14 @@ html:has(.playerApp), body:has(.playerApp) { background:#081724; }
 .playerApp .historicDetailTable td.exactScore small { color:#baf5d6; }
 .playerApp .historicDetailTable td.correctResult { background:#44371d; color:#ffe0a0; }
 .playerApp .historicDetailTable td.correctResult small { color:#ffe0a0; }
+
+/* Keep names and point labels readable even inside sticky archive cells. */
+.playerApp .historicDetailTable tbody td:first-child strong { color:#f4f7fb; }
+.playerApp .historicDetailTable tbody td:nth-child(2) b { color:#f1cf80; }
+.playerApp .historicDetailTable tbody td:first-child small,
+.playerApp .historicDetailTable tbody td:nth-child(2) small { color:#c5d6e5; }
+.playerApp .historicDetailTable th { min-width:108px; line-height:1.45; }
+.playerApp .historicDetailTable td { line-height:1.5; }
+.playerApp .historicDetailTable tbody td small { font-size:13px; }
+.playerApp .historicDetailTable th:first-child { min-width:180px; }
+.playerApp .historicDetailTable tbody td:first-child { min-width:180px; box-shadow:2px 0 0 #40586b; }

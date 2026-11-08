@@ -1,3 +1,4 @@
+import AnnualLeagueAdmin, { PublicAnnualLeague } from '../components/AnnualLeague';
 import { outstandingPayments, outstandingTotals } from '../lib/outstandingPayments.mjs';
 import AdminTabs from '../components/AdminTabs';
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
@@ -915,7 +916,7 @@ async function adminAction(action, payload) {
         )}
 
         {tab === 'historic winners' && (
-          <HistoricWinners archives={archives.filter(archive => archive.saved_as_historic)} />
+          <><PublicAnnualLeague /><HistoricWinners archives={archives.filter(archive => archive.saved_as_historic)} /></>
         )}
 
         {tab === 'admin' && (
@@ -4475,6 +4476,7 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
             )}
           </div>
         </section>
+        <section data-tab="annual-league" data-label="Annual League"><AnnualLeagueAdmin admin={admin} state={state} /></section>
       </AdminTabs>
     </div>
   );
