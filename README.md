@@ -80,3 +80,38 @@ required to submit predictions or refresh results.
 
 ## Admin sections
 Admin controls are grouped into Coupon Setup, Fixtures, Results, Entries & Payments, Share Images, and History. The coupon-week selector stays visible above the tabs. Switching sections keeps drafts and fixture previews in memory; saving and autosave behave as before. Use Left/Right arrows, Home, or End on the tab bar for keyboard navigation.
+
+## 2027 Annual League (private until released)
+
+Run `add_annual_league.sql` once in the Supabase SQL Editor before deploying this
+change. It creates an empty 2027 season with public release OFF, enables row-level
+security and restricts direct table access to the server service role. There are
+no sample members in production. Existing coupon tables are not modified.
+
+Admin → Annual League supports registration, recording the $100 annual payment,
+linking one submitted coupon entry per member per calendar week, finalising
+points, reopening corrections and viewing an activity log. Set each coupon's
+calendar year to 2027 and calendar week to 1–52 in Coupon Setup. Both retained
+coupons and archive snapshots can be selected. Finish or void every fixture
+before finalising. Participation earns +1; the highest coupon score earns +5 and
+the next distinct score +2, including shared ties. Placings are determined from
+all weekly entries, so unpaid/non-member winners do not pass bonuses down.
+Only verified members paid at finalisation get annual points. Drafts award none.
+Reopening removes that week's scores; finalising again replaces them once.
+Concurrent writes are guarded by a revision check; reload if another admin saves.
+
+Public History fetches a separate, uncached endpoint. While private it returns
+only `{released:false}`. After the admin's two-step Release action it returns
+standings, pot and progress only; payment and verification records and activity
+logs remain private. Hiding it again removes it on the next History load.
+The league is independent of the normal weekly coupon fees and payment flags.
+
+Agree membership cutoff, annual prize tie-breaks and cancelled-week rules before
+release. Registration currently remains open throughout the season, without
+retroactive points. The annual pot assumes all marked payments are $100 USD;
+no payments are processed. The current shared admin login identifies changes
+as admin activity, not individual administrators.
+
+Validate with `node --test tests/*.test.mjs tests/*.test.cjs` and `npm run build`.
+A local isolated UI harness is in `../work/annual-preview-server.cjs`; its sample
+records never reach Supabase and its writes are disabled.
