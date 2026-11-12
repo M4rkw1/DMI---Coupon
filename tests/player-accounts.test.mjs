@@ -26,19 +26,35 @@ test('verified accounts must create a profile before entering',async()=>{
  await assert.rejects(entryIdentity(database(),'Bearer valid',{name:'Guest'}),{status:409});
 });
 test('profile creation ignores supplied user ID and repeated setup cannot change identity',async()=>{
- const db=database();const first=await request(db,'POST',{name:'Mark',department:'Deck',user_id:'someone-else'});
+ const db=database();const first=await request(db,'POST',{name:'Mark',department:'Deck',phone:'+44 7700 900123',user_id:'someone-else'});
  assert.equal(first.code,200);assert.equal(db.profile.user_id,db.user.id);
- const second=await request(db,'POST',{name:'Changed',department:'Other'});
- assert.equal(second.body.profile.name,'Mark');assert.equal(db.profile.department,'Deck');
+ const second=await request(db,'POST',{name:'Changed',department:'Other',phone:'+44 7700 900999'});
+ assert.equal(second.body.profile.name,'Mark');assert.equal(db.profile.department,'Deck');assert.equal(db.profile.phone,'+447700900123');
 });
 test('players and guests cannot patch a profile; admin can',async()=>{
- const db=database({name:'Mark',department:'Deck'});const body={name:'Updated',department:'Mech',user_id:db.user.id};
+ const db=database({name:'Mark',department:'Deck'});const body={name:'Updated',department:'Mech',phone:'+44 7700 900999',user_id:db.user.id};
  assert.equal((await request(db,'PATCH',body)).code,403);
  assert.equal((await request(db,'PATCH',body,false,null)).code,401);
  assert.equal(db.profile.name,'Mark');
- assert.equal((await request(db,'PATCH',body,true)).code,200);assert.equal(db.profile.name,'Updated');
+ assert.equal((await request(db,'PATCH',body,true)).code,200);assert.equal(db.profile.name,'Updated');assert.equal(db.profile.phone,'+447700900999');
 });
 test('bad profile data is rejected and responses are not cached',async()=>{
  const response=await request(database(),'POST',{name:' ',department:'Deck'});
  assert.equal(response.code,400);assert.equal(response.headers['Cache-Control'],'no-store');
+});
+
+test('phone is required and must include a country code',async()=>{
+ for (const phone of [undefined, '', '07700900123', '+123', '+447700<script>', '+01234567890', '+1234567890123456']) {
+  const db=database();
+  assert.equal((await request(db,'POST',{name:'Player',phone})).code,400);
+  assert.equal(db.profile,null);
+ }
+});
+test('phone is normalised for the private profile but excluded from entry identity',async()=>{
+ const db=database();
+ const result=await request(db,'POST',{name:'Player',department:'Deck',phone:'+44 (7700) 900-123'});
+ assert.equal(result.code,200);
+ assert.equal(db.profile.phone,'+447700900123');
+ assert.deepEqual(await entryIdentity(db,'Bearer valid',{}),{name:'Player',department:'Deck'});
+ assert.deepEqual(await entryIdentity(db,undefined,{name:'Guest',phone:'+447700900123'}),{name:'Guest',department:''});
 });

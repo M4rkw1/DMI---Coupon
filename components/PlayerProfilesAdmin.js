@@ -2,14 +2,17 @@ import { useEffect, useState } from 'react';
 function ProfileRow({ profile, admin }) {
   const [name,setName]=useState(profile.name);
   const [department,setDepartment]=useState(profile.department);
+  const [phone,setPhone]=useState(profile.phone || '');
   const [message,setMessage]=useState('');
   const [busy,setBusy]=useState(false);
   return <form className="playerProfileRow" onSubmit={async e=>{e.preventDefault();setBusy(true);setMessage('');try {
-    const r=await fetch('/api/player-profile',{method:'PATCH',headers:{'Content-Type':'application/json','x-admin-pass':admin},body:JSON.stringify({user_id:profile.user_id,name,department})});
-    const data=await r.json();if(!r.ok)throw new Error(data.error);setName(data.profile.name);setDepartment(data.profile.department);setMessage('Saved. Future entries will use these details.');
+    const r=await fetch('/api/player-profile',{method:'PATCH',headers:{'Content-Type':'application/json','x-admin-pass':admin},body:JSON.stringify({user_id:profile.user_id,name,department,phone})});
+    const data=await r.json();if(!r.ok)throw new Error(data.error);setName(data.profile.name);setDepartment(data.profile.department);setPhone(data.profile.phone);setMessage('Saved. Future entries will use these details.');
   } catch(e){setMessage(e.message);}finally{setBusy(false);}}}>
     <label>Name<input required maxLength={100} value={name} onChange={e=>setName(e.target.value)} /></label>
     <label>Department<input maxLength={100} value={department} onChange={e=>setDepartment(e.target.value)} /></label>
+    <label>WhatsApp phone number<input type="tel" required maxLength={40} placeholder="+44 7700 900123" value={phone} onChange={e=>setPhone(e.target.value)} /></label>
+    <p>Private contact number for matching players in the WhatsApp group. Self-reported; not verified by WhatsApp.</p>
     <button disabled={busy}>{busy?'Saving…':'Save player details'}</button><p role="status">{message}</p>
   </form>;
 }

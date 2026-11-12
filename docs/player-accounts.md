@@ -48,3 +48,22 @@ above; those have not been performed by the implementation checks.
 The public state API never returns the profile table or email addresses. Tokens
 are sent only in Authorization headers and are verified with Supabase getUser.
 Profile names/departments are not stored in mutable auth user metadata.
+
+## WhatsApp identification
+
+New account profiles require a WhatsApp phone number including country code.
+Numbers are normalised to international +digits format (8–15 digits); this checks
+format only, not ownership or WhatsApp membership. The player and authenticated
+admins can view the number. Only admins may change it after initial setup.
+Numbers stay in the private profile table and are never copied to public entries,
+leaderboards, archive snapshots or share images. Guest entry remains unchanged.
+No WhatsApp messages are sent and no group membership is automated.
+
+Run `migrations/20261112_player_profile_phone.sql` after the base profile migration
+before deploying this update. Legacy profiles have a null phone until an admin
+adds it; the account view directs those players to the admin.
+
+Rollout status, 12 November 2026: base profile migration applied and privacy
+permissions verified (RLS true, anon read false, authenticated update false).
+Production Site URL and exact /account callback are saved. Email delivery is not
+yet configured; login remains disabled pending SMTP setup and end-to-end checks.

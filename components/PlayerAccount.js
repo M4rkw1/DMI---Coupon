@@ -41,6 +41,7 @@ export default function PlayerAccount({ account }) {
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
   const [department, setDepartment] = useState('');
+  const [phone, setPhone] = useState('');
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   async function perform(action) {
@@ -54,15 +55,17 @@ export default function PlayerAccount({ account }) {
     {!accountsEnabled ? <p>Player sign-in is not enabled yet. You can still enter as a guest.</p> : account.loading ? <p role="status">Loading your account…</p> : account.session ? <>
       <p>Signed in as {account.session.user.email}</p>
       {account.error ? <><p role="alert">{account.error}</p><button onClick={account.reload}>Retry</button></> : account.profile ? <>
-        <dl><dt>Entry name</dt><dd>{account.profile.name}</dd><dt>Department</dt><dd>{account.profile.department || 'Not set'}</dd></dl>
+        <dl><dt>Entry name</dt><dd>{account.profile.name}</dd><dt>Department</dt><dd>{account.profile.department || 'Not set'}</dd><dt>WhatsApp phone number</dt><dd>{account.profile.phone || 'Not set — contact the admin'}</dd></dl>
         <p>Only the coupon admin can change these details. Contact them if you need a correction.</p>
       </> : <form onSubmit={e => { e.preventDefault(); perform(async () => {
         const token = await playerToken();
-        const r = await fetch('/api/player-profile', { method:'POST', headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`},body:JSON.stringify({name,department}) });
+        const r = await fetch('/api/player-profile', { method:'POST', headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`},body:JSON.stringify({name,department,phone}) });
         const data=await r.json(); if(!r.ok) throw new Error(data.error); account.reload();
       }); }}>
         <label>Entry name<input required maxLength={100} value={name} onChange={e=>setName(e.target.value)} autoComplete="name" /></label>
         <label>Department (optional)<input maxLength={100} value={department} onChange={e=>setDepartment(e.target.value)} /></label>
+        <label>WhatsApp phone number<input type="tel" required maxLength={40} value={phone} onChange={e=>setPhone(e.target.value)} autoComplete="tel" placeholder="+44 7700 900123" aria-describedby="phone-help" /></label>
+        <p id="phone-help">Include your country code (for UK numbers, replace the first 0 with +44). The admin uses this to identify you in the WhatsApp group. It is not shown publicly. Adding a number does not join a group or send a message.</p>
         <p>Check these details carefully. Once saved, only the admin can change them.</p>
         <button className="primary" disabled={busy}>Save my details</button>
       </form>}
