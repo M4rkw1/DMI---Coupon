@@ -65,5 +65,7 @@ adds it; the account view directs those players to the admin.
 
 Rollout status, 12 November 2026: base profile migration applied and privacy
 permissions verified (RLS true, anon read false, authenticated update false).
-Production Site URL and exact /account callback are saved. Email delivery is not
-yet configured; login remains disabled pending SMTP setup and end-to-end checks.
+Production Site URL and exact /account callback are saved. The phone migration
+is also applied. iCloud SMTP settings have been saved by the owner. Preview
+accounts are enabled for delivery and sign-in checks; production login remains
+disabled until these checks pass.
