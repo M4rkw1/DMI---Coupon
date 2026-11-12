@@ -1,3 +1,6 @@
+import PlayerAccount, { usePlayerAccount } from '../components/PlayerAccount';
+import PlayerProfilesAdmin from '../components/PlayerProfilesAdmin';
+import { accountsEnabled, playerToken } from '../lib/playerAuth';
 import AnnualLeagueAdmin, { PublicAnnualLeague } from '../components/AnnualLeague';
 import { outstandingPayments, outstandingTotals } from '../lib/outstandingPayments.mjs';
 import AdminTabs from '../components/AdminTabs';
@@ -523,6 +526,7 @@ const formatKickoff = (kickoff, settings = {}, selectedOnly = false) => {
 };
 
 export default function Home() {
+  const account = usePlayerAccount();
   const navigation = usePlayerNavigation();
   const [state, setState] = useState(null);
   const [tab, setTab] = useState('home');
@@ -536,6 +540,7 @@ export default function Home() {
   const draftWeek = useRef(null);
   const submittingRef = useRef(false);
   const entryWeekId = state?.entryWeek?.id;
+  const draftKey = `rig-coupon-draft:${entryWeekId}${account.session ? ':' + account.session.user.id : ''}`;
   useEffect(() => { if (msg) window.scrollTo({ top: 0 }); }, [msg]);
 
   function navigate(next) {
@@ -546,7 +551,7 @@ export default function Home() {
   }
   useEffect(() => {
     const syncTab = () => {
-      const allowed = ['home', 'enter coupon', 'leaderboard', 'historic winners', 'old school', 'admin'];
+      const allowed = ['home', 'enter coupon', 'leaderboard', 'historic winners', 'old school', 'admin', 'account'];
       let value = '';
       try { value = decodeURIComponent(window.location.hash.slice(1)); } catch {}
       setTab(allowed.includes(value) ? value : 'home');
@@ -556,22 +561,22 @@ export default function Home() {
     return () => window.removeEventListener('hashchange', syncTab);
   }, []);
   useEffect(() => {
-    if (!entryWeekId) return;
+    if (!entryWeekId || account.loading) return;
     let draft = { name: '', department: '', predictions: {} };
     try {
-      const stored = JSON.parse(localStorage.getItem(`rig-coupon-draft:${entryWeekId}`));
+      const stored = JSON.parse(localStorage.getItem(draftKey));
       if (stored && typeof stored.name === 'string' && stored.predictions && typeof stored.predictions === 'object') draft = { ...draft, ...stored };
     } catch {}
-    draftWeek.current = entryWeekId;
+    draftWeek.current = draftKey;
     setForm(draft);
-  }, [entryWeekId]);
+  }, [entryWeekId, draftKey, account.loading]);
   useEffect(() => {
-    if (!entryWeekId || draftWeek.current !== entryWeekId) return;
+    if (!entryWeekId || draftWeek.current !== draftKey) return;
     const timer = setTimeout(() => {
-      try { localStorage.setItem(`rig-coupon-draft:${entryWeekId}`, JSON.stringify(form)); } catch {}
+      try { localStorage.setItem(draftKey, JSON.stringify(form)); } catch {}
     }, 300);
     return () => clearTimeout(timer);
-  }, [form, entryWeekId]);
+  }, [form, entryWeekId, draftKey]);
 
   const imgRef = useRef(null);
   const unpaidImgRef = useRef(null);
@@ -803,7 +808,9 @@ async function adminAction(action, payload) {
     }
 
     if (submittingRef.current) return;
-    if (!form.name.trim()) return setMsg('Please enter your name.');
+    if (account.loading) return setMsg('Please wait for your account to load.');
+    if (account.session && (!account.profile || account.error)) return setMsg('Open My account to load or save your player details before entering.');
+    if (!account.session && !form.name.trim()) return setMsg('Please enter your name.');
     if (entryFixtures.some(f => ['home', 'away'].some(side => {
       const value = form.predictions[f.id]?.[side];
       return value === undefined || value === '' || !Number.isInteger(Number(value)) || Number(value) < 0 || Number(value) > 99;
@@ -811,14 +818,15 @@ async function adminAction(action, payload) {
     submittingRef.current = true;
     setSubmitting(true);
     try {
+      const token = account.session ? await playerToken() : null;
       const r = await fetch('/api/entry', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, week_id: entryWeek.id }),
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({ ...form, ...(account.profile || {}), week_id: entryWeek.id }),
       });
       const j = await r.json();
       if (!r.ok) throw new Error(j.error || 'Entry failed');
-      try { localStorage.removeItem(`rig-coupon-draft:${entryWeek.id}`); } catch {}
+      try { localStorage.removeItem(draftKey); } catch {}
       setForm({ name: '', department: '', predictions: {} });
       navigate('leaderboard');
       setMsg('Your coupon has been submitted. Good luck!');
@@ -835,6 +843,7 @@ async function adminAction(action, payload) {
     <div data-navigation={navigation.right ? 'right' : 'standard'} className={`appShell ${tab === 'admin' ? 'adminPage' : tab === 'old school' ? 'printPage' : 'playerApp'}`}>
       <PlayerHeader tab={tab} onNavigate={navigate} navigation={navigation} />
       <main className="wrap playerMain">
+        {tab === 'account' && <PlayerAccount account={account} />}
         {msg && <div className="msg" role="status">{msg}</div>}
         {loadError && <div className="playerLoadError" role="alert"><strong>Unable to refresh the coupon.</strong><p>{week.id ? 'Showing the last loaded scores. Please reconnect before submitting.' : 'Please check your connection and try again.'}</p><button onClick={load}>Try again</button></div>}
         {tab === 'leaderboard' && <WinnerBanner ranked={ranked} fixtures={fixtures} pot={pot} settings={settings} />}
@@ -864,6 +873,7 @@ async function adminAction(action, payload) {
                 <div className="playerSectionHeading"><h1>My coupon</h1><span>{entryFixtures.filter(f => ['home', 'away'].every(side => form.predictions[f.id]?.[side] !== undefined && form.predictions[f.id]?.[side] !== '')).length} / {entryFixtures.length} picked</span></div>
                 {entryDeadline && <p className="playerClosing">Closes {formatViewerDateTime(entryDeadline)} <strong>{countdownText}</strong></p>}
 
+                {accountsEnabled && <p>{account.loading ? 'Loading account…' : account.session ? (account.profile ? 'Your saved name and department are locked. Contact the admin to change them.' : 'Open My account to finish setting up your player details.') : 'Enter as a guest, or sign in to remember your details.'} <button type="button" onClick={() => navigate('account')}>{account.session ? 'My account' : 'Sign in (optional)'}</button></p>}
                 <form onSubmit={submitEntry}>
                   <div className="grid2">
                     <input
@@ -872,7 +882,8 @@ async function adminAction(action, payload) {
                       aria-label="Your name"
                       autoComplete="name"
                       maxLength={100}
-                      value={form.name}
+                      value={account.session ? account.profile?.name || '' : form.name}
+                      readOnly={!!account.session || account.loading}
                       onChange={e => setForm({ ...form, name: e.target.value })}
                     />
 
@@ -880,7 +891,8 @@ async function adminAction(action, payload) {
                       placeholder="Department (optional)"
                       aria-label="Department (optional)"
                       maxLength={100}
-                      value={form.department}
+                      value={account.session ? account.profile?.department || '' : form.department}
+                      readOnly={!!account.session || account.loading}
                       onChange={e => setForm({ ...form, department: e.target.value })}
                     />
                   </div>
@@ -4125,6 +4137,7 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
             Save Results Now
           </button>
         </section>
+        <section data-tab="accounts" data-label="Player Accounts"><PlayerProfilesAdmin admin={admin} /></section>
         <section data-tab="entries" data-label="Entries & Payments">
       <h3>Entries / Payments</h3>
       <p>

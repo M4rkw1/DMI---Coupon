@@ -1,3 +1,4 @@
+import { entryIdentity } from '../../lib/playerIdentity.mjs';
 import { supabaseAdmin } from '../../lib/supabase';
 
 const UK_TIME_ZONE = 'Europe/London';
@@ -55,13 +56,14 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
 
   try {
-    const { week_id, name, department, predictions } = req.body;
+    const { week_id, predictions } = req.body || {};
 
-    if (!week_id || !name || !predictions) {
+    if (!week_id || !predictions) {
       return res.status(400).json({ error: 'Missing entry details' });
     }
 
     const db = supabaseAdmin();
+    const { name, department } = await entryIdentity(db, req.headers.authorization, req.body);
 
     const weekResult = await db
       .from('coupon_weeks')
@@ -122,6 +124,6 @@ export default async function handler(req, res) {
 
     res.status(200).json({ entry: data });
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    res.status(e.status || 500).json({ error: e.status ? e.message : 'Unable to submit your coupon. Please try again.' });
   }
 }

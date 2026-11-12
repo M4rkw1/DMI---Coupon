@@ -330,3 +330,12 @@ html:has(.playerApp), body:has(.playerApp) { background:#081724; }
 .playerApp .historicDetailTable tbody td small { font-size:13px; }
 .playerApp .historicDetailTable th:first-child { min-width:180px; }
 .playerApp .historicDetailTable tbody td:first-child { min-width:180px; box-shadow:2px 0 0 #40586b; }
+
+.playerAccount { max-width:580px; margin:24px auto; }
+.playerAccount label,.playerProfileRow label { display:block; margin:16px 0; }
+.playerAccount input,.playerProfileRow input { display:block; width:100%; margin-top:6px; }
+.playerAccount a { color:#f1cf80; }
+.playerAccount dd { margin:6px 0 18px; font-weight:700; }
+.playerAccount button { margin:8px 8px 8px 0; min-height:44px; }
+.playerApp input[readonly] { background:#193142; color:#e4edf5; border-style:dashed; }
+.playerProfileRow { border-bottom:1px solid #8799aa; padding:12px 0; max-width:600px; }
