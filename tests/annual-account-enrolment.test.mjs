@@ -49,7 +49,7 @@ function database({savedProfile=profile,conflict=false}={}) {
 }
 async function request(db,{admin=true,method='POST',body={action:'enrolAccount',revision:4,payload:{userId:profile.user_id,paid:true,name:'Tampered',phone:'secret'}}}={}) {
   const res={code:200,setHeader(){},status(code){this.code=code;return this;},json(body){this.body=body;return this;}};
-  await createAnnualLeagueHandler({supabaseAdmin:()=>db,isAdmin:()=>admin})({method,body,headers:{authorization:'Bearer player'}},res);
+  await createAnnualLeagueHandler({supabaseAdmin:()=>db,isAdmin:()=>admin,reconcile:async()=>db.row})({method,body,headers:{authorization:'Bearer player'}},res);
   return res;
 }
 test('API rejects player enrolment and stale admin revisions without writes',async()=>{
