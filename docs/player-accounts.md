@@ -79,3 +79,15 @@ The server reads the saved account name and department and links the annual memb
 No database migration or new environment variable is needed. Account IDs and department stay out of public league responses, and phone numbers are not copied into league records.
 
 Validation: 41 Node tests pass, production build passes, and the checkbox/status transition was checked in a local sample view without modifying real membership/payment records.
+
+## Automatic annual entries and points
+
+From this release onward, signed-in entries are saved with a separate private account link. Apply `migrations/20261113_annual_entry_links.sql` before deploying. Its service-only RPC commits the entry and link in one transaction. Guest entries use the existing submission path. Older entries have no trustworthy account link and are not inferred from names.
+
+For published coupons assigned to calendar year 2027 and weeks 1–52, paid members' first signed-in entry is selected automatically (created_at, then entry ID). One entry counts per member each week. Eligibility is frozen at initial finalisation, so later enrolment/payment does not backfill points. All coupon entries determine winner/runner-up levels, including guests and additional entries, matching existing league scoring: +1 participation, +5 highest score, +2 next distinct score.
+
+Reconciliation runs after submissions, result syncs, admin result/entry changes, before archiving, and when loading the annual league. Incomplete fixtures stay in draft. Once all are finished/void, points are stored. Changed results update automatic weeks, with revision checks and retries protecting concurrent admin edits. Failed updates retry on the next league load or event. This does not introduce a separate score-fetching schedule: the existing live-score sync still supplies match results.
+
+Live/archive copies with the same fixture IDs count once; private links survive archiving. Multiple distinct coupons assigned to one calendar week require an admin to choose the source. Existing manual weeks are preserved. Reopening or saving a draft makes that week manual, preventing automation from undoing corrections; finish that week with the existing Finalise action. Guest/legacy entries can still be verified manually.
+
+Validation: 50 Node tests and production build pass, including first-entry selection, completion/void rules, late payment eligibility, archive deduplication, result corrections, manual override, idempotence across JSON key ordering, and concurrent admin writes. Database submission/privacy checked inside a rolled-back transaction with no persisted test entry.

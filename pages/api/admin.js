@@ -1,3 +1,4 @@
+import { reconcileAnnualLeagueSafely } from '../../lib/annualAutomation.mjs';
 import { supabaseAdmin, isAdmin } from '../../lib/supabase';
 
 const resultOf = (h, a) => (h > a ? 'H' : h < a ? 'A' : 'D');
@@ -157,6 +158,7 @@ async function loadSnapshotData(db, weekId) {
 }
 
 async function createArchive(db, weekId, saveHistoric) {
+  await reconcileAnnualLeagueSafely(db);
   const snapshot = await loadSnapshotData(db, weekId);
 
   if (!snapshot.fixtures.length && !snapshot.entries.length) {
@@ -492,6 +494,7 @@ export default async function handler(req, res) {
         }
       }
 
+      await reconcileAnnualLeagueSafely(db);
       return res.status(200).json({ ok: true, cleared: fixtureIds.length });
     }
     if (action === 'updateFixtureApiData') {
@@ -536,6 +539,7 @@ export default async function handler(req, res) {
         }
       }
 
+      await reconcileAnnualLeagueSafely(db);
       return res.status(200).json({ ok: true, updated: rows.length });
     }
     if (action === 'updateEntry') {
@@ -712,6 +716,7 @@ export default async function handler(req, res) {
 
       return res.status(200).json({ ok: true, archive_id: archiveId, entry_id: entryId, paid });
     }
+    await reconcileAnnualLeagueSafely(db);
     res.status(200).json({ ok: true });
   } catch (e) {
     if (/auto_live_scores|last_live_sync_at/i.test(e.message || '')) {

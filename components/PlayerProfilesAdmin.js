@@ -38,7 +38,7 @@ export default function PlayerProfilesAdmin({admin}) {
     <button onClick={()=>setOpen(!open)}>{open?'Hide player accounts':'Load player accounts'}</button>
     {open && (loading ? <p>Loading…</p> : error ? <p role="alert">{error}</p> : <>
       {!profiles.length && <p>No player profiles on this page.</p>}
-      <p>Enrol saved players in the 2027 annual league after receiving their separate $100 annual payment. Weekly coupon entries still need verification in Winners League.</p>
+      <p>Enrol saved players in the 2027 annual league after receiving their separate $100 annual payment. Their signed-in weekly entries and annual points are added automatically once results are final. Guest entries still need manual verification.</p>
       <button disabled={leagueBusy} onClick={loadLeague}>Reload annual payments</button>
       {leagueError && <p role="alert">{leagueError}</p>}
       {leagueMessage && <p role="status">{leagueMessage}</p>}

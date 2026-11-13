@@ -1,4 +1,5 @@
-import { entryIdentity } from '../../lib/playerIdentity.mjs';
+import { entryAccount } from '../../lib/playerIdentity.mjs';
+import { reconcileAnnualLeagueSafely } from '../../lib/annualAutomation.mjs';
 import { supabaseAdmin } from '../../lib/supabase';
 
 const UK_TIME_ZONE = 'Europe/London';
@@ -63,7 +64,7 @@ export default async function handler(req, res) {
     }
 
     const db = supabaseAdmin();
-    const { name, department } = await entryIdentity(db, req.headers.authorization, req.body);
+    const { identity:{name,department},userId } = await entryAccount(db, req.headers.authorization, req.body);
 
     const weekResult = await db
       .from('coupon_weeks')
@@ -107,7 +108,9 @@ export default async function handler(req, res) {
       });
     }
 
-    const { data, error } = await db
+    const { data, error } = userId ? await db.rpc('submit_player_entry', {
+      p_user_id:userId,p_week_id:week_id,p_predictions:predictions,
+    }) : await db
       .from('entries')
       .insert({
         week_id,
@@ -121,6 +124,8 @@ export default async function handler(req, res) {
       .single();
 
     if (error) throw error;
+
+    await reconcileAnnualLeagueSafely(db);
 
     res.status(200).json({ entry: data });
   } catch (e) {
