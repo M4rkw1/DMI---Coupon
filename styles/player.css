@@ -337,5 +337,10 @@ html:has(.playerApp), body:has(.playerApp) { background:#081724; }
 .playerAccount a { color:#f1cf80; }
 .playerAccount dd { margin:6px 0 18px; font-weight:700; }
 .playerAccount button { margin:8px 8px 8px 0; min-height:44px; }
+.playerAccountAdminCard { border:1px solid #8b9bad; border-radius:12px; padding:18px; margin:18px 0; }
+.accountAnnualEnrolment { border-top:1px solid #8b9bad; margin-top:18px; padding-top:8px; }
+.accountAnnualEnrolment select { display:block; max-width:100%; margin:8px 0; }
+.accountAnnualEnrolment .annualPaymentCheckbox { display:flex; align-items:flex-start; gap:12px; padding:14px; background:#edf6ee; color:#183f28; border:1px solid #779783; border-radius:8px; font-weight:700; }
+.accountAnnualEnrolment .annualPaymentCheckbox input { width:20px; height:20px; flex:0 0 20px; margin:0; accent-color:#235b38; }
 .playerApp input[readonly] { background:#193142; color:#e4edf5; border-style:dashed; }
 .playerProfileRow { border-bottom:1px solid #8799aa; padding:12px 0; max-width:600px; }
