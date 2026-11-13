@@ -1,3 +1,4 @@
+import { accountsEnabled } from '../lib/playerAuth';
 import { useEffect, useState } from 'react';
 import { prefersDuoNavigation, navigationPreference } from '../lib/playerNavigation.mjs';
 
@@ -67,6 +68,7 @@ export function PlayerHeader({ tab, onNavigate, navigation }) {
       <div className="playerMenuWrap">
         <button className="playerMenuButton" aria-label="More options" aria-expanded={menuOpen} aria-controls="player-menu" onClick={() => setMenuOpen(!menuOpen)}><AppIcon name="more" /></button>
         {menuOpen && <div className="playerMenu" id="player-menu" onKeyDown={e => { if (e.key === 'Escape') setMenuOpen(false); }}>
+          {accountsEnabled && <button onClick={() => onNavigate('account')}>My account / Sign in</button>}
           <button onClick={() => onNavigate('old school')}>Print coupon</button>
           <button onClick={install}>Add to home screen</button>
           <button onClick={() => onNavigate('admin')}>Admin</button>
