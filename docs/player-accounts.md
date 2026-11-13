@@ -69,3 +69,13 @@ Production Site URL and exact /account callback are saved. The phone migration
 is also applied. iCloud SMTP settings have been saved by the owner. Preview
 accounts are enabled for delivery and sign-in checks; production login remains
 disabled until these checks pass.
+
+## Admin annual league enrolment
+
+In Admin → Player Accounts, load the profiles and tick “$100 annual payment received — enrol in the 2027 league”, then choose “Confirm payment & enrol”. This records a payment already received; it does not collect money. Players cannot enrol themselves.
+
+The server reads the saved account name and department and links the annual member to its private user ID. If a member already exists, explicitly select that membership to retain its ID and finalised points. No automatic name matching or retrospective points are added. Weekly entries still require verification in Annual League. Payment corrections remain available in either admin section; use Reload if another session changes the league.
+
+No database migration or new environment variable is needed. Account IDs and department stay out of public league responses, and phone numbers are not copied into league records.
+
+Validation: 41 Node tests pass, production build passes, and the checkbox/status transition was checked in a local sample view without modifying real membership/payment records.
