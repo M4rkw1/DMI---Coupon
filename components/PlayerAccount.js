@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import EmailCodeSignIn from './EmailCodeSignIn';
 import { accountsEnabled, playerAuth, playerToken } from '../lib/playerAuth';
 
 export function usePlayerAccount() {
@@ -38,7 +39,6 @@ export function usePlayerAccount() {
 }
 
 export default function PlayerAccount({ account }) {
-  const [email, setEmail] = useState('');
   const [name, setName] = useState('');
   const [department, setDepartment] = useState('');
   const [phone, setPhone] = useState('');
@@ -70,16 +70,7 @@ export default function PlayerAccount({ account }) {
         <button className="primary" disabled={busy}>Save my details</button>
       </form>}
       <button disabled={busy} onClick={()=>perform(async()=>{const {error}=await playerAuth().auth.signOut({scope:'local'});if(error)throw error;})}>Sign out</button>
-    </> : <form onSubmit={e=>{e.preventDefault();perform(async()=>{
-      const {error}=await playerAuth().auth.signInWithOtp({email:email.trim(),options:{emailRedirectTo:`${window.location.origin}/account`}});
-      if(error) throw error;
-      setMessage('Check your email for a sign-in link. You will stay signed in on this device.');
-    });}}>
-      {account.error && <p role="alert">{account.error}</p>}
-      <label>Email address<input type="email" required autoComplete="email" value={email} onChange={e=>setEmail(e.target.value)} /></label>
-      <p>No password needed. Sign in once and we’ll keep you signed in on this device until you sign out or your session expires. On a shared device, sign out when finished.</p>
-      <button className="primary" disabled={busy}>{busy?'Sending…':'Email me a sign-in link'}</button>
-    </form>}
+    </> : <EmailCodeSignIn accountError={account.error} />}
     {message && <p role="status">{message}</p>}
     <p><a href="/#enter%20coupon">{account.session ? 'Back to coupon' : 'Continue as a guest'}</a></p>
   </section>;
