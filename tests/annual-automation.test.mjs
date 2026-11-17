@@ -12,7 +12,7 @@ const source=()=>({week:{id:'w',title:'Week 1',calendar_year:2027,calendar_week:
 const accounts=[{entry_id:'e1',user_id:'u1'},{entry_id:'e2',user_id:'u2'},{entry_id:'e3',user_id:'u3'}];
 const run=(data=seed(),coupon=source(),links=accounts)=>automaticAnnualData(data,[{week:1,sourceId:'w',source:coupon}],links,'now');
 test('signed-in paid members get participation and podium points once; JSON key order does not trigger writes',()=>{
- const first=run();assert.deepEqual(standings(first.data).map(m=>m.points),[6,3]);
+ const first=run();assert.deepEqual(standings(first.data).map(m=>m.points),[6,4]);
  assert.equal(first.data.weeks[1].automatic,true);assert.equal(first.data.weeks[1].links.length,2);
  assert.equal(run(first.data).changed,false);
  const reordered=JSON.parse(JSON.stringify(first.data),(_k,v)=>v&&typeof v==='object'&&!Array.isArray(v)?Object.fromEntries(Object.entries(v).sort(([a],[b])=>a.localeCompare(b))):v);
@@ -29,7 +29,7 @@ test('first signed-in entry counts, guests with same name do not match and unpai
  coupon.entries[0].name='Two';coupon.entries[0].predictions.f={home:0,away:3};
  const result=run(seed(),coupon,[...accounts,{entry_id:'later',user_id:'u1'}]);
  assert.equal(result.data.weeks[1].links.find(l=>l.memberId==='m1').entryId,'e1');
- assert.equal(standings(result.data).find(m=>m.id==='m1').points,1);
+ assert.equal(standings(result.data).find(m=>m.id==='m1').points,3);
  const guest=run(seed(),coupon,[]);assert.equal(guest.data.weeks[1].scores.length,0);
 });
 test('payment after first finalisation does not award retrospective points',()=>{

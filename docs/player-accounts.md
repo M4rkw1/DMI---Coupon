@@ -91,3 +91,13 @@ Reconciliation runs after submissions, result syncs, admin result/entry changes,
 Live/archive copies with the same fixture IDs count once; private links survive archiving. Multiple distinct coupons assigned to one calendar week require an admin to choose the source. Existing manual weeks are preserved. Reopening or saving a draft makes that week manual, preventing automation from undoing corrections; finish that week with the existing Finalise action. Guest/legacy entries can still be verified manually.
 
 Validation: 50 Node tests and production build pass, including first-entry selection, completion/void rules, late payment eligibility, archive deduplication, result corrections, manual override, idempotence across JSON key ordering, and concurrent admin writes. Database submission/privacy checked inside a rolled-back transaction with no persisted test entry.
+
+## Home-screen sign-in and podium update (17 November 2026)
+
+The account screen now offers an email code, verified in the same Supabase client as the home-screen app. This avoids requiring email links to reopen an installed app or share Safari storage. The pending email (never the code) is retained in sessionStorage for reloads, with an “I already have a code” path if the app was restarted. Code failures stay on the form and resends have a 60-second UI cooldown; Supabase still enforces its server limits. Existing session persistence/refresh is unchanged.
+
+Both Supabase Magic link/OTP and Confirm sign up email templates use `emails/player-sign-in.html`, with subject “Your Rig Coupon sign-in code”. The legacy confirmation link remains for older clients; users should use either the code or link, not both. No auth protection, credential or session-policy changes were made. A home-screen bookmark created without web-app mode must be re-added with “Open as Web App”; the website cannot convert an existing icon remotely.
+
+Confirmed scoring: keep 1 participation point and award 5 / 3 / 2 for the top three distinct score levels. Every tie gets the full award, yielding totals of 6 / 4 / 3 / 1. New score records include their finishing place, and both admin/public tables count thirds. Existing legacy manually finalised scores retain their stored award; automatic weeks recalculate through the existing reconciliation.
+
+Validation: 56 Node tests pass (including tied podium totals, same-client code verification, failed/expired code handling), production build passes. Physical iPhone standalone session verification must be done on the player's device; the desktop browser cannot prove iOS app-launch behaviour.
