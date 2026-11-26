@@ -101,3 +101,9 @@ Both Supabase Magic link/OTP and Confirm sign up email templates use `emails/pla
 Confirmed scoring: keep 1 participation point and award 5 / 3 / 2 for the top three distinct score levels. Every tie gets the full award, yielding totals of 6 / 4 / 3 / 1. New score records include their finishing place, and both admin/public tables count thirds. Existing legacy manually finalised scores retain their stored award; automatic weeks recalculate through the existing reconciliation.
 
 Validation: 56 Node tests pass (including tied podium totals, same-client code verification, failed/expired code handling), production build passes. Physical iPhone standalone session verification must be done on the player's device; the desktop browser cannot prove iOS app-launch behaviour.
+
+## Closing the live coupon
+
+Close Live Coupon now requires the expected live coupon ID and finished/void fixtures, saves the completed snapshot in Historic Winners, then deletes the live coupon row and its cascading fixtures/entries/settings. It does not update or activate other coupons. Archive failure prevents deletion. An archived deleted coupon can be explicitly restored as a draft, including its settings.
+
+When there is no live coupon, public state has no live/entry coupon and direct entry submissions are rejected. The latest draft is never used as a fallback. New coupons are drafts by default; activate the intended coupon explicitly to resume. The implementation does not close any real coupon during deployment.

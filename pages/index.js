@@ -733,7 +733,7 @@ async function validateAdminPassword() {
   const entryDeadline = entryDeadlineFor(entryFixtures);
   const entryFinalFixture = finalKickoffFor(entryFixtures);
   const upcomingEntryWeeks = (state.weeks || [])
-    .filter(item => item?.id && item.is_current !== true && item.is_published !== false)
+    .filter(item => week.id && item?.id && item.is_current !== true && item.is_published === true)
     .map(item => {
       const weekFixtures = state.fixturesByWeek?.[item.id] || [];
       const weekEntries = state.entriesByWeek?.[item.id] || [];
@@ -755,7 +755,7 @@ async function validateAdminPassword() {
       return aTime - bTime;
     });
 
-  const entriesOpen = entryFixtures.length > 0 && (entryDeadline ? now < entryDeadline : true);
+  const entriesOpen = !!week.id && !!entryWeek.id && entryWeek.is_published === true && entryFixtures.length > 0 && (entryDeadline ? now < entryDeadline : true);
 
   const countdownMs = entryDeadline ? entryDeadline.getTime() - now.getTime() : null;
 
@@ -2946,7 +2946,7 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
   async function closeLiveCoupon() {
     const liveFixtures = Array.isArray(state.fixtures) ? state.fixtures : [];
     const liveEntries = Array.isArray(state.entries) ? state.entries : [];
-    const finishedCount = liveFixtures.filter(isFinishedFixture).length;
+    const finishedCount = liveFixtures.filter(f=>isFinishedFixture(f)||['PST','CANC','ABD','AWD','WO'].includes(String(f.status||'').toUpperCase())).length;
 
     if (!activeWeekId) {
       setMsg('There is no live coupon to close.');
@@ -2966,7 +2966,7 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
     if (!confirmCloseLiveCoupon) {
       setConfirmCloseLiveCoupon(true);
       setMsg(
-        `Confirm close: this will archive ${activeWeekLabel}, save the leaderboard to Historic Winners, and close public entries for that coupon.`
+        `Confirm close: this will archive ${activeWeekLabel}, save the leaderboard to Historic Winners, and delete it from the live/draft list. No other coupon will become live or open for entries.`
       );
       return;
     }
@@ -2974,8 +2974,8 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
     setConfirmCloseLiveCoupon(false);
     await runAdminAction(
       'closeLiveCoupon',
-      {},
-      `${activeWeekLabel} closed and saved to Historic Winners.`
+      {week_id:activeWeekId},
+      `${activeWeekLabel} closed, removed from the live/draft list and saved to Historic Winners. No other coupon was activated.`
     );
   }
 
@@ -3591,8 +3591,8 @@ function Admin({ state, adminAction, setMsg, ranked, pot, imgRef, unpaidImgRef, 
 
           <h3>Close Live Coupon</h3>
           <p>
-            When all live fixtures are finished, archive the current leaderboard into Historic Winners and close
-            the coupon.
+            When all live fixtures are finished or void, save the results in Historic Winners and delete the coupon
+            from the live/draft list. Other coupons stay inactive and entries remain closed until you activate a coupon.
           </p>
 
           <button

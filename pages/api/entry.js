@@ -66,6 +66,10 @@ export default async function handler(req, res) {
     const db = supabaseAdmin();
     const { identity:{name,department},userId } = await entryAccount(db, req.headers.authorization, req.body);
 
+    const active=await db.from('coupon_weeks').select('id').eq('is_current',true).limit(1).maybeSingle();
+    if(active.error)throw active.error;
+    if(!active.data)return res.status(403).json({error:'Entries are closed. Please wait for the next coupon to be activated.'});
+
     const weekResult = await db
       .from('coupon_weeks')
       .select('id, is_published')

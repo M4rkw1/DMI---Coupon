@@ -1,3 +1,4 @@
+import { currentCoupon, entryCandidates } from '../../lib/couponLifecycle.mjs';
 import { supabaseAdmin, supabasePublic } from '../../lib/supabase';
 
 const UK_TIME_ZONE = 'Europe/London';
@@ -51,15 +52,14 @@ export default async function handler(req, res) {
     if (weeksResult.error) throw weeksResult.error;
 
     const weeks = weeksResult.data || [];
-    const week = weeks.find(item => item.is_current) || weeks[0];
+    const week = currentCoupon(weeks) || {};
 
-    if (!week?.id) throw new Error('No current coupon week found');
     const weekId = week.id;
     const weekIds = weeks.map(item => item.id).filter(Boolean);
     const [allFixtures, allEntries, allSettings, archives] = await Promise.all([
-      db.from('fixtures').select('*').in('week_id', weekIds.length ? weekIds : [weekId]).order('sort_order'),
-      db.from('entries').select('*').in('week_id', weekIds.length ? weekIds : [weekId]).order('created_at'),
-      db.from('coupon_settings').select('*').in('week_id', weekIds.length ? weekIds : [weekId]),
+      db.from('fixtures').select('*').in('week_id', weekIds).order('sort_order'),
+      db.from('entries').select('*').in('week_id', weekIds).order('created_at'),
+      db.from('coupon_settings').select('*').in('week_id', weekIds),
       db
         .from('coupon_archives')
         .select('id, week_title, week_subtitle, saved_as_historic, winner_name, winner_department, winner_points, leaderboard, snapshot, created_at')
@@ -111,7 +111,7 @@ export default async function handler(req, res) {
         .map(fixture => parseKickoff(fixture.kickoff))
         .filter(Boolean)
         .sort((a, b) => a - b)[0] || null;
-    const publishedWeeks = weeks.filter(item => item.is_published !== false);
+    const publishedWeeks = entryCandidates(weeks);
     const openEntryWeek =
       publishedWeeks
         .map(item => {
@@ -123,7 +123,7 @@ export default async function handler(req, res) {
           return { week: item, firstKickoff: firstKickoff?.getTime() || Number.MAX_SAFE_INTEGER };
         })
         .filter(Boolean)
-        .sort((a, b) => a.firstKickoff - b.firstKickoff)[0]?.week || week;
+        .sort((a, b) => a.firstKickoff - b.firstKickoff)[0]?.week || (week.is_published === true ? week : {});
     const entryWeekId = openEntryWeek.id || weekId;
 
     res.status(200).json({
