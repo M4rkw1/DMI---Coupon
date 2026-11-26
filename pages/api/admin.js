@@ -1,3 +1,4 @@
+import { closeCurrentCoupon } from '../../lib/couponLifecycle.mjs';
 import { reconcileAnnualLeagueSafely } from '../../lib/annualAutomation.mjs';
 import { supabaseAdmin, isAdmin } from '../../lib/supabase';
 
@@ -115,25 +116,7 @@ async function resolveCurrentWeekId(db) {
   if (current.error) throw current.error;
   if (current.data?.id) return current.data.id;
 
-  const latest = await db
-    .from('coupon_weeks')
-    .select('id')
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (latest.error) throw latest.error;
-  if (latest.data?.id) return latest.data.id;
-
-  const created = await insertCouponWeek(db, {
-    title: 'RIG Coupon',
-    subtitle: '',
-    is_current: true,
-    is_published: true,
-  });
-
-  if (created.error) throw created.error;
-  return created.data.id;
+  return null;
 }
 
 async function loadSnapshotData(db, weekId) {
@@ -297,7 +280,7 @@ export default async function handler(req, res) {
         calendar_week: calendarWeek,
         special_name: specialName,
         is_current: false,
-        is_published: true,
+        is_published: false,
       });
 
       if (created.error) throw created.error;
@@ -332,31 +315,9 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true, active_week_id: targetWeekId });
     }
     if (action === 'closeLiveCoupon') {
-      const currentWeek = await db
-        .from('coupon_weeks')
-        .select('id')
-        .eq('is_current', true)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (currentWeek.error) throw currentWeek.error;
-      const currentWeekId = currentWeek.data?.id;
-      if (!currentWeekId) return res.status(400).json({ error: 'No live coupon is currently active.' });
-
-      const snapshot = await loadSnapshotData(db, currentWeekId);
-      if (!snapshot.fixtures.length || !snapshot.entries.length) {
-        return res.status(400).json({ error: 'Cannot close coupon without fixtures and entries.' });
-      }
-
-      const archive = await createArchive(db, currentWeekId, true);
-
-      const closed = await updateCouponWeek(db, currentWeekId, {
-        is_current: false,
-        is_published: false,
-      });
-      if (closed.error) throw closed.error;
-
-      return res.status(200).json({ ok: true, archive_id: archive?.id || null, closed_week_id: currentWeekId });
+      try {
+        return res.status(200).json(await closeCurrentCoupon(db,{expectedId:payload?.week_id,loadSnapshot:loadSnapshotData,archive:createArchive}));
+      } catch(error) {return res.status(400).json({error:error.message});}
     }
     if (action === 'deleteDraftWeek') {
       const targetWeekId = String(payload?.week_id || '').trim();
@@ -638,15 +599,18 @@ export default async function handler(req, res) {
       if (deleteFixtures.error) throw deleteFixtures.error;
 
       const { id: weekRowId, created_at: weekCreatedAt, ...weekFields } = snapshot.week;
-      const { error: weekError } = await db.from('coupon_weeks').update(weekFields).eq('id', weekRowId);
+      const existingWeek = await db.from('coupon_weeks').select('id').eq('id',weekRowId).maybeSingle();
+      if(existingWeek.error)throw existingWeek.error;
+      const { error: weekError } = existingWeek.data
+        ? await db.from('coupon_weeks').update(weekFields).eq('id', weekRowId)
+        : await db.from('coupon_weeks').insert({...weekFields,id:weekRowId,is_current:false,is_published:false});
       if (weekError) throw weekError;
 
       if (snapshot.settings?.id) {
         const { id: settingsId, created_at: settingsCreatedAt, ...settingsFields } = snapshot.settings;
         const { error: settingsError } = await db
           .from('coupon_settings')
-          .update(settingsFields)
-          .eq('id', settingsId);
+          .upsert({...settingsFields,id:settingsId});
         if (settingsError) throw settingsError;
       }
 
